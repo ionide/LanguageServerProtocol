@@ -1,0 +1,29 @@
+name: Build
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+        dotnet: [6.0.x]
+      fail-fast: false # we have timing issues on some OS, so we want them all to run
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v1
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+      - name: Restore tools
+        run: dotnet tool restore
+      - name: Run build
+        run: dotnet run --project build
+      - name: Upload NuGet packages
+        uses: actions/upload-artifact@v2
+        with:
+          name: packages
+          path: release/
