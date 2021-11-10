@@ -1,0 +1,6 @@
+Newtonsoft.Json
+FSharp.Core
+Dotnet.ReproducibleBuilds
+
+Microsoft.NETFramework.ReferenceAssemblies
+File: FsLibLog.fs

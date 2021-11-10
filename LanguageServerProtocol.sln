@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30114.105
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "build", "build\build.fsproj", "{2AB71257-0BD5-4BDD-8F73-1A5A933F3742}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Ionide.LanguageServerProtocol", "src\Ionide.LanguageServerProtocol.fsproj", "{CA3DF91E-B82C-4DFC-BDBC-CE383717E457}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2AB71257-0BD5-4BDD-8F73-1A5A933F3742}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2AB71257-0BD5-4BDD-8F73-1A5A933F3742}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2AB71257-0BD5-4BDD-8F73-1A5A933F3742}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2AB71257-0BD5-4BDD-8F73-1A5A933F3742}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CA3DF91E-B82C-4DFC-BDBC-CE383717E457}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CA3DF91E-B82C-4DFC-BDBC-CE383717E457}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CA3DF91E-B82C-4DFC-BDBC-CE383717E457}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CA3DF91E-B82C-4DFC-BDBC-CE383717E457}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

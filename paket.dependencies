@@ -1,0 +1,31 @@
+source https://api.nuget.org/v3/index.json
+
+storage: none
+framework: netstandard2.0
+
+nuget Newtonsoft.Json
+nuget FSharp.Core
+nuget Dotnet.ReproducibleBuilds copy_local:true
+
+nuget Microsoft.NETFramework.ReferenceAssemblies
+github TheAngryByrd/FsLibLog:f81cba440bf0476bb4e2262b57a067a0d6ab78a7 src/FsLibLog/FsLibLog.fs
+
+group Build
+  source https://api.nuget.org/v3/index.json
+  storage: none
+
+  framework: net5.0
+
+  nuget Fake.Core.Target
+  nuget Fake.Core.Process
+  nuget Fake.DotNet.Cli
+  nuget Fake.Core.ReleaseNotes
+  nuget Fake.DotNet.AssemblyInfoFile
+  nuget Fake.DotNet.Paket
+  nuget Fake.Tools.Git
+  nuget Fake.Core.Environment
+  nuget Fake.Core.UserInput
+  nuget Fake.IO.FileSystem
+  nuget Fake.IO.Zip
+  nuget Fake.DotNet.MsBuild
+  nuget Fake.Api.GitHub
