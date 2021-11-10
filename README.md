@@ -2,6 +2,11 @@
 
 Library for implementing Language Server Protocol in F#.
 
+## How to build
+
+1. dotnet tool restore
+2. dotnet run --project build
+
 ## How to contribute
 
 _Imposter syndrome disclaimer_: I want your help. No really, I do.
