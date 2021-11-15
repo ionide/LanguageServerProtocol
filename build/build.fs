@@ -6,6 +6,8 @@ open Fake.IO.Globbing.Operators
 open Fake.DotNet
 open Fake.Core.TargetOperators
 open System
+open Fake.Core.Environment
+open Fake.Core.String
 
 let changelogFilename = __SOURCE_DIRECTORY__ </> ".." </> "CHANGELOG.md"
 let changelog = Changelog.load changelogFilename
@@ -97,6 +99,14 @@ let release = fun _ ->
            Configuration = DotNet.BuildConfiguration.fromString configuration
            MSBuildParams = { MSBuild.CliArguments.Create () with Properties = properties } }) "src/Ionide.LanguageServerProtocol.fsproj"
 
+let push = fun _ ->
+    let key =
+        match getBuildParam "nuget-key" with
+        | s when not (isNullOrWhiteSpace s) -> s
+        | _ -> UserInput.getUserPassword "NuGet Key: "
+    Paket.push (fun p -> { p with WorkingDir = buildDir; ApiKey = key; ToolType = ToolType.CreateLocalTool() })
+
+
 let initTargets() =
     let (==>!) x y = x ==> y |> ignore
 
@@ -105,12 +115,14 @@ let initTargets() =
     Target.create "Build" build
     Target.create "ReplaceFsLibLogNamespaces" replaceFsLibLog
     Target.create "Release" release
+    Target.create "Push" push
 
     "Clean"
     ==> "Restore"
     ==> "ReplaceFsLibLogNamespaces"
     ==> "Build"
-    ==>! "Release"
+    ==> "Release"
+    ==>! "Push"
 
 [<EntryPoint>]
 let main argv =
