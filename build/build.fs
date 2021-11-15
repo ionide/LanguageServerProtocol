@@ -102,7 +102,7 @@ let push = fun _ ->
         match Environment.getBuildParam "nuget-key" with
         | s when not (String.isNullOrWhiteSpace s) -> s
         | _ -> UserInput.getUserPassword "NuGet Key: "
-    Paket.push (fun p -> { p with WorkingDir = buildDir; ApiKey = key; ToolType = ToolType.CreateLocalTool() })
+    Paket.push (fun p -> { p with WorkingDir = (__SOURCE_DIRECTORY__ </> ".." </> releaseDir); ApiKey = key; ToolType = ToolType.CreateLocalTool() })
 
 
 let initTargets() =
