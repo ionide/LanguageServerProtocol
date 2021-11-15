@@ -6,8 +6,6 @@ open Fake.IO.Globbing.Operators
 open Fake.DotNet
 open Fake.Core.TargetOperators
 open System
-open Fake.Core.Environment
-open Fake.Core.String
 
 let changelogFilename = __SOURCE_DIRECTORY__ </> ".." </> "CHANGELOG.md"
 let changelog = Changelog.load changelogFilename
@@ -101,8 +99,8 @@ let release = fun _ ->
 
 let push = fun _ ->
     let key =
-        match getBuildParam "nuget-key" with
-        | s when not (isNullOrWhiteSpace s) -> s
+        match Environment.getBuildParam "nuget-key" with
+        | s when not (String.isNullOrWhiteSpace s) -> s
         | _ -> UserInput.getUserPassword "NuGet Key: "
     Paket.push (fun p -> { p with WorkingDir = buildDir; ApiKey = key; ToolType = ToolType.CreateLocalTool() })
 
