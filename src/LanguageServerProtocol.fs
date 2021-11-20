@@ -574,6 +574,121 @@ module Types =
         SymbolKind: SymbolKindCapabilities option
     }
 
+    module CodeActionKind =
+        /// Empty kind.
+        let Empty = ""
+
+        /// Base kind for quickfix actions: 'quickfix'.
+        let QuickFix = "quickfix"
+
+        /// Base kind for refactoring actions: 'refactor'.
+        let Refactor = "refactor"
+
+        /// Base kind for refactoring extraction actions: 'refactor.extract'.
+        ///
+        /// Example extract actions:
+        ///
+        /// - Extract method
+        /// - Extract function
+        /// - Extract variable
+        /// - Extract interface from class
+        /// - ...
+        let RefactorExtract = "refactor.extract"
+
+        /// Base kind for refactoring inline actions: 'refactor.inline'.
+        ///
+        /// Example inline actions:
+        ///
+        /// - Inline function
+        /// - Inline variable
+        /// - Inline constant
+        /// - ...
+        let RefactorInline = "refactor.inline"
+
+        /// Base kind for refactoring rewrite actions: 'refactor.rewrite'.
+        ///
+        /// Example rewrite actions:
+        ///
+        /// - Convert JavaScript function to class
+        /// - Add or remove parameter
+        /// - Encapsulate field
+        /// - Make method static
+        /// - Move method to base class
+        /// - ...
+        let RefactorRewrite = "refactor.rewrite"
+
+        /// Base kind for source actions: `source`.
+        ///
+        /// Source code actions apply to the entire file.
+        let Source = "source"
+
+        ///
+        /// Base kind for an organize imports source action:
+        /// `source.organizeImports`.
+        ///
+        let SourceOrganizeImports = "source.organizeImports"
+
+        ///
+        /// Base kind for a 'fix all' source action: `source.fixAll`.
+        ///
+        /// 'Fix all' actions automatically fix errors that have a clear fix that
+        /// do not require user input. They should not suppress errors or perform
+        /// unsafe fixes such as generating new types or classes.
+        ///
+        /// @since 3.17.0
+        let SourceFixAll = "source.fixAll"
+
+    type CodeActionClientCapabilityLiteralSupportCodeActionKind = {
+        /// The code action kind values the client supports. When this
+        /// property exists the client also guarantees that it will
+        /// handle values outside its set gracefully and falls back
+        /// to a default value when unknown.
+        /// See `CodeActionKind` for common values
+        ValueSet: string[]
+    }
+
+    type CodeActionClientCapabilityLiteralSupport = {
+        /// The code action kind is supported with the following value set.
+        CodeActionKind: CodeActionClientCapabilityLiteralSupportCodeActionKind
+    }
+
+    type CodeActionClientCapabilityResolveSupport = {
+        /// The properties that a client can resolve lazily.
+        Properties: string[]
+    };
+
+    /// capabilities specific to the `textDocument/codeAction`
+    type CodeActionClientCapabilities = {
+        /// Whether document symbol supports dynamic registration.
+        DynamicRegistration: bool option
+
+        /// The client supports code action literals as a valid
+        /// response of the `textDocument/codeAction` request.
+        CodeActionLiteralSupport: CodeActionClientCapabilityLiteralSupport option
+
+        /// Whether code action supports the `isPreferred` property.
+        IsPreferredSupport: bool option
+
+        /// Whether code action supports the `disabled` property.
+        DisabledSupport: bool option
+
+        /// Whether code action supports the `data` property which is
+        /// preserved between a `textDocument/codeAction` and a
+        /// `codeAction/resolve` request.
+        DataSupport: bool option
+
+        /// Whether the client supports resolving additional code action
+        /// properties via a separate `codeAction/resolve` request.
+        ResolveSupport: CodeActionClientCapabilityResolveSupport option
+
+        /// Whether the client honors the change annotations in
+        /// text edits and resource operations returned via the
+        /// `CodeAction#edit` property by for example presenting
+        /// the workspace edit in the user interface and asking
+        /// for confirmation.
+        HonorsChangeAnnotations: bool option
+    }
+
     [<RequireQualifiedAccess>]
     type DiagnosticTag =
         /// Unused or unnecessary code.
@@ -701,7 +816,7 @@ module Types =
         Definition: DynamicCapabilities option
 
         /// Capabilities specific to the `textDocument/codeAction`
-        CodeAction: DynamicCapabilities option
+        CodeAction: CodeActionClientCapabilities option
 
         /// Capabilities specific to the `textDocument/codeLens`
         CodeLens: DynamicCapabilities option
