@@ -1,5 +1,8 @@
 module Ionide.LanguageServerProtocol
 
+open System
+open System.Threading
+open System.Threading.Tasks
 open System.Diagnostics
 
 
@@ -848,6 +851,8 @@ module Types =
         /// Experimental client capabilities.
         Experimental: JToken option
     }
+
+    type CancelParams = { Id: int }
 
     type InitializeParams = {
         ProcessId: int option
@@ -2301,6 +2306,7 @@ module JsonRpc =
         let internalError = -32603
         let serverErrorStart = -32000
         let serverErrorEnd = -32099
+        let requestCancelled = -32800
 
     type Error = {
         Code: int
@@ -2316,6 +2322,7 @@ module JsonRpc =
         static member InvalidParams = Error.Create(ErrorCodes.invalidParams, "Invalid params")
         static member InternalError = Error.Create(ErrorCodes.internalError, "Internal error")
         static member InternalErrorMessage message = Error.Create(ErrorCodes.internalError, message)
+        static member RequestCancelled = Error.Create(ErrorCodes.requestCancelled, "Request cancelled")
 
     type Response = {
         [<JsonProperty("jsonrpc")>] Version: string
@@ -2887,6 +2894,8 @@ module Server =
         counter <- counter + 1
         counter
 
+    type ClientRequestStatus = { CancellationTokenSource: CancellationTokenSource; mutable Cancelled: bool }
+
     let start<'a, 'b when 'a :> LspClient and 'b :> LspServer> (requestHandlings : Map<string,RequestHandling<'b>>) (input: Stream) (output: Stream) (clientCreator: (ClientNotificationSender * ClientRequestSender) -> 'a) (serverCreator: 'a -> 'b) =
         let sender = MailboxProcessor<string>.Start(fun inbox ->
             let rec loop () = async {
@@ -2959,6 +2968,12 @@ module Server =
         let lspClient = clientCreator (sendServerNotification, { new ClientRequestSender with member __.Send x t  = sendServerRequest x t})
         use lspServer = serverCreator lspClient
 
+        let logMessage (msg: string) =
+            let p: ShowMessageParams = { Type = MessageType.Log; Message = msg }
+            sendServerNotification "window/showMessage" (box p) |> Async.Ignore |> Async.RunSynchronously
+
+        let mutable runningClientRequests: Map<int, ClientRequestStatus> = Map.empty
+
         let handleClientMessage (messageString: string): MessageHandlingResult =
             let messageTypeTest = JsonConvert.DeserializeObject<JsonRpc.MessageTypeTest>(messageString, jsonSettings)
             match getMessageType messageTypeTest with
@@ -2968,12 +2983,37 @@ module Server =
                 MessageHandlingResult.Normal
             | MessageType.Notification ->
                 let notification = JsonConvert.DeserializeObject<JsonRpc.Notification>(messageString, jsonSettings)
+
+                logMessage (sprintf "debug: received MessageType.Notification: %s" messageString)
+
                 async {
-                  let! result = handleNotification requestHandlings notification lspServer
+                  let! result =
+                      match notification.Method with
+                      | "$/cancelRequest" ->
+                          let cancelParams = notification.Params.Value.ToObject<CancelParams>()
+                          let requestStatusMaybe = runningClientRequests |> Map.tryFind cancelParams.Id
+
+                          match requestStatusMaybe with
+                          | Some requestStatus ->
+                              logMessage (sprintf "debug: cancelling request w/Id %d" cancelParams.Id)
+
+                              requestStatus.Cancelled <- true
+                              requestStatus.CancellationTokenSource.Cancel()
+
+                              runningClientRequests <- runningClientRequests |> Map.remove cancelParams.Id
+
+                          | None ->
+                              logMessage (sprintf "debug: no request status found for request %d" cancelParams.Id)
+
+                          async { return Result.Ok () }
+
+                      | _ -> handleNotification requestHandlings notification lspServer
+
                   match result with
                   | Result.Ok _ -> ()
                   | Result.Error ( { Code = code }) when code = JsonRpc.Error.MethodNotFound.Code ->
                     logger.trace (Log.setMessage "don't know how to handle method {messageType}" >> Log.addContext "messageType" notification.Method)
+                    logMessage (sprintf "don't know how to handle method %s" notification.Method)
                   | Result.Error (error) ->
                     logger.error (Log.setMessage "HandleClientMessage - Error {error} when handling notification {notification}" >> Log.addContext "error" error >> Log.addContextDestructured "notification" notification)
                     //TODO: Handle error on receiving notification, send message to user?
@@ -2987,15 +3027,34 @@ module Server =
                 | _ -> MessageHandlingResult.Normal
             | MessageType.Request ->
                 let request = JsonConvert.DeserializeObject<JsonRpc.Request>(messageString, jsonSettings)
+                let requestStatus = { CancellationTokenSource = new CancellationTokenSource(); Cancelled = false }
+                runningClientRequests <- runningClientRequests |> Map.add request.Id requestStatus
+
                 async {
-                  let! result = handleRequest requestHandlings request lspServer
-                  match result with
-                  | Some response ->
-                      let responseString = JsonConvert.SerializeObject(response, jsonSettings)
-                      sender.Post(responseString)
-                  | None -> ()
+                  try
+                    let! result = handleRequest requestHandlings request lspServer
+
+                    match result with
+                    | Some response ->
+                        let responseString = JsonConvert.SerializeObject(response, jsonSettings)
+                        sender.Post(responseString)
+                        logMessage (sprintf "<<< Some response for id=%d" request.Id)
+                    | None ->
+                        logMessage (sprintf "<<< None response for id=%d" request.Id)
+                        ()
+
+                  finally
+                    if requestStatus.Cancelled then
+                        logMessage (sprintf "<<< reqcancelled response; cancelled result for id=%d; OperationCanceledException thrown in handler" request.Id)
+
+                        let requestCancelledResponse = JsonRpc.Response.Failure(request.Id, JsonRpc.Error.RequestCancelled)
+                        JsonConvert.SerializeObject(requestCancelledResponse, jsonSettings) |> sender.Post
+                    else
+                        logMessage (sprintf "<<< normal response for Id=%d" request.Id)
+
+                    requestStatus.CancellationTokenSource.Dispose()
                 }
-                |> Async.StartAsTask
+                |> fun a -> Async.StartAsTask(a, cancellationToken=requestStatus.CancellationTokenSource.Token)
                 |> ignore
 
                 match request.Method with
