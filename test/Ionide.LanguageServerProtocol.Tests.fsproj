@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../src/Ionide.LanguageServerProtocol.fsproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Helpers.fs" />
+    <!-- <Compile Include="CoreTests.fs" /> -->
+    <!-- <Compile Include="ScriptTests.fs" /> -->
+    <!-- <Compile Include="ExtensionsTests.fs" /> -->
+    <!-- <Compile Include="InteractiveDirectivesTests.fs" /> -->
+    <!-- <Compile Include="SignatureHelpTests.fs" /> -->
+    <!-- <Compile Include="CodeFixTests.fs" /> -->
+    <!-- <Compile Include="CompletionTests.fs" /> -->
+    <!-- <Compile Include="RenameTests.fs" /> -->
+    <!-- <Compile Include="GoToTests.fs" /> -->
+    <!-- <Compile Include="FindReferencesTests.fs" /> -->
+    <!-- <Compile Include="HighlightingTests.fs" /> -->
+    <!-- <Compile Include="Program.fs" /> -->
+    <Compile Include="Dummy.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="AltCover" Version="8.2.833" />
+    <PackageReference Include="Expecto" Version="9.0.4" />
+    <PackageReference Include="FSharp.Control.Reactive" Version="5.0.2" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.0.0" />
+    <PackageReference Include="YoloDev.Expecto.TestSdk" Version="0.12.13" />
+  </ItemGroup>
+</Project>
