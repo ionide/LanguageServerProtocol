@@ -4,8 +4,18 @@ storage: none
 framework: netstandard2.0
 
 nuget Newtonsoft.Json
-nuget FSharp.Core
 nuget Dotnet.ReproducibleBuilds copy_local:true
+nuget FSharp.Core
+nuget FSharp.Control.Reactive
+nuget Expecto
+nuget Microsoft.NET.Test.Sdk
+nuget YoloDev.Expecto.TestSdk
+nuget AltCover
+nuget Microsoft.Build
+nuget Microsoft.Build.Framework
+nuget Microsoft.Build.Utilities.Core
+nuget Microsoft.Build.Tasks.Core
+nuget GitHubActionsTestLogger
 
 nuget Microsoft.NETFramework.ReferenceAssemblies
 github TheAngryByrd/FsLibLog:f81cba440bf0476bb4e2262b57a067a0d6ab78a7 src/FsLibLog/FsLibLog.fs
