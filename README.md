@@ -4,8 +4,7 @@ Library for implementing Language Server Protocol in F#.
 
 ## How to build
 
-1. dotnet tool restore
-2. dotnet run --project build
+1. dotnet build
 
 ## How to contribute
 
