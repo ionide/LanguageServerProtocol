@@ -4,11 +4,15 @@
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="..\paket-files\TheAngryByrd\FsLibLog\src\FsLibLog\FsLibLog.fs">
-      <Paket>True</Paket>
-      <Link>paket-files/FsLibLog.fs</Link>
-    </Compile>
+    <!-- FsLibLog.fs came verbatim from
+         https://github.com/TheAngryByrd/FsLibLog/blob/f81cba440bf0476bb4e2262b57a067a0d6ab78a7/src/FsLibLog/FsLibLog.fs
+    -->
+    <Compile Include="FsLibLog.fs" />
     <Compile Include="LanguageServerProtocol.fs" />
   </ItemGroup>
-  <Import Project="..\.paket\Paket.Restore.targets" />
+  <ItemGroup>
+    <PackageReference Include="DotNet.ReproducibleBuilds" Version="1.1.1" PrivateAssets="All"/>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="FSharp.Core" Version="6.0.1" />
+  </ItemGroup>
 </Project>

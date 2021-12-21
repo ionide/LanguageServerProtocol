@@ -2708,7 +2708,7 @@ type LspServer() =
 
 module Server =
     open System.IO
-    open LanguageServerProtocol.Logging
+    open FsLibLog
     open Newtonsoft.Json
     open Newtonsoft.Json.Serialization
 
@@ -3032,7 +3032,7 @@ module Server =
 module Client =
     open System
     open System.IO
-    open LanguageServerProtocol.Logging
+    open FsLibLog
     open Newtonsoft.Json
     open Newtonsoft.Json.Serialization
 
