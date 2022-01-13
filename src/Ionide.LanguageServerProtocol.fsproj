@@ -5,9 +5,11 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <ChangelogFile>$(MSBuildThisFileDirectory)../CHANGELOG.md</ChangelogFile>
     <Description>Library for implementing Language Server Protocol in F#.</Description>
-    <PackageTags>LSP</PackageTags>
+    <PackageTags>LSP, editor tooling</PackageTags>
+    <Authors>chethusk; Krzysztof-Cieslak</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/ionide/LanguageServerProtocol</PackageProjectUrl>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\paket-files\TheAngryByrd\FsLibLog\src\FsLibLog\FsLibLog.fs">
