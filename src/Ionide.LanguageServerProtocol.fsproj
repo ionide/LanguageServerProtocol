@@ -3,6 +3,11 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <ChangelogFile>$(MSBuildThisFileDirectory)../CHANGELOG.md</ChangelogFile>
+    <Description>Library for implementing Language Server Protocol in F#.</Description>
+    <PackageTags>LSP</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\paket-files\TheAngryByrd\FsLibLog\src\FsLibLog\FsLibLog.fs">
@@ -10,6 +15,7 @@
       <Link>paket-files/FsLibLog.fs</Link>
     </Compile>
     <Compile Include="LanguageServerProtocol.fs" />
+    <None Include="../README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
   <Import Project="..\.paket\Paket.Restore.targets" />
 </Project>
