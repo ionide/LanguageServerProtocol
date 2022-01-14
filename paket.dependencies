@@ -1,5 +1,4 @@
 source https://api.nuget.org/v3/index.json
-source C:\\Users\\chethusk\pkg-temp
 
 storage: none
 framework: netstandard2.0
