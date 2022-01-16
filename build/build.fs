@@ -23,7 +23,7 @@ let build = fun _ ->
   DotNet.build (fun p ->
      { p with
          Configuration = DotNet.BuildConfiguration.fromString configuration
-         MSBuildParams = MSBuild.CliArguments.Create() }) "LanguageServerProtocol.sln"
+         }) "LanguageServerProtocol.sln"
 
 
 let replaceFsLibLog = fun _ ->
@@ -44,7 +44,7 @@ let release = fun _ ->
        { p with
            OutputPath = Some (__SOURCE_DIRECTORY__ </> ".." </> releaseDir)
            Configuration = DotNet.BuildConfiguration.fromString configuration
-           MSBuildParams = MSBuild.CliArguments.Create () }) "src/Ionide.LanguageServerProtocol.fsproj"
+           }) "src/Ionide.LanguageServerProtocol.fsproj"
 
 let push = fun _ ->
     let key =
