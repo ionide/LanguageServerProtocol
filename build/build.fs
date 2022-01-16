@@ -7,62 +7,11 @@ open Fake.DotNet
 open Fake.Core.TargetOperators
 open System
 
-let changelogFilename = __SOURCE_DIRECTORY__ </> ".." </> "CHANGELOG.md"
-let changelog = Changelog.load changelogFilename
-let mutable latestEntry =
-    if Seq.isEmpty changelog.Entries
-    then Changelog.ChangelogEntry.New("0.0.1", "0.0.1-alpha.1", Some DateTime.Today, None, [], false)
-    else changelog.LatestEntry
-
 let configuration = Environment.environVarOrDefault "configuration" "Release"
 let project = "LanguageServerProtocol"
 let buildDir = "src" </> project </> "bin" </> "Debug"
 let buildReleaseDir = "src" </> project </>  "bin" </> "Release"
 let releaseDir = "release"
-
-let summary =
-    "Building Language Server Protocol server and clients in F#"
-
-let authors = "chethusk; Krzysztof-Cieslak;"
-let tags = "LSP; editor tooling"
-
-let gitOwner = "ionide"
-let gitName = "LanguageServerProtocol"
-let gitHome = "https://github.com/" + gitOwner
-let gitUrl = gitHome + "/" + gitName
-
-let packageReleaseNotes =
-    sprintf "%s/blob/v%s/CHANGELOG.md" gitUrl latestEntry.NuGetVersion
-
-// Helper function to remove blank lines
-let isEmptyChange =
-    function
-    | Changelog.Change.Added s
-    | Changelog.Change.Changed s
-    | Changelog.Change.Deprecated s
-    | Changelog.Change.Fixed s
-    | Changelog.Change.Removed s
-    | Changelog.Change.Security s
-    | Changelog.Change.Custom (_, s) -> String.isNullOrWhiteSpace s.CleanedText
-
-let releaseNotes =
-    latestEntry.Changes
-    |> List.filter (isEmptyChange >> not)
-    |> List.map (fun c -> " * " + c.ToString())
-    |> String.concat "\n"
-
-let properties =
-    [   ("Version", latestEntry.AssemblyVersion)
-        ("Authors", authors)
-        ("PackageProjectUrl", gitUrl)
-        ("PackageTags", tags)
-        ("RepositoryType", "git")
-        ("RepositoryUrl", gitUrl)
-        ("PackageLicenseExpression", "MIT")
-        ("PackageReleaseNotes", packageReleaseNotes)
-        ("PackageDescription", summary)
-        ("EnableSourceLink", "true") ]
-
 
 let clean = fun _ ->
   Shell.cleanDirs [ buildDir; buildReleaseDir; ]
@@ -74,7 +23,7 @@ let build = fun _ ->
   DotNet.build (fun p ->
      { p with
          Configuration = DotNet.BuildConfiguration.fromString configuration
-         MSBuildParams = { MSBuild.CliArguments.Create () with Properties = properties } }) "LanguageServerProtocol.sln"
+         }) "LanguageServerProtocol.sln"
 
 
 let replaceFsLibLog = fun _ ->
@@ -95,7 +44,7 @@ let release = fun _ ->
        { p with
            OutputPath = Some (__SOURCE_DIRECTORY__ </> ".." </> releaseDir)
            Configuration = DotNet.BuildConfiguration.fromString configuration
-           MSBuildParams = { MSBuild.CliArguments.Create () with Properties = properties } }) "src/Ionide.LanguageServerProtocol.fsproj"
+           }) "src/Ionide.LanguageServerProtocol.fsproj"
 
 let push = fun _ ->
     let key =

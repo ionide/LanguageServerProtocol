@@ -3,6 +3,13 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <ChangelogFile>$(MSBuildThisFileDirectory)../CHANGELOG.md</ChangelogFile>
+    <Description>Library for implementing Language Server Protocol in F#.</Description>
+    <PackageTags>LSP, editor tooling</PackageTags>
+    <Authors>chethusk; Krzysztof-Cieslak</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/ionide/LanguageServerProtocol</PackageProjectUrl>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\paket-files\TheAngryByrd\FsLibLog\src\FsLibLog\FsLibLog.fs">
@@ -10,6 +17,7 @@
       <Link>paket-files/FsLibLog.fs</Link>
     </Compile>
     <Compile Include="LanguageServerProtocol.fs" />
+    <None Include="../README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
   <Import Project="..\.paket\Paket.Restore.targets" />
 </Project>

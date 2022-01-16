@@ -8,6 +8,7 @@ NUGET
       Microsoft.SourceLink.GitHub (>= 1.0)
       Microsoft.SourceLink.GitLab (>= 1.0)
     FSharp.Core (6.0.1)
+    Ionide.KeepAChangelog.Tasks (0.1) - copy_local: true
     Microsoft.Build.Tasks.Git (1.1.1) - copy_local: true
     Microsoft.NETFramework.ReferenceAssemblies (1.0.2)
     Microsoft.SourceLink.AzureRepos.Git (1.1.1) - copy_local: true
