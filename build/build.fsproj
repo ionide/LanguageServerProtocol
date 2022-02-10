@@ -4,6 +4,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net6.0</TargetFramework>
     <IsPackable>false</IsPackable>
+    <NoWarn>FS0044;$(NoWarn)</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="build.fs" />
