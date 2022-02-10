@@ -8,6 +8,7 @@ NUGET
       Microsoft.SourceLink.GitHub (>= 1.1.1)
       Microsoft.SourceLink.GitLab (>= 1.1.1)
     FSharp.Core (6.0.2)
+    Ionide.KeepAChangelog.Tasks (0.1.1) - copy_local: true
     Microsoft.Build.Tasks.Git (1.1.1) - copy_local: true
     Microsoft.NETFramework.ReferenceAssemblies (1.0.2)
     Microsoft.SourceLink.AzureRepos.Git (1.1.1) - copy_local: true
@@ -24,8 +25,6 @@ NUGET
       Microsoft.Build.Tasks.Git (>= 1.1.1)
       Microsoft.SourceLink.Common (>= 1.1.1)
     Newtonsoft.Json (13.0.1)
-  remote: C:\Users\chethusk\pkg-temp
-    Ionide.KeepAChangelog.Tasks (0.1.1) - copy_local: true
 GITHUB
   remote: TheAngryByrd/FsLibLog
     src/FsLibLog/FsLibLog.fs (f81cba440bf0476bb4e2262b57a067a0d6ab78a7)
