@@ -852,6 +852,7 @@ module Types =
     type InitializeParams = {
         ProcessId: int option
         RootPath: string option
+        ClientInfo: JToken option
         RootUri: string option
         InitializationOptions: JToken option
         Capabilities: ClientCapabilities option
