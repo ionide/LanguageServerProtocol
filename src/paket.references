@@ -2,6 +2,7 @@ Newtonsoft.Json
 FSharp.Core
 Dotnet.ReproducibleBuilds
 Ionide.KeepAChangelog.Tasks
+StreamJsonRpc
 
 Microsoft.NETFramework.ReferenceAssemblies
 File: FsLibLog.fs

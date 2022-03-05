@@ -7,6 +7,7 @@ nuget Newtonsoft.Json
 nuget FSharp.Core
 nuget Dotnet.ReproducibleBuilds copy_local:true
 nuget Ionide.KeepAChangelog.Tasks copy_local:true
+nuget StreamJsonRpc
 
 nuget Microsoft.NETFramework.ReferenceAssemblies
 github TheAngryByrd/FsLibLog:f81cba440bf0476bb4e2262b57a067a0d6ab78a7 src/FsLibLog/FsLibLog.fs
