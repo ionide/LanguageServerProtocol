@@ -869,7 +869,6 @@ module Types =
         /// @since 3.15.0
         ClientInfo: ClientInfo option
         RootPath: string option
-        ClientInfo: JToken option
         RootUri: string option
         InitializationOptions: JToken option
         Capabilities: ClientCapabilities option
