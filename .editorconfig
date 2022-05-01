@@ -1,0 +1,20 @@
+# EditorConfig is awesome: https://EditorConfig.org
+
+# top-most EditorConfig file
+root = true
+
+[*]
+indent_style = space
+indent_size = 2
+end_of_line = crlf
+charset = utf-8
+trim_trailing_whitespace = false
+insert_final_newline = false
+max_line_length=120
+fsharp_max_if_then_else_short_width=60
+fsharp_max_infix_operator_expression=60
+fsharp_max_record_width=80
+fsharp_max_array_or_list_width=80
+fsharp_max_value_binding_width=120
+fsharp_max_function_binding_width=120
+fsharp_max_dot_get_expression_width=120
