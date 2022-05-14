@@ -333,3 +333,27 @@ type LspServer() =
 
   abstract member TextDocumentSemanticTokensRange: SemanticTokensRangeParams -> AsyncLspResult<SemanticTokens option>
   default __.TextDocumentSemanticTokensRange(_) = notImplemented
+
+  /// The inlay hints request is sent from the client to the server to compute inlay hints for a given [text document, range] tuple
+  ///  that may be rendered in the editor in place with other text.
+  abstract member TextDocumentInlayHint: InlayHintParams -> AsyncLspResult<InlayHint [] option>
+  default __.TextDocumentInlayHint(_) = notImplemented
+
+  /// The request is sent from the client to the server to resolve additional information for a given inlay hint. 
+  /// This is usually used to compute the `tooltip`, `location` or `command` properties of a inlay hint’s label part 
+  /// to avoid its unnecessary computation during the `textDocument/inlayHint` request.
+  /// 
+  /// Consider the clients announces the `label.location` property as a property that can be resolved lazy using the client capability
+  /// ```typescript
+  /// textDocument.inlayHint.resolveSupport = { properties: ['label.location'] };
+  /// ```
+  /// then an inlay hint with a label part without a location needs to be resolved using the `inlayHint/resolve` request before it can be used.
+  abstract member InlayHintResolve: InlayHint -> AsyncLspResult<InlayHint>
+  default __.InlayHintResolve(_) = notImplemented
+
+  /// The `workspace/inlayHint/refresh` request is sent from the server to the client. Servers can use it to ask clients to refresh the inlay hints currently shown in editors.
+  /// As a result the client should ask the server to recompute the inlay hints for these editors. This is useful if a server detects a configuration change 
+  /// which requires a re-calculation of all inlay hints. Note that the client still has the freedom to delay the re-calculation of the inlay hints 
+  /// if for example an editor is currently not visible.
+  abstract member WorkspaceInlayHintRefresh: unit -> AsyncLspResult<unit>
+  default __.WorkspaceInlayHintRefresh() = notImplemented
