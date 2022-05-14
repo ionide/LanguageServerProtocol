@@ -13,6 +13,11 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
+      - name: Set tag version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\/v/}
+        shell: bash
+
       - uses: actions/checkout@v3
 
       - name: Setup .NET Core
@@ -23,17 +28,21 @@ jobs:
       - name: Restore tools
         run: dotnet tool restore
 
-      - name: Publish to NuGet
-        run: dotnet run --project build -- -t Push
-        env:
-          nuget-key: ${{ secrets.NUGET_KEY }}
+      - name: Pack the library
+        run: dotnet pack -c Release -o release
 
       - name: Get Changelog Entry
         id: changelog_reader
-        uses: mindsers/changelog-reader-action@v1.1.0
+        uses: mindsers/changelog-reader-action@v2
         with:
-          version: ${{ github.ref }}
+          version: ${{ steps.get_version.outputs.VERSION }}
           path: ./CHANGELOG.md
+
+      - name: Push the package to NuGet
+        run: dotnet nuget push release/Ionide.LanguageServerProtocol.${{ steps.get_version.outputs.VERSION }}.nupkg --source "$env:NUGET_SOURCE" --api-key "$env:NUGET_KEY"
+        env:
+          NUGET_KEY: ${{ secrets.NUGET_KEY }}
+          NUGET_SOURCE: "https://api.nuget.org/v3/index.json"
 
       - name: Create Release
         uses: actions/create-release@latest
