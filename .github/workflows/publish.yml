@@ -3,56 +3,54 @@ name: Publish
 on:
   push:
     tags:
-      - 'v*' # Publish on any new tag starting with v
+      - "v*" # Publish on any new tag starting with v
 
 jobs:
   build:
-
     strategy:
       matrix:
         os: [windows-latest]
-        dotnet: [6.0.x]
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
 
-    - name: Setup .NET Core
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: ${{ matrix.dotnet }}
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v2
+        with:
+          global-json-file: global.json
 
-    - name: Restore tools
-      run: dotnet tool restore
+      - name: Restore tools
+        run: dotnet tool restore
 
-    - name: Publish to NuGet
-      run: dotnet run --project build -- -t Push
-      env:
-        nuget-key: ${{ secrets.NUGET_KEY }}
+      - name: Publish to NuGet
+        run: dotnet run --project build -- -t Push
+        env:
+          nuget-key: ${{ secrets.NUGET_KEY }}
 
-    - name: Get Changelog Entry
-      id: changelog_reader
-      uses: mindsers/changelog-reader-action@v1.1.0
-      with:
-        version: ${{ github.ref }}
-        path: ./CHANGELOG.md
+      - name: Get Changelog Entry
+        id: changelog_reader
+        uses: mindsers/changelog-reader-action@v1.1.0
+        with:
+          version: ${{ github.ref }}
+          path: ./CHANGELOG.md
 
-    - name: Create Release
-      uses: actions/create-release@latest
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: ${{ github.ref }}
-        body: ${{ steps.changelog_reader.outputs.log_entry }}
-        draft: false
-        prerelease: false
+      - name: Create Release
+        uses: actions/create-release@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          body: ${{ steps.changelog_reader.outputs.log_entry }}
+          draft: false
+          prerelease: false
 
-    - name: Upload binaries to release
-      uses: svenstaro/upload-release-action@v1-release
-      with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: release/*.nupkg
-        tag: ${{ github.ref }}
-        overwrite: true
-        file_glob: true
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v1-release
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: release/*.nupkg
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true
