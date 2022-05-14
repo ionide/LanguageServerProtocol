@@ -255,7 +255,8 @@ module Server =
         do! Task.Delay(10_000)
         logger.trace (Log.setMessage "No `exit` notification within 10s after `shutdown` request. Exiting now.")
         quitSemaphore.Release() |> ignore
-      } |> ignore
+      }
+      |> ignore
 
     jsonRpc.AddLocalRpcMethod("shutdown", Action(onShutdown))
 
@@ -330,6 +331,8 @@ module Server =
       "textDocument/semanticTokens/full", requestHandling (fun s p -> s.TextDocumentSemanticTokensFull(p))
       "textDocument/semanticTokens/full/delta", requestHandling (fun s p -> s.TextDocumentSemanticTokensFullDelta(p))
       "textDocument/semanticTokens/range", requestHandling (fun s p -> s.TextDocumentSemanticTokensRange(p))
+      "textDocument/inlayHint", requestHandling (fun s p -> s.TextDocumentInlayHint(p))
+      "inlayHint/resolve", requestHandling (fun s p -> s.InlayHintResolve(p))
       "workspace/didChangeWatchedFiles",
       requestHandling (fun s p -> s.WorkspaceDidChangeWatchedFiles(p) |> notificationSuccess)
       "workspace/didChangeWorkspaceFolders",
