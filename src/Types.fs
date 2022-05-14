@@ -918,6 +918,10 @@ type SemanticTokensOptions =
     /// Server supports providing semantic tokens for a full document.
     Full: U2<bool, SemanticTokenFullOptions> option }
 
+type InlayHintOptions =
+  { /// The server provides support to resolve additional information for an inlay hint item.
+    ResolveProvider: bool option }
+
 type WorkspaceFoldersServerCapabilities =
   { /// The server has support for workspace folders.
     Supported: bool option
@@ -1047,7 +1051,7 @@ type ServerCapabilities =
 
     SemanticTokensProvider: SemanticTokensOptions option
 
-    InlayHintProvider: bool option
+    InlayHintProvider: InlayHintOptions option
 
     /// Workspace specific server capabilities.
     Workspace: WorkspaceServerCapabilities option
