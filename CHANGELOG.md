@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 14.05.2022
+
+### Changed
+
+* [`textDocument/symbol` now returns `DocumentSymbol[]` instead of `SymbolInformation[]`](https://github.com/ionide/LanguageServerProtocol/pull/18) (thanks @artempyanykh!)
+
+### Fixed
+
+* [Workaround a VSCode language client bug preventing server shutdown](https://github.com/ionide/LanguageServerProtocol/pull/21) (thanks @artempyanykh!)
+
+### Added
+
+* [Types and methods for InlayHint support](https://github.com/ionide/LanguageServerProtocol/pull/22) (thanks @Booksbaum!)
+
 ## [0.4.0] - 28.04.2022
 
 ### Added
