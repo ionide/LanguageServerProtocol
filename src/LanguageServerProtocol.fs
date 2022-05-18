@@ -159,11 +159,14 @@ module Server =
 
   let requestHandling<'param, 'result> (run: 'param -> AsyncLspResult<'result>) : Delegate =
     let runAsTask param ct =
-      let asyncLspResult = run param
-
       let asyncContinuation =
         async {
-          let! lspResult = asyncLspResult
+          // Make sure we call `run` inside an `async` block.
+          // Although, `run` returns an Async<...> value, it's body doesn't *have* to be all async,
+          // so any exceptions raised in non-async part can bubble up and kill a thread.
+          // Calling `run` inside an `async` block ensures that any raised exceptions will be caught and
+          // sent back in a response to an LSP client.
+          let! lspResult = run param
 
           return
             match lspResult with
