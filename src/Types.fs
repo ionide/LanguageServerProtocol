@@ -318,6 +318,17 @@ type SemanticTokensWorkspaceClientCapabilities =
     /// wide change that requires such a calculation.
     RefreshSupport: bool option }
 
+/// Client workspace capabilities specific to inlay hints.
+type InlayHintWorkspaceClientCapabilities =
+  { /// Whether the client implementation supports a refresh request sent from
+    /// the server to the client.
+    ///
+    /// Note that this event is global and will force the client to refresh all
+    /// inlay hints currently shown. It should be used with absolute care and
+    /// is useful for situation where a server for example detects a project wide
+    /// change that requires such a calculation.
+    RefreshSupport: bool option }
+
 /// Workspace specific client capabilities.
 type WorkspaceClientCapabilities =
   { /// The client supports applying batch edits to the workspace by supporting
@@ -336,7 +347,16 @@ type WorkspaceClientCapabilities =
     /// Capabilities specific to the `workspace/symbol` request.
     Symbol: SymbolCapabilities option
 
-    SemanticTokens: SemanticTokensWorkspaceClientCapabilities option }
+    /// Capabilities specific to the semantic token requests scoped to the
+    /// workspace.
+    ///
+    /// @since 3.16.0
+    SemanticTokens: SemanticTokensWorkspaceClientCapabilities option
+
+    /// Client workspace capabilities specific to inlay hints.
+    ///
+    /// @since 3.17.0
+    InlayHint: InlayHintWorkspaceClientCapabilities option }
 
 type SynchronizationCapabilities =
   { /// Whether text document synchronization supports dynamic registration.
@@ -687,17 +707,6 @@ type InlayHintClientCapabilities =
     /// hint.
     ResolveSupport: InlayHintClientCapabilitiesResolveSupport option }
 
-/// Client workspace capabilities specific to inlay hints.
-type InlayHintWorkspaceClientCapabilities =
-  { /// Whether the client implementation supports a refresh request sent from
-    /// the server to the client.
-    ///
-    /// Note that this event is global and will force the client to refresh all
-    /// inlay hints currently shown. It should be used with absolute care and
-    /// is useful for situation where a server for example detects a project wide
-    /// change that requires such a calculation.
-    RefreshSupport: bool option }
-
 /// Text document specific client capabilities.
 type TextDocumentClientCapabilities =
   { Synchronization: SynchronizationCapabilities option
@@ -768,11 +777,6 @@ type ClientCapabilities =
 
     /// Text document specific client capabilities.
     TextDocument: TextDocumentClientCapabilities option
-
-    /// Client workspace capabilities specific to inlay hints.
-    ///
-    /// @since 3.17.0
-    InlayHint: InlayHintWorkspaceClientCapabilities option
 
     /// Experimental client capabilities.
     Experimental: JToken option }
