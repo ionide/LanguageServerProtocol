@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.2] - 26.05.2022
+
+### Fixed
+
+* [Make the inlayHint client capability optional](https://github.com/ionide/LanguageServerProtocol/pull/23) (thanks @artempyanykh!) 
+* [Handle exceptions from serialization](https://github.com/ionide/LanguageServerProtocol/pull/25) (thanks @artempyanykh!)
+* [Make the InlayHintWorkspaceClientCapabilities part of WorkspaceClientCapabilities](https://github.com/ionide/LanguageServerProtocol/pull/26) (thanks @Booksbaum!)
+
 ## [0.4.1] - 14.05.2022
 
 ### Changed
