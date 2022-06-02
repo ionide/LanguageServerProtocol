@@ -38,7 +38,7 @@ type OptionAndCamelCasePropertyNamesContractResolver() =
 
     for prop in props do
       if isOptionType prop.PropertyType then
-        prop.Required <- Required.DisallowNull
+        prop.Required <- Required.Default
       else
         prop.Required <- Required.Always
 

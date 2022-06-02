@@ -305,6 +305,18 @@ let private serializationTests =
                let input = NoFields.Second
                testThereAndBackAgain input ]
 
+      testList "JsonProperty" [
+        testCase "keep null when serializing VersionedTextDocumentIdentifier" <| fun _ ->
+          let textDoc = { VersionedTextDocumentIdentifier.Uri = "..."; Version = None }
+          let json = textDoc |> serialize :?> JObject
+          let prop = json.Property("version")
+          let value = prop.Value
+          Expect.equal (value.Type) (JTokenType.Null) "Version should be null"
+        testCase "can deserialize null Version in VersionedTextDocumentIdentifier" <| fun _ ->
+          let textDoc = { VersionedTextDocumentIdentifier.Uri = "..."; Version = None }
+          testThereAndBackAgain textDoc
+      ]
+
       testList
         (nameof InlayHint)
         [
