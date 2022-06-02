@@ -1,4 +1,4 @@
-module Ionide.LanguageServerProtocol.JsonConverters
+module Ionide.LanguageServerProtocol.JsonUtils
 
 open Microsoft.FSharp.Reflection
 open Newtonsoft.Json
@@ -6,6 +6,44 @@ open System
 open System.Collections.Concurrent
 open Ionide.LanguageServerProtocol.Types
 open Newtonsoft.Json.Linq
+open Newtonsoft.Json.Serialization
+
+/// Handles fields of type `Option`:
+/// * Allows missing json properties when `Option` -> Optional
+/// * Fails when missing json property when not `Option` -> Required
+/// * Additional properties in json are always ignored
+///
+/// Example:
+/// ```fsharp
+/// type Data = { Name: string; Value: int option }
+/// ```
+/// ```json
+/// { "name": "foo", "value": 42 }    // ok
+/// { "name": "foo" }                 // ok
+/// { "value": 42 }                   // error
+/// {}                                // error
+/// { "name": "foo", "data": "bar" }  // ok
+/// ```
+type OptionAndCamelCasePropertyNamesContractResolver() =
+  inherit CamelCasePropertyNamesContractResolver()
+
+  override _.CreateObjectContract(objectType: Type) =
+    let contract = ``base``.CreateObjectContract(objectType)
+
+    let isOptionType (ty: Type) =
+      ty.IsGenericType
+      && ty.GetGenericTypeDefinition() = typedefof<Option<_>>
+
+    let props = contract.Properties
+
+    for prop in props do
+      if isOptionType prop.PropertyType then
+        prop.Required <- Required.DisallowNull
+      else
+        prop.Required <- Required.Always
+
+    contract
+
 
 let inline memorise (f: 'a -> 'b) : ('a -> 'b) =
   let d = ConcurrentDictionary<'a, 'b>()
@@ -16,7 +54,6 @@ type ErasedUnionConverter() =
   inherit JsonConverter()
 
   let canConvert =
-    //todo: must be just one field! (or 0?)
     memorise (fun t ->
       FSharpType.IsUnion t
       && (

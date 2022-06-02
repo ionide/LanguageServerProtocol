@@ -1,11 +1,16 @@
 module Ionide.LanguageServerProtocol.Tests.Tests
 
+open System
 open Expecto
 open Ionide.LanguageServerProtocol.Types
 open Ionide.LanguageServerProtocol.Server
 open Ionide.LanguageServerProtocol.Tests
 open Newtonsoft.Json.Linq
 open Newtonsoft.Json
+open System.ComponentModel
+open Newtonsoft.Json.Linq
+open Newtonsoft.Json.Linq
+open Ionide.LanguageServerProtocol.Server
 
 type Record1 = { Name: string; Value: int }
 type Record2 = { Name: string; Position: int }
@@ -49,6 +54,11 @@ type StructEU =
   | First of Number: int
   | Second of Name: string
 
+type AllRequired = { RequiredName: string; RequiredValue: int }
+type OneOptional = { RequiredName: string; OptionalValue: int option }
+type AllOptional = { OptionalName: string option; OptionalValue: int option }
+
+
 
 let private serializationTests =
   testList
@@ -58,6 +68,138 @@ let private serializationTests =
       let testThereAndBackAgain input =
         let output = thereAndBackAgain input
         Expect.equal output input "Input -> serialize -> deserialize should be Input again"
+
+      testList
+        "Optional & Required Fields"
+        [ let logJson (json: JToken) =
+            printfn $"%s{json.ToString()}"
+            json
+
+          let mkLower (str: string) = sprintf "%c%s" (Char.ToLowerInvariant str[0]) (str.Substring(1))
+
+          let removeProperty (name: string) (json: JToken) =
+            let prop = (json :?> JObject).Property(name |> mkLower)
+            prop.Remove()
+            json
+
+          let addProperty (name: string) (value: 'a) (json: JToken) =
+            let jObj = json :?> JObject
+            jObj.Add(JProperty(name, value))
+            json
+
+          testList
+            "Two Required"
+            [ testCase "fails when required field is not given"
+              <| fun _ ->
+                   let input = { AllRequired.RequiredName = "foo"; RequiredValue = 42 }
+
+                   let json =
+                     serialize input
+                     |> removeProperty (nameof input.RequiredValue)
+
+                   Expect.throws
+                     (fun _ -> json |> deserialize<AllRequired> |> ignore)
+                     "Should fail without all required fields"
+              testCase "doesn't fail with additional fields"
+              <| fun _ ->
+                   let input = { AllRequired.RequiredName = "foo"; RequiredValue = 42 }
+                   let json = serialize input |> addProperty "myProp" "hello world"
+
+                   json |> deserialize<AllRequired> |> ignore ]
+
+          testList
+            "One Required, One Optional"
+            [ testCase "doesn't fail when optional field not given"
+              <| fun _ ->
+                   let input = { OneOptional.RequiredName = "foo"; OptionalValue = Some 42 }
+
+                   let json =
+                     serialize input
+                     |> removeProperty (nameof input.OptionalValue)
+
+                   json |> deserialize<OneOptional> |> ignore
+              testCase "fails when required field is not given"
+              <| fun _ ->
+                   let input = { OneOptional.RequiredName = "foo"; OptionalValue = Some 42 }
+
+                   let json =
+                     serialize input
+                     |> removeProperty (nameof input.RequiredName)
+
+                   Expect.throws
+                     (fun _ -> json |> deserialize<AllRequired> |> ignore)
+                     "Should fail without all required fields"
+
+              testCase "doesn't fail with all fields"
+              <| fun _ ->
+                   let input = { OneOptional.RequiredName = "foo"; OptionalValue = Some 42 }
+                   let json = serialize input
+                   json |> deserialize<OneOptional> |> ignore
+              testCase "doesn't fail with additional properties"
+              <| fun _ ->
+                   let input = { OneOptional.RequiredName = "foo"; OptionalValue = Some 42 }
+
+                   let json =
+                     serialize input
+                     |> addProperty "foo" "bar"
+                     |> addProperty "baz" 42
+
+                   json |> deserialize<OneOptional> |> ignore ]
+
+          testList
+            "Two Optional"
+            [ testCase "doesn't fail when one optional field not given"
+              <| fun _ ->
+                   let input = { AllOptional.OptionalName = Some "foo"; OptionalValue = Some 42 }
+
+                   let json =
+                     serialize input
+                     |> removeProperty (nameof input.OptionalValue)
+
+                   json |> deserialize<AllOptional> |> ignore
+              testCase "doesn't fail when all optional fields not given"
+              <| fun _ ->
+                   let input = { AllOptional.OptionalName = Some "foo"; OptionalValue = Some 42 }
+
+                   let json =
+                     serialize input
+                     |> removeProperty (nameof input.OptionalName)
+                     |> removeProperty (nameof input.OptionalValue)
+
+                   json |> deserialize<AllOptional> |> ignore
+              testCase "doesn't emit optional missing fields"
+              <| fun _ ->
+                   let input = { AllOptional.OptionalName = None; OptionalValue = None }
+                   let json = serialize input
+                   Expect.isEmpty (json.Children()) "There should be no properties"
+
+              testCase "doesn't fail when all fields given"
+              <| fun _ ->
+                   let input = { AllOptional.OptionalName = Some "foo"; OptionalValue = Some 42 }
+                   let json = serialize input
+                   json |> deserialize<AllOptional> |> ignore
+              testCase "doesn't fail when additional properties"
+              <| fun _ ->
+                   let input = { AllOptional.OptionalName = Some "foo"; OptionalValue = Some 42 }
+
+                   let json =
+                     serialize input
+                     |> addProperty "foo" "bar"
+                     |> addProperty "baz" 42
+
+                   json |> deserialize<AllOptional> |> ignore
+              testCase "doesn't fail when no field but additional properties"
+              <| fun _ ->
+                   let input = { AllOptional.OptionalName = Some "foo"; OptionalValue = Some 42 }
+
+                   let json =
+                     serialize input
+                     |> removeProperty (nameof input.OptionalName)
+                     |> removeProperty (nameof input.OptionalValue)
+                     |> addProperty "foo" "bar"
+                     |> addProperty "baz" 42
+
+                   json |> deserialize<AllOptional> |> ignore ] ]
 
       testList
         "U2"
@@ -97,14 +239,45 @@ let private serializationTests =
                let input: U2<Record1, Record2> = U2.First { Record1.Name = "foo"; Value = 42 }
                testThereAndBackAgain input
 
-          testCase "deserialize to first complex match"
+          testCase "can deserialize to correct record"
           <| fun _ ->
-               // Because of `serializer.MissingMemberHandling = MissingMemberHandling.Ignore`:
-               // Cannot distinguish Record1 from Record2 (-> missing fields get filled with default)
-               // -> There can only be one complex type in `U2`, the other one must be a basic type!
+               // Note: only possible because Records aren't compatible with each other.
+               // If Record2.Position optional -> gets deserialized to `Record2` because first match
                let input: U2<Record2, Record1> = U2.Second { Record1.Name = "foo"; Value = 42 }
-               let output = thereAndBackAgain input
-               Expect.notEqual output input "First complex type gets matched" ]
+               testThereAndBackAgain input
+          testList
+            "optional"
+            [ testCase "doesn't emit optional missing member"
+              <| fun _ ->
+                   let input: U2<string, OneOptional> =
+                     U2.Second { OneOptional.RequiredName = "foo"; OptionalValue = None }
+
+                   let json = serialize input :?> JObject
+                   Expect.hasLength (json.Properties()) 1 "There should be just one property"
+                   let prop = json.Property("requiredName")
+                   Expect.equal (prop.Value.ToString()) "foo" "Required Property should have correct value"
+
+              testCase "can deserialize with optional missing member"
+              <| fun _ ->
+                   let input: U2<string, OneOptional> =
+                     U2.Second { OneOptional.RequiredName = "foo"; OptionalValue = None }
+
+                   testThereAndBackAgain input
+              testCase "can deserialize with optional existing member"
+              <| fun _ ->
+                   let input: U2<string, OneOptional> =
+                     U2.Second { OneOptional.RequiredName = "foo"; OptionalValue = Some 42 }
+
+                   testThereAndBackAgain input
+              testCase "fails with missing required value"
+              <| fun _ ->
+                   let json = JToken.Parse """{"optionalValue": 42}"""
+
+                   Expect.throws
+                     (fun _ -> json |> deserialize<OneOptional> |> ignore)
+                     "Should fail without required member"
+
+              ] ]
 
       testList
         "ErasedUnionConverter"

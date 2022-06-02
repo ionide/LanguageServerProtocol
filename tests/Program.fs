@@ -1,5 +1,7 @@
 ﻿module Ionide.LanguageServerProtocol.Tests.Root
 
+open Expecto.Tests
+
 [<EntryPoint>]
 let main args =
   let (|ShouldRunBenchmarks|_|) (args: string []) =
@@ -16,4 +18,4 @@ let main args =
   | ShouldRunBenchmarks args ->
     // `--filter *` to run all
     Benchmarks.run args
-  | _ -> Expecto.Tests.runTestsWithCLIArgs [] args Tests.tests
+  | _ -> Expecto.Tests.runTestsWithCLIArgs [ Sequenced ] args Tests.tests

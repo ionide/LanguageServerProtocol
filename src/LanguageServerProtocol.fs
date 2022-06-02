@@ -10,8 +10,7 @@ module Server =
   open System.Reflection
   open StreamJsonRpc
   open Newtonsoft.Json
-  open Newtonsoft.Json.Serialization
-  open Ionide.LanguageServerProtocol.JsonConverters
+  open Ionide.LanguageServerProtocol.JsonUtils
   open Newtonsoft.Json.Linq
 
   let logger = LogProvider.getLoggerByName "LSP Server"
@@ -24,7 +23,7 @@ module Server =
   jsonRpcFormatter.JsonSerializer.Converters.Add(U2BoolObjectConverter())
   jsonRpcFormatter.JsonSerializer.Converters.Add(OptionConverter())
   jsonRpcFormatter.JsonSerializer.Converters.Add(ErasedUnionConverter())
-  jsonRpcFormatter.JsonSerializer.ContractResolver <- CamelCasePropertyNamesContractResolver()
+  jsonRpcFormatter.JsonSerializer.ContractResolver <- OptionAndCamelCasePropertyNamesContractResolver()
 
   let deserialize<'t> (token: JToken) = token.ToObject<'t>(jsonRpcFormatter.JsonSerializer)
   let serialize<'t> (o: 't) = JToken.FromObject(o, jsonRpcFormatter.JsonSerializer)
@@ -257,7 +256,7 @@ module Client =
   open Ionide.LanguageServerProtocol
   open Ionide.LanguageServerProtocol.JsonRpc
   open Ionide.LanguageServerProtocol.Logging
-  open Ionide.LanguageServerProtocol.JsonConverters
+  open Ionide.LanguageServerProtocol.JsonUtils
   open Newtonsoft.Json
   open Newtonsoft.Json.Serialization
   open Newtonsoft.Json.Linq
