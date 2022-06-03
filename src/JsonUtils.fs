@@ -32,6 +32,7 @@ type OptionAndCamelCasePropertyNamesContractResolver() =
 
     let isOptionType (ty: Type) =
       ty.IsGenericType
+      //TODO: handle ValueOption
       && ty.GetGenericTypeDefinition() = typedefof<Option<_>>
 
     let props = contract.Properties
@@ -184,18 +185,22 @@ type OptionConverter() =
     serializer.Serialize(writer, value)
 
   override __.ReadJson(reader, t, _existingValue, serializer) =
-    let innerType = t.GetGenericArguments().[0]
-
-    let innerType =
-      if innerType.IsValueType then
-        (typedefof<Nullable<_>>).MakeGenericType([| innerType |])
-      else
-        innerType
-
-    let value = serializer.Deserialize(reader, innerType)
     let cases = FSharpType.GetUnionCases(t)
 
-    if isNull value then
-      FSharpValue.MakeUnion(cases.[0], [||])
-    else
-      FSharpValue.MakeUnion(cases.[1], [| value |])
+    match reader.TokenType with
+    | JsonToken.Null -> FSharpValue.MakeUnion(cases.[0], [||])
+    | _ ->
+      let innerType = t.GetGenericArguments().[0]
+
+      let innerType =
+        if innerType.IsValueType then
+          (typedefof<Nullable<_>>).MakeGenericType([| innerType |])
+        else
+          innerType
+
+      let value = serializer.Deserialize(reader, innerType)
+
+      if isNull value then
+        FSharpValue.MakeUnion(cases.[0], [||])
+      else
+        FSharpValue.MakeUnion(cases.[1], [| value |])

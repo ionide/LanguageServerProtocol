@@ -7,10 +7,7 @@ open Ionide.LanguageServerProtocol.Server
 open Ionide.LanguageServerProtocol.Tests
 open Newtonsoft.Json.Linq
 open Newtonsoft.Json
-open System.ComponentModel
-open Newtonsoft.Json.Linq
-open Newtonsoft.Json.Linq
-open Ionide.LanguageServerProtocol.Server
+open Ionide.LanguageServerProtocol.JsonRpc
 
 type Record1 = { Name: string; Value: int }
 type Record2 = { Name: string; Position: int }
@@ -63,7 +60,29 @@ type AllOptional = { OptionalName: string option; OptionalValue: int option }
 let private serializationTests =
   testList
     "(de)serialization"
-    [ let thereAndBackAgain (input: 'a) : 'a = input |> serialize |> deserialize
+    [ let mkLower (str: string) = sprintf "%c%s" (Char.ToLowerInvariant str[0]) (str.Substring(1))
+
+      /// Note: changes first letter into lower case
+      let removeProperty (name: string) (json: JToken) =
+        let prop = (json :?> JObject).Property(name |> mkLower)
+        prop.Remove()
+        json
+
+      /// Note: changes first letter into lower case
+      let addProperty (name: string) (value: 'a) (json: JToken) =
+        let jObj = json :?> JObject
+        jObj.Add(JProperty(name |> mkLower, value))
+        json
+
+      let tryGetProperty (name: string) (json: JToken) =
+        let jObj = json :?> JObject
+        jObj.Property(name |> mkLower) |> Option.ofObj
+
+      let logJson (json: JToken) =
+        printfn $"%s{json.ToString()}"
+        json
+
+      let thereAndBackAgain (input: 'a) : 'a = input |> serialize |> deserialize
 
       let testThereAndBackAgain input =
         let output = thereAndBackAgain input
@@ -71,23 +90,7 @@ let private serializationTests =
 
       testList
         "Optional & Required Fields"
-        [ let logJson (json: JToken) =
-            printfn $"%s{json.ToString()}"
-            json
-
-          let mkLower (str: string) = sprintf "%c%s" (Char.ToLowerInvariant str[0]) (str.Substring(1))
-
-          let removeProperty (name: string) (json: JToken) =
-            let prop = (json :?> JObject).Property(name |> mkLower)
-            prop.Remove()
-            json
-
-          let addProperty (name: string) (value: 'a) (json: JToken) =
-            let jObj = json :?> JObject
-            jObj.Add(JProperty(name, value))
-            json
-
-          testList
+        [ testList
             "Two Required"
             [ testCase "fails when required field is not given"
               <| fun _ ->
@@ -305,17 +308,90 @@ let private serializationTests =
                let input = NoFields.Second
                testThereAndBackAgain input ]
 
-      testList "JsonProperty" [
-        testCase "keep null when serializing VersionedTextDocumentIdentifier" <| fun _ ->
-          let textDoc = { VersionedTextDocumentIdentifier.Uri = "..."; Version = None }
-          let json = textDoc |> serialize :?> JObject
-          let prop = json.Property("version")
-          let value = prop.Value
-          Expect.equal (value.Type) (JTokenType.Null) "Version should be null"
-        testCase "can deserialize null Version in VersionedTextDocumentIdentifier" <| fun _ ->
-          let textDoc = { VersionedTextDocumentIdentifier.Uri = "..."; Version = None }
-          testThereAndBackAgain textDoc
-      ]
+      testList
+        "JsonProperty"
+        [ testCase "keep null when serializing VersionedTextDocumentIdentifier"
+          <| fun _ ->
+               let textDoc = { VersionedTextDocumentIdentifier.Uri = "..."; Version = None }
+               let json = textDoc |> serialize :?> JObject
+               let prop = json.Property("version")
+               let value = prop.Value
+               Expect.equal (value.Type) (JTokenType.Null) "Version should be null"
+
+               let prop =
+                 json
+                 |> tryGetProperty (nameof textDoc.Version)
+                 |> Flip.Expect.wantSome "Property Version should exist"
+
+               Expect.equal prop.Value.Type (JTokenType.Null) "Version should be null"
+          testCase "can deserialize null Version in VersionedTextDocumentIdentifier"
+          <| fun _ ->
+               let textDoc = { VersionedTextDocumentIdentifier.Uri = "..."; Version = None }
+               testThereAndBackAgain textDoc
+
+          testCase "serialize to name specified in JsonProperty in Response"
+          <| fun _ ->
+               let response: Response = { Version = "123"; Id = None; Error = None; Result = None }
+               let json = response |> serialize
+               // Version -> jsonrpc
+               Expect.isNone
+                 (json |> tryGetProperty (nameof response.Version))
+                 "Version should exist, but instead as jsonrpc"
+
+               Expect.isSome (json |> tryGetProperty "jsonrpc") "jsonrcp should exist because of Version"
+               // Id & Error optional -> not in json
+               Expect.isNone (json |> tryGetProperty (nameof response.Id)) "None Id shouldn't be in json"
+               Expect.isNone (json |> tryGetProperty (nameof response.Error)) "None Error shouldn't be in json"
+               // Result even when null/None
+               let prop =
+                 json
+                 |> tryGetProperty (nameof response.Result)
+                 |> Flip.Expect.wantSome "Result should exist even when null/None"
+
+               Expect.equal prop.Value.Type (JTokenType.Null) "Result should be null"
+          testCase "can (de)serialize empty response"
+          <| fun _ ->
+               let response: Response = { Version = "123"; Id = None; Error = None; Result = None }
+               testThereAndBackAgain response
+          testCase "can (de)serialize Response.Result"
+          <| fun _ ->
+               let response: Response =
+                 { Version = "123"
+                   Id = None
+                   Error = None
+                   Result = Some(JToken.Parse "\"some result\"") }
+
+               testThereAndBackAgain response
+          testCase "can (de)serialize Result when Error is None"
+          <| fun _ ->
+               // Note: It's either `Error` or `Result`, but not both together
+               let response: Response =
+                 { Version = "123"
+                   Id = Some 42
+                   Error = None
+                   Result = Some(JToken.Parse "\"some result\"") }
+
+               testThereAndBackAgain response
+          testCase "can (de)serialize Error when error is Some"
+          <| fun _ ->
+               let response: Response =
+                 { Version = "123"
+                   Id = Some 42
+                   Error = Some { Code = 13; Message = "oh no"; Data = Some(JToken.Parse "\"some data\"") }
+                   Result = None }
+
+               testThereAndBackAgain response
+          testCase "doesn't serialize Result when Error is Some"
+          <| fun _ ->
+               let response: Response =
+                 { Version = "123"
+                   Id = Some 42
+                   Error = Some { Code = 13; Message = "oh no"; Data = Some(JToken.Parse "\"some data\"") }
+                   Result = Some(JToken.Parse "\"some result\"") }
+
+               let output = thereAndBackAgain response
+               Expect.isSome output.Error "Error should be serialized"
+               Expect.isNone output.Result "Result should not be serialized when Error is Some" ]
 
       testList
         (nameof InlayHint)
