@@ -55,7 +55,6 @@ type AllRequired = { RequiredName: string; RequiredValue: int }
 type OneOptional = { RequiredName: string; OptionalValue: int option }
 type AllOptional = { OptionalName: string option; OptionalValue: int option }
 
-type OneOptionalStruct = { RequiredName: string; OptionalValue: int voption }
 
 
 let private serializationTests =
@@ -203,26 +202,7 @@ let private serializationTests =
                      |> addProperty "foo" "bar"
                      |> addProperty "baz" 42
 
-                   json |> deserialize<AllOptional> |> ignore ]
-
-          testList
-            "voption"
-            [ testCase "can (de)serialize with ValueSome"
-              <| fun _ ->
-                   let input = { OneOptionalStruct.RequiredName = "foo"; OptionalValue = ValueSome 42 }
-                   testThereAndBackAgain input
-              testCase "can (de)serialize with ValueNone"
-              <| fun _ ->
-                   let input = { OneOptionalStruct.RequiredName = "foo"; OptionalValue = ValueNone }
-                   testThereAndBackAgain input
-              testCase "doesn't emit property for ValueNone"
-              <| fun _ ->
-                   let input = { OneOptionalStruct.RequiredName = "foo"; OptionalValue = ValueNone }
-                   let json = serialize input
-                   let prop = json |> tryGetProperty (nameof input.OptionalValue)
-                   Expect.isNone prop "OptionalValue with ValueNone should not get serialized"
-
-              ] ]
+                   json |> deserialize<AllOptional> |> ignore ] ]
 
       testList
         "U2"
@@ -311,7 +291,10 @@ let private serializationTests =
                let input = EU2("foo", 42)
 
                Expect.throws
-                 (fun _ -> serialize input |> ignore)
+                 (fun _ ->
+                   serialize input
+                   |> fun t -> printfn "%A" (t.ToString())
+                   |> ignore)
                  "ErasedUnion with multiple fields should not serializable"
           testCase "can (de)serialize struct union"
           <| fun _ ->
