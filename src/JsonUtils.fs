@@ -32,7 +32,6 @@ type OptionAndCamelCasePropertyNamesContractResolver() =
 
     let isOptionType (ty: Type) =
       ty.IsGenericType
-      //TODO: handle ValueOption
       && ty.GetGenericTypeDefinition() = typedefof<Option<_>>
 
     let props = contract.Properties
@@ -46,7 +45,7 @@ type OptionAndCamelCasePropertyNamesContractResolver() =
     contract
 
 
-let inline memorise (f: 'a -> 'b) : ('a -> 'b) =
+let inline private memorise (f: 'a -> 'b) : ('a -> 'b) =
   let d = ConcurrentDictionary<'a, 'b>()
   fun key -> d.GetOrAdd(key, f)
 
@@ -70,7 +69,7 @@ type ErasedUnionConverter() =
     let _, fields = FSharpValue.GetUnionFields(value, value.GetType())
     // Must be exactly 1 field
     // Deliberately fail here to signal incorrect usage
-    // (vs. CanConvert = false -> silent and serialization to `case` & `fields`)
+    // (vs. `CanConvert` = `false` -> silent and fallback to serialization with `case` & `fields`)
     match fields with
     | [| unionField |] -> serializer.Serialize(writer, unionField)
     | _ -> failwith $"Expected exactly one field for case `{value.GetType().Name}`, but were {fields.Length}"
@@ -170,9 +169,12 @@ type U2BoolObjectConverter() =
 type OptionConverter() =
   inherit JsonConverter()
 
-  override __.CanConvert(t) =
-    t.IsGenericType
-    && t.GetGenericTypeDefinition() = typedefof<option<_>>
+  let canConvert =
+    memorise (fun (t: System.Type) ->
+      t.IsGenericType
+      && t.GetGenericTypeDefinition() = typedefof<option<_>>)
+
+  override __.CanConvert(t) = canConvert t
 
   override __.WriteJson(writer, value, serializer) =
     let value =
