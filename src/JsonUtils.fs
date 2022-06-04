@@ -49,7 +49,6 @@ let inline private memorise (f: 'a -> 'b) : ('a -> 'b) =
   let d = ConcurrentDictionary<'a, 'b>()
   fun key -> d.GetOrAdd(key, f)
 
-//TODO: Cache stuff
 type ErasedUnionConverter() =
   inherit JsonConverter()
 
@@ -62,6 +61,10 @@ type ErasedUnionConverter() =
       ||
       // Case
       t.BaseType.GetCustomAttributes(typedefof<ErasedUnionAttribute>, false).Length > 0))
+  let getUnionCases =
+    memorise (fun t ->
+      FSharpType.GetUnionCases t
+    )
 
   override __.CanConvert(t) = canConvert t
 
@@ -95,7 +98,7 @@ type ErasedUnionConverter() =
           $"Expected union {case.DeclaringType.Name} to have exactly one field in each case, but case {case.Name} has {fields.Length} fields"
 
 
-    let cases = FSharpType.GetUnionCases(t)
+    let cases = getUnionCases t
     let json = JToken.ReadFrom reader
     let c = cases |> Array.tryPick (tryMakeUnionCase json)
 
