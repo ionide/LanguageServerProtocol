@@ -50,6 +50,48 @@ let inline private memorise (f: 'a -> 'b) : ('a -> 'b) =
   let d = ConcurrentDictionary<'a, 'b>()
   fun key -> d.GetOrAdd(key, f)
 
+type private CaseInfo = 
+  {
+    Info: UnionCaseInfo
+    Fields: PropertyInfo[]
+    GetFieldValues: obj -> obj[]
+    Create: obj[] -> obj
+  }
+type private UnionInfo = 
+  {
+    Cases: CaseInfo[]
+    GetTag: obj -> int
+  }
+  with
+    member u.GetCaseOf (value: obj) =
+      let tag = u.GetTag value
+      u.Cases
+      |> Array.find (fun case -> case.Info.Tag = tag)
+
+module private UnionInfo =
+  let create (ty: Type) =
+    assert(ty |> FSharpType.IsUnion)
+
+    let cases = 
+      FSharpType.GetUnionCases ty
+      |> Array.map (fun case -> 
+          {
+            Info = case
+            Fields = case.GetFields()
+            GetFieldValues = FSharpValue.PreComputeUnionReader case
+            Create = FSharpValue.PreComputeUnionConstructor case
+          }
+      )
+    {
+      Cases = cases
+      GetTag = FSharpValue.PreComputeUnionTagReader ty
+    }
+
+let private getUnionInfo: Type -> _ =
+  memorise (fun t ->
+    UnionInfo.create t
+  )
+
 type ErasedUnionConverter() =
   inherit JsonConverter()
 
@@ -62,41 +104,19 @@ type ErasedUnionConverter() =
       ||
       // Case
       t.BaseType.GetCustomAttributes(typedefof<ErasedUnionAttribute>, false).Length > 0))
-  let getUnionCasesWithFields =
-    memorise (fun t ->
-      let cases = FSharpType.GetUnionCases t
-      cases
-      |> Array.map (fun case -> case, case.GetFields())
-    )
-  let getUnionCaseByTag ty tag =
-    getUnionCasesWithFields ty
-    |> Array.find (fun (case, _) -> case.Tag = tag)
-
-  let getTagReader =
-    memorise (fun t ->
-      FSharpValue.PreComputeUnionTagReader t
-    )
-  let getUnionCaseReader =
-    memorise (fun case ->
-      FSharpValue.PreComputeUnionReader case
-    )
 
   override __.CanConvert(t) = canConvert t
 
   override __.WriteJson(writer, value, serializer) =
-    let ty = value.GetType()
-    let tag = getTagReader ty value
-    let (case, fields) = getUnionCaseByTag ty tag
+    let union = getUnionInfo (value.GetType())
+    let case = union.GetCaseOf value
     // Must be exactly 1 field
     // Deliberately fail here to signal incorrect usage
     // (vs. `CanConvert` = `false` -> silent and fallback to serialization with `case` & `fields`)
-    match fields with
-    | [| _ |] ->
-        let value = 
-          getUnionCaseReader case value
-          |> Array.head
+    match case.GetFieldValues value with
+    | [| value |] ->
         serializer.Serialize(writer, value)
-    | _ -> failwith $"Expected exactly one field for case `{value.GetType().Name}`, but were {fields.Length}"
+    | values -> failwith $"Expected exactly one field for case `{value.GetType().Name}`, but were {values.Length}"
 
   override __.ReadJson(reader: JsonReader, t, _existingValue, serializer) =
     let tryReadValue (json: JToken) (targetType: Type) =
@@ -105,21 +125,21 @@ type ErasedUnionConverter() =
       with
       | _ -> None
 
-    let tryMakeUnionCase (json: JToken) (case: UnionCaseInfo, fields: PropertyInfo[]) =
-      match fields with
-      | [| field |] ->
-        let ty = field.PropertyType
-
-        match tryReadValue json ty with
-        | None -> None
-        | Some value -> FSharpValue.MakeUnion(case, [| value |]) |> Some
-      | fields ->
-        failwith
-          $"Expected union {case.DeclaringType.Name} to have exactly one field in each case, but case {case.Name} has {fields.Length} fields"
-
-    let cases = getUnionCasesWithFields t
+    let union = getUnionInfo t
     let json = JToken.ReadFrom reader
-    let c = cases |> Array.tryPick (tryMakeUnionCase json)
+    let tryMakeUnionCase (json: JToken) (case: CaseInfo) =
+      match case.Fields with
+      | [| field |] ->
+          let ty = field.PropertyType
+          match tryReadValue json ty with
+          | None -> None
+          | Some value -> 
+              case.Create [|value|]
+              |> Some
+      | fields ->
+          failwith $"Expected union {case.Info.DeclaringType.Name} to have exactly one field in each case, but case {case.Info.Name} has {fields.Length} fields"
+
+    let c = union.Cases |> Array.tryPick (tryMakeUnionCase json)
 
     match c with
     | None -> failwith $"Could not create an instance of the type '%s{t.Name}'"
