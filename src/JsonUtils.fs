@@ -7,6 +7,7 @@ open System.Collections.Concurrent
 open Ionide.LanguageServerProtocol.Types
 open Newtonsoft.Json.Linq
 open Newtonsoft.Json.Serialization
+open System.Reflection
 
 /// Handles fields of type `Option`:
 /// * Allows missing json properties when `Option` -> Optional
@@ -61,9 +62,11 @@ type ErasedUnionConverter() =
       ||
       // Case
       t.BaseType.GetCustomAttributes(typedefof<ErasedUnionAttribute>, false).Length > 0))
-  let getUnionCases =
+  let getUnionCasesWithField =
     memorise (fun t ->
-      FSharpType.GetUnionCases t
+      let cases = FSharpType.GetUnionCases t
+      cases
+      |> Array.map (fun case -> case, case.GetFields())
     )
 
   override __.CanConvert(t) = canConvert t
@@ -85,8 +88,8 @@ type ErasedUnionConverter() =
       with
       | _ -> None
 
-    let tryMakeUnionCase (json: JToken) (case: UnionCaseInfo) =
-      match case.GetFields() with
+    let tryMakeUnionCase (json: JToken) (case: UnionCaseInfo, fields: PropertyInfo[]) =
+      match fields with
       | [| field |] ->
         let ty = field.PropertyType
 
@@ -97,8 +100,7 @@ type ErasedUnionConverter() =
         failwith
           $"Expected union {case.DeclaringType.Name} to have exactly one field in each case, but case {case.Name} has {fields.Length} fields"
 
-
-    let cases = getUnionCases t
+    let cases = getUnionCasesWithField t
     let json = JToken.ReadFrom reader
     let c = cases |> Array.tryPick (tryMakeUnionCase json)
 
