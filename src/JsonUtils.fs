@@ -62,12 +62,16 @@ type ErasedUnionConverter() =
       ||
       // Case
       t.BaseType.GetCustomAttributes(typedefof<ErasedUnionAttribute>, false).Length > 0))
-  let getUnionCasesWithField =
+  let getUnionCasesWithFields =
     memorise (fun t ->
       let cases = FSharpType.GetUnionCases t
       cases
       |> Array.map (fun case -> case, case.GetFields())
     )
+  let getUnionCaseByTag ty tag =
+    getUnionCasesWithFields ty
+    |> Array.find (fun (case, _) -> case.Tag = tag)
+
   let getTagReader =
     memorise (fun t ->
       FSharpValue.PreComputeUnionTagReader t
@@ -82,15 +86,12 @@ type ErasedUnionConverter() =
   override __.WriteJson(writer, value, serializer) =
     let ty = value.GetType()
     let tag = getTagReader ty value
-    let (case, fields) =
-      getUnionCasesWithField ty
-      |> Array.find (fun (case, _) -> case.Tag = tag)
+    let (case, fields) = getUnionCaseByTag ty tag
     // Must be exactly 1 field
     // Deliberately fail here to signal incorrect usage
     // (vs. `CanConvert` = `false` -> silent and fallback to serialization with `case` & `fields`)
     match fields with
     | [| _ |] ->
-        //TODO: get directly?
         let value = 
           getUnionCaseReader case value
           |> Array.head
@@ -99,7 +100,6 @@ type ErasedUnionConverter() =
 
   override __.ReadJson(reader: JsonReader, t, _existingValue, serializer) =
     let tryReadValue (json: JToken) (targetType: Type) =
-      //TODO: handle simple types without exception handling?
       try
         json.ToObject(targetType, serializer) |> Some
       with
@@ -117,7 +117,7 @@ type ErasedUnionConverter() =
         failwith
           $"Expected union {case.DeclaringType.Name} to have exactly one field in each case, but case {case.Name} has {fields.Length} fields"
 
-    let cases = getUnionCasesWithField t
+    let cases = getUnionCasesWithFields t
     let json = JToken.ReadFrom reader
     let c = cases |> Array.tryPick (tryMakeUnionCase json)
 
