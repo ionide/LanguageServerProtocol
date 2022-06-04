@@ -166,11 +166,12 @@ type SingleCaseUnionConverter() =
   override _.ReadJson(reader: Newtonsoft.Json.JsonReader, t, _existingValue, serializer) =
     let caseName = string reader.Value
 
-    match
-      FSharpType.GetUnionCases(t)
-      |> Array.tryFind (fun c -> c.Name.Equals(caseName, StringComparison.OrdinalIgnoreCase))
-      with
-    | Some caseInfo -> FSharpValue.MakeUnion(caseInfo, [||])
+    let union = getUnionInfo t
+    let case =
+      union.Cases
+      |> Array.tryFind (fun c -> c.Info.Name.Equals(caseName, StringComparison.OrdinalIgnoreCase))
+    match case with
+    | Some case -> case.Create [||]
     | None -> failwith $"Could not create an instance of the type '%s{t.Name}' with the name '%s{caseName}'"
 
 type U2BoolObjectConverter() =
@@ -187,24 +188,27 @@ type U2BoolObjectConverter() =
   override _.CanConvert t = canConvert t
 
   override _.WriteJson(writer, value, serializer) =
-    let case, fields = FSharpValue.GetUnionFields(value, value.GetType())
+    let union = getUnionInfo (value.GetType())
+    let case = union.GetCaseOf value
 
-    match case.Name with
+    match case.Info.Name with
     | "First" -> writer.WriteValue(value :?> bool)
-    | "Second" -> serializer.Serialize(writer, fields.[0])
-    | _ -> failwith $"Unrecognized case '{case.Name}' for union type '{value.GetType().FullName}'."
+    | "Second" -> 
+        let fields = case.GetFieldValues value
+        serializer.Serialize(writer, fields.[0])
+    | _ -> failwith $"Unrecognized case '{case.Info.Name}' for union type '{value.GetType().FullName}'."
+
 
   override _.ReadJson(reader, t, _existingValue, serializer) =
-    let cases = FSharpType.GetUnionCases(t)
-
+    let union = getUnionInfo t
     match reader.TokenType with
     | JsonToken.Boolean ->
-      // 'First' side
-      FSharpValue.MakeUnion(cases.[0], [| box (reader.Value :?> bool) |])
+        // 'First' side
+        union.Cases[0].Create [| box (reader.Value :?> bool) |]
     | JsonToken.StartObject ->
       // Second side
-      let value = serializer.Deserialize(reader, (t.GetGenericArguments().[1]))
-      FSharpValue.MakeUnion(cases.[1], [| value |])
+      let value = serializer.Deserialize(reader, (t.GetGenericArguments().[1])) //TODO: cache GenericArguments?
+      union.Cases[1].Create [| value |]
     | _ ->
       failwithf $"Unrecognized json TokenType '%s{string reader.TokenType}' when reading value of type '{t.FullName}'"
 
@@ -223,19 +227,18 @@ type OptionConverter() =
       if isNull value then
         null
       else
-        let _, fields = FSharpValue.GetUnionFields(value, value.GetType())
-        fields.[0]
+        let union = getUnionInfo (value.GetType())
+        let case = union.GetCaseOf value
+        case.GetFieldValues value
+        |> Array.head
 
     serializer.Serialize(writer, value)
 
   override __.ReadJson(reader, t, _existingValue, serializer) =
-    let cases = FSharpType.GetUnionCases(t)
-
     match reader.TokenType with
-    | JsonToken.Null -> FSharpValue.MakeUnion(cases.[0], [||])
+    | JsonToken.Null -> null  // = None
     | _ ->
-      let innerType = t.GetGenericArguments().[0]
-
+      let innerType = t.GetGenericArguments().[0] //TODO: cache generic args
       let innerType =
         if innerType.IsValueType then
           (typedefof<Nullable<_>>).MakeGenericType([| innerType |])
@@ -245,6 +248,7 @@ type OptionConverter() =
       let value = serializer.Deserialize(reader, innerType)
 
       if isNull value then
-        FSharpValue.MakeUnion(cases.[0], [||])
+        null
       else
-        FSharpValue.MakeUnion(cases.[1], [| value |])
+        let union = getUnionInfo t
+        union.Cases[1].Create [|value|]
