@@ -68,16 +68,33 @@ type ErasedUnionConverter() =
       cases
       |> Array.map (fun case -> case, case.GetFields())
     )
+  let getTagReader =
+    memorise (fun t ->
+      FSharpValue.PreComputeUnionTagReader t
+    )
+  let getUnionCaseReader =
+    memorise (fun case ->
+      FSharpValue.PreComputeUnionReader case
+    )
 
   override __.CanConvert(t) = canConvert t
 
   override __.WriteJson(writer, value, serializer) =
-    let _, fields = FSharpValue.GetUnionFields(value, value.GetType())
+    let ty = value.GetType()
+    let tag = getTagReader ty value
+    let (case, fields) =
+      getUnionCasesWithField ty
+      |> Array.find (fun (case, _) -> case.Tag = tag)
     // Must be exactly 1 field
     // Deliberately fail here to signal incorrect usage
     // (vs. `CanConvert` = `false` -> silent and fallback to serialization with `case` & `fields`)
     match fields with
-    | [| unionField |] -> serializer.Serialize(writer, unionField)
+    | [| _ |] ->
+        //TODO: get directly?
+        let value = 
+          getUnionCaseReader case value
+          |> Array.head
+        serializer.Serialize(writer, value)
     | _ -> failwith $"Expected exactly one field for case `{value.GetType().Name}`, but were {fields.Length}"
 
   override __.ReadJson(reader: JsonReader, t, _existingValue, serializer) =
