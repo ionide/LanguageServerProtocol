@@ -79,6 +79,69 @@ module private UnionInfo =
 
 let private getUnionInfo: Type -> _ = memorise (fun t -> UnionInfo.create t)
 
+let private defaultSerializer = JsonSerializer()
+
+/// Newtonsoft.Json parses parses a number inside quotations as number too:
+/// `"42"` -> can be parsed to `42: int`
+/// This converter prevents that. `"42"` cannot be parsed to `int` (or `float`) any more
+type StrictNumberConverter() =
+  inherit JsonConverter()
+
+  let canConvert =
+    memorise(fun (t: Type) ->
+      t = typeof<int>
+      || t = typeof<float>
+      || t = typeof<byte>
+      || t = typeof<uint>
+      //ENHANCEMENT: other number types
+    )
+
+  override _.CanConvert(t) = canConvert t
+
+  override __.ReadJson(reader, t, _, serializer) =
+    match reader.TokenType with
+    | JsonToken.Integer
+    | JsonToken.Float ->
+        // cannot use `serializer`: Endless Recursion into StrictNumberConverter for same value
+        defaultSerializer.Deserialize(reader, t)
+    | _ ->
+        failwith $"Expected a number, but was {reader.TokenType}"
+
+  override _.CanWrite = false
+  override _.WriteJson(_,_,_) = raise (NotImplementedException())
+/// Like `StrictNumberConverter`, but prevents numbers to be parsed as string:
+/// `42` -> no quotation marks -> not a string
+type StrictStringConverter() =
+  inherit JsonConverter()
+
+  override _.CanConvert(t) = t = typeof<string>
+
+  override __.ReadJson(reader, t, _, serializer) =
+    match reader.TokenType with
+    | JsonToken.String ->
+        reader.Value
+    | _ ->
+        failwith $"Expected a string, but was {reader.TokenType}"
+
+  override _.CanWrite = false
+  override _.WriteJson(_,_,_) = raise (NotImplementedException())
+/// Like `StrictNumberConverter`, but prevents boolean to be parsed as string:
+/// `true` -> no quotation marks -> not a string
+type StrictBoolConverter() =
+  inherit JsonConverter()
+
+  override _.CanConvert(t) = t = typeof<bool>
+
+  override __.ReadJson(reader, t, _, serializer) =
+    match reader.TokenType with
+    | JsonToken.Boolean ->
+        reader.Value
+    | _ ->
+        failwith $"Expected a bool, but was {reader.TokenType}"
+
+  override _.CanWrite = false
+  override _.WriteJson(_,_,_) = raise (NotImplementedException())
+
 type ErasedUnionConverter() =
   inherit JsonConverter()
 
@@ -106,10 +169,11 @@ type ErasedUnionConverter() =
 
   override __.ReadJson(reader: JsonReader, t, _existingValue, serializer) =
     let tryReadValue (json: JToken) (targetType: Type) =
-      try
-        json.ToObject(targetType, serializer) |> Some
-      with
-      | _ -> None
+        //TODO: custom handling simple types to prevent exceptions?
+        try
+          json.ToObject(targetType, serializer) |> Some
+        with
+        | _ -> None
 
     let union = getUnionInfo t
     let json = JToken.ReadFrom reader
@@ -136,7 +200,6 @@ type ErasedUnionConverter() =
 type SingleCaseUnionConverter() =
   inherit JsonConverter()
 
-
   let canConvert =
     let allCases (t: System.Type) = FSharpType.GetUnionCases t
 
@@ -162,45 +225,6 @@ type SingleCaseUnionConverter() =
     match case with
     | Some case -> case.Create [||]
     | None -> failwith $"Could not create an instance of the type '%s{t.Name}' with the name '%s{caseName}'"
-
-type U2BoolObjectConverter() =
-  inherit JsonConverter()
-
-  let canConvert =
-    memorise (fun (t: System.Type) ->
-      t.IsGenericType
-      && t.GetGenericTypeDefinition() = typedefof<U2<_, _>>
-      && t.GetGenericArguments().Length = 2
-      && t.GetGenericArguments().[0] = typeof<bool>
-      && not (t.GetGenericArguments().[1].IsValueType))
-
-  override _.CanConvert t = canConvert t
-
-  override _.WriteJson(writer, value, serializer) =
-    let union = getUnionInfo (value.GetType())
-    let case = union.GetCaseOf value
-
-    match case.Info.Name with
-    | "First" -> writer.WriteValue(value :?> bool)
-    | "Second" ->
-      let fields = case.GetFieldValues value
-      serializer.Serialize(writer, fields.[0])
-    | _ -> failwith $"Unrecognized case '{case.Info.Name}' for union type '{value.GetType().FullName}'."
-
-
-  override _.ReadJson(reader, t, _existingValue, serializer) =
-    let union = getUnionInfo t
-
-    match reader.TokenType with
-    | JsonToken.Boolean ->
-      // 'First' side
-      union.Cases[ 0 ].Create [| box (reader.Value :?> bool) |]
-    | JsonToken.StartObject ->
-      // Second side
-      let value = serializer.Deserialize(reader, (t.GetGenericArguments()[1]))
-      union.Cases[ 1 ].Create [| value |]
-    | _ ->
-      failwithf $"Unrecognized json TokenType '%s{string reader.TokenType}' when reading value of type '{t.FullName}'"
 
 type OptionConverter() =
   inherit JsonConverter()

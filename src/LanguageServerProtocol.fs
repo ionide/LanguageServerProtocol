@@ -19,8 +19,10 @@ module Server =
   jsonRpcFormatter.JsonSerializer.NullValueHandling <- NullValueHandling.Ignore
   jsonRpcFormatter.JsonSerializer.ConstructorHandling <- ConstructorHandling.AllowNonPublicDefaultConstructor
   jsonRpcFormatter.JsonSerializer.MissingMemberHandling <- MissingMemberHandling.Ignore
+  jsonRpcFormatter.JsonSerializer.Converters.Add(StrictNumberConverter())
+  jsonRpcFormatter.JsonSerializer.Converters.Add(StrictStringConverter())
+  jsonRpcFormatter.JsonSerializer.Converters.Add(StrictBoolConverter())
   jsonRpcFormatter.JsonSerializer.Converters.Add(SingleCaseUnionConverter())
-  jsonRpcFormatter.JsonSerializer.Converters.Add(U2BoolObjectConverter())
   jsonRpcFormatter.JsonSerializer.Converters.Add(OptionConverter())
   jsonRpcFormatter.JsonSerializer.Converters.Add(ErasedUnionConverter())
   jsonRpcFormatter.JsonSerializer.ContractResolver <- OptionAndCamelCasePropertyNamesContractResolver()
