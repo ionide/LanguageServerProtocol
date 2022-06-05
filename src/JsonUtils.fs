@@ -50,47 +50,34 @@ let inline private memorise (f: 'a -> 'b) : ('a -> 'b) =
   let d = ConcurrentDictionary<'a, 'b>()
   fun key -> d.GetOrAdd(key, f)
 
-type private CaseInfo = 
-  {
-    Info: UnionCaseInfo
-    Fields: PropertyInfo[]
-    GetFieldValues: obj -> obj[]
-    Create: obj[] -> obj
-  }
-type private UnionInfo = 
-  {
-    Cases: CaseInfo[]
-    GetTag: obj -> int
-  }
-  with
-    member u.GetCaseOf (value: obj) =
-      let tag = u.GetTag value
-      u.Cases
-      |> Array.find (fun case -> case.Info.Tag = tag)
+type private CaseInfo =
+  { Info: UnionCaseInfo
+    Fields: PropertyInfo []
+    GetFieldValues: obj -> obj []
+    Create: obj [] -> obj }
+
+type private UnionInfo =
+  { Cases: CaseInfo []
+    GetTag: obj -> int }
+  member u.GetCaseOf(value: obj) =
+    let tag = u.GetTag value
+    u.Cases |> Array.find (fun case -> case.Info.Tag = tag)
 
 module private UnionInfo =
   let create (ty: Type) =
-    assert(ty |> FSharpType.IsUnion)
+    assert (ty |> FSharpType.IsUnion)
 
-    let cases = 
+    let cases =
       FSharpType.GetUnionCases ty
-      |> Array.map (fun case -> 
-          {
-            Info = case
-            Fields = case.GetFields()
-            GetFieldValues = FSharpValue.PreComputeUnionReader case
-            Create = FSharpValue.PreComputeUnionConstructor case
-          }
-      )
-    {
-      Cases = cases
-      GetTag = FSharpValue.PreComputeUnionTagReader ty
-    }
+      |> Array.map (fun case ->
+        { Info = case
+          Fields = case.GetFields()
+          GetFieldValues = FSharpValue.PreComputeUnionReader case
+          Create = FSharpValue.PreComputeUnionConstructor case })
 
-let private getUnionInfo: Type -> _ =
-  memorise (fun t ->
-    UnionInfo.create t
-  )
+    { Cases = cases; GetTag = FSharpValue.PreComputeUnionTagReader ty }
+
+let private getUnionInfo: Type -> _ = memorise (fun t -> UnionInfo.create t)
 
 type ErasedUnionConverter() =
   inherit JsonConverter()
@@ -114,8 +101,7 @@ type ErasedUnionConverter() =
     // Deliberately fail here to signal incorrect usage
     // (vs. `CanConvert` = `false` -> silent and fallback to serialization with `case` & `fields`)
     match case.GetFieldValues value with
-    | [| value |] ->
-        serializer.Serialize(writer, value)
+    | [| value |] -> serializer.Serialize(writer, value)
     | values -> failwith $"Expected exactly one field for case `{value.GetType().Name}`, but were {values.Length}"
 
   override __.ReadJson(reader: JsonReader, t, _existingValue, serializer) =
@@ -127,17 +113,18 @@ type ErasedUnionConverter() =
 
     let union = getUnionInfo t
     let json = JToken.ReadFrom reader
+
     let tryMakeUnionCase (json: JToken) (case: CaseInfo) =
       match case.Fields with
       | [| field |] ->
-          let ty = field.PropertyType
-          match tryReadValue json ty with
-          | None -> None
-          | Some value -> 
-              case.Create [|value|]
-              |> Some
+        let ty = field.PropertyType
+
+        match tryReadValue json ty with
+        | None -> None
+        | Some value -> case.Create [| value |] |> Some
       | fields ->
-          failwith $"Expected union {case.Info.DeclaringType.Name} to have exactly one field in each case, but case {case.Info.Name} has {fields.Length} fields"
+        failwith
+          $"Expected union {case.Info.DeclaringType.Name} to have exactly one field in each case, but case {case.Info.Name} has {fields.Length} fields"
 
     let c = union.Cases |> Array.tryPick (tryMakeUnionCase json)
 
@@ -167,9 +154,11 @@ type SingleCaseUnionConverter() =
     let caseName = string reader.Value
 
     let union = getUnionInfo t
+
     let case =
       union.Cases
       |> Array.tryFind (fun c -> c.Info.Name.Equals(caseName, StringComparison.OrdinalIgnoreCase))
+
     match case with
     | Some case -> case.Create [||]
     | None -> failwith $"Could not create an instance of the type '%s{t.Name}' with the name '%s{caseName}'"
@@ -193,22 +182,23 @@ type U2BoolObjectConverter() =
 
     match case.Info.Name with
     | "First" -> writer.WriteValue(value :?> bool)
-    | "Second" -> 
-        let fields = case.GetFieldValues value
-        serializer.Serialize(writer, fields.[0])
+    | "Second" ->
+      let fields = case.GetFieldValues value
+      serializer.Serialize(writer, fields.[0])
     | _ -> failwith $"Unrecognized case '{case.Info.Name}' for union type '{value.GetType().FullName}'."
 
 
   override _.ReadJson(reader, t, _existingValue, serializer) =
     let union = getUnionInfo t
+
     match reader.TokenType with
     | JsonToken.Boolean ->
-        // 'First' side
-        union.Cases[0].Create [| box (reader.Value :?> bool) |]
+      // 'First' side
+      union.Cases[ 0 ].Create [| box (reader.Value :?> bool) |]
     | JsonToken.StartObject ->
       // Second side
       let value = serializer.Deserialize(reader, (t.GetGenericArguments()[1]))
-      union.Cases[1].Create [| value |]
+      union.Cases[ 1 ].Create [| value |]
     | _ ->
       failwithf $"Unrecognized json TokenType '%s{string reader.TokenType}' when reading value of type '{t.FullName}'"
 
@@ -229,16 +219,16 @@ type OptionConverter() =
       else
         let union = getUnionInfo (value.GetType())
         let case = union.GetCaseOf value
-        case.GetFieldValues value
-        |> Array.head
+        case.GetFieldValues value |> Array.head
 
     serializer.Serialize(writer, value)
 
   override __.ReadJson(reader, t, _existingValue, serializer) =
     match reader.TokenType with
-    | JsonToken.Null -> null  // = None
+    | JsonToken.Null -> null // = None
     | _ ->
       let innerType = t.GetGenericArguments()[0]
+
       let innerType =
         if innerType.IsValueType then
           (typedefof<Nullable<_>>).MakeGenericType([| innerType |])
@@ -251,4 +241,4 @@ type OptionConverter() =
         null
       else
         let union = getUnionInfo t
-        union.Cases[1].Create [|value|]
+        union.Cases[ 1 ].Create [| value |]

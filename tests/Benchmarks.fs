@@ -151,12 +151,13 @@ type MultipleTypesBenchmarks() =
       let json = inlayHint |> serialize
       let res = json.ToObject(o.GetType(), jsonRpcFormatter.JsonSerializer)
       ()
+
   [<Benchmark>]
   member b.All_MultipleRoundtrips() =
     for _ in 0..250 do
       b.All_Roundtrip()
 
-let run (args: string[]) =
+let run (args: string []) =
   let switcher = BenchmarkSwitcher.FromTypes([| typeof<MultipleTypesBenchmarks> |])
   switcher.Run(args) |> ignore
   0
