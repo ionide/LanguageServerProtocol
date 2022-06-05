@@ -207,7 +207,7 @@ type U2BoolObjectConverter() =
         union.Cases[0].Create [| box (reader.Value :?> bool) |]
     | JsonToken.StartObject ->
       // Second side
-      let value = serializer.Deserialize(reader, (t.GetGenericArguments().[1])) //TODO: cache GenericArguments?
+      let value = serializer.Deserialize(reader, (t.GetGenericArguments()[1]))
       union.Cases[1].Create [| value |]
     | _ ->
       failwithf $"Unrecognized json TokenType '%s{string reader.TokenType}' when reading value of type '{t.FullName}'"
@@ -238,7 +238,7 @@ type OptionConverter() =
     match reader.TokenType with
     | JsonToken.Null -> null  // = None
     | _ ->
-      let innerType = t.GetGenericArguments().[0] //TODO: cache generic args
+      let innerType = t.GetGenericArguments()[0]
       let innerType =
         if innerType.IsValueType then
           (typedefof<Nullable<_>>).MakeGenericType([| innerType |])
