@@ -47,10 +47,12 @@ type OptionAndCamelCasePropertyNamesContractResolver() =
     contract
 
 
-let inline private memoriseByHash (f: 'a -> 'b): 'a -> 'b =
+let inline private memoriseByHash (f: 'a -> 'b) : 'a -> 'b =
   let d = ConcurrentDictionary<int, 'b>()
+
   fun key ->
     let hash = key.GetHashCode()
+
     match d.TryGetValue(hash) with
     | (true, value) -> value
     | _ ->
@@ -84,7 +86,7 @@ module private UnionInfo =
           Create = FSharpValue.PreComputeUnionConstructor case })
 
     { Cases = cases; GetTag = FSharpValue.PreComputeUnionTagReader ty }
-  
+
   let get: Type -> _ = memoriseByHash (create)
 
 /// Newtonsoft.Json parses parses a number inside quotations as number too:
@@ -95,13 +97,15 @@ type StrictNumberConverter() =
   inherit JsonConverter()
 
   static let defaultSerializer = JsonSerializer()
-  static let numericHashes = [|
-    typeof<int>.GetHashCode()
-    typeof<float>.GetHashCode()
-    typeof<byte>.GetHashCode()
-    typeof<uint>.GetHashCode()
-    //ENHANCEMENT: other number types
-  |]
+
+  static let numericHashes =
+    [| typeof<int>.GetHashCode ()
+       typeof<float>.GetHashCode ()
+       typeof<byte>.GetHashCode ()
+       typeof<uint>.GetHashCode ()
+       //ENHANCEMENT: other number types
+       |]
+
   static let isNumeric (t: Type) =
     let hash = t.GetHashCode()
     numericHashes |> Array.contains hash
@@ -112,13 +116,12 @@ type StrictNumberConverter() =
     match reader.TokenType with
     | JsonToken.Integer
     | JsonToken.Float ->
-        // cannot use `serializer`: Endless recursion into StrictNumberConverter for same value
-        defaultSerializer.Deserialize(reader, t)
-    | _ ->
-        failwith $"Expected a number, but was {reader.TokenType}"
+      // cannot use `serializer`: Endless recursion into StrictNumberConverter for same value
+      defaultSerializer.Deserialize(reader, t)
+    | _ -> failwith $"Expected a number, but was {reader.TokenType}"
 
   override _.CanWrite = false
-  override _.WriteJson(_,_,_) = raise (NotImplementedException())
+  override _.WriteJson(_, _, _) = raise (NotImplementedException())
 
 /// Like `StrictNumberConverter`, but prevents numbers to be parsed as string:
 /// `42` -> no quotation marks -> not a string
@@ -126,18 +129,16 @@ type StrictNumberConverter() =
 type StrictStringConverter() =
   inherit JsonConverter()
 
-  static let stringHash = typeof<string>.GetHashCode()
+  static let stringHash = typeof<string>.GetHashCode ()
   override _.CanConvert(t) = t.GetHashCode() = stringHash
 
   override __.ReadJson(reader, t, _, serializer) =
     match reader.TokenType with
-    | JsonToken.String ->
-        reader.Value
-    | _ ->
-        failwith $"Expected a string, but was {reader.TokenType}"
+    | JsonToken.String -> reader.Value
+    | _ -> failwith $"Expected a string, but was {reader.TokenType}"
 
   override _.CanWrite = false
-  override _.WriteJson(_,_,_) = raise (NotImplementedException())
+  override _.WriteJson(_, _, _) = raise (NotImplementedException())
 
 /// Like `StrictNumberConverter`, but prevents boolean to be parsed as string:
 /// `true` -> no quotation marks -> not a string
@@ -145,18 +146,16 @@ type StrictStringConverter() =
 type StrictBoolConverter() =
   inherit JsonConverter()
 
-  static let boolHash = typeof<bool>.GetHashCode()
+  static let boolHash = typeof<bool>.GetHashCode ()
   override _.CanConvert(t) = t.GetHashCode() = boolHash
 
   override __.ReadJson(reader, t, _, serializer) =
     match reader.TokenType with
-    | JsonToken.Boolean ->
-        reader.Value
-    | _ ->
-        failwith $"Expected a bool, but was {reader.TokenType}"
+    | JsonToken.Boolean -> reader.Value
+    | _ -> failwith $"Expected a bool, but was {reader.TokenType}"
 
   override _.CanWrite = false
-  override _.WriteJson(_,_,_) = raise (NotImplementedException())
+  override _.WriteJson(_, _, _) = raise (NotImplementedException())
 
 [<Sealed>]
 type ErasedUnionConverter() =
@@ -186,29 +185,28 @@ type ErasedUnionConverter() =
 
   override __.ReadJson(reader: JsonReader, t, _existingValue, serializer) =
     let tryReadValue (json: JToken) (targetType: Type) =
-        if targetType = typeof<string> then
-          if json.Type = JTokenType.String then
-            reader.Value
-            |> Some
-          else
-            None
-        elif targetType = typeof<bool> then
-          if json.Type = JTokenType.Boolean then
-            reader.Value
-            |> Some
-          else
-            None
-        elif targetType = typeof<int> || targetType = typeof<float> || targetType = typeof<byte> then
-          match json.Type with
-          | JTokenType.Integer | JTokenType.Float ->
-              json.ToObject(targetType, serializer)
-              |> Some
-          | _ -> None
+      if targetType = typeof<string> then
+        if json.Type = JTokenType.String then
+          reader.Value |> Some
         else
-            try
-              json.ToObject(targetType, serializer) |> Some
-            with
-            | _ -> None
+          None
+      elif targetType = typeof<bool> then
+        if json.Type = JTokenType.Boolean then
+          reader.Value |> Some
+        else
+          None
+      elif targetType = typeof<int>
+           || targetType = typeof<float>
+           || targetType = typeof<byte> then
+        match json.Type with
+        | JTokenType.Integer
+        | JTokenType.Float -> json.ToObject(targetType, serializer) |> Some
+        | _ -> None
+      else
+        try
+          json.ToObject(targetType, serializer) |> Some
+        with
+        | _ -> None
 
     let union = UnionInfo.get t
     let json = JToken.ReadFrom reader
