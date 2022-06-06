@@ -18,9 +18,9 @@ jobs:
         with:
           global-json-file: global.json
       - name: Run build
-        run: dotnet build -c Release
+        run: dotnet build -c Release src
       - name: Run publish
-        run: dotnet pack -c Release -o release
+        run: dotnet pack -c Release -o release src
       - name: Upload NuGet packages
         uses: actions/upload-artifact@v2
         with:
