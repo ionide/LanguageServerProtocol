@@ -181,11 +181,29 @@ type ErasedUnionConverter() =
 
   override __.ReadJson(reader: JsonReader, t, _existingValue, serializer) =
     let tryReadValue (json: JToken) (targetType: Type) =
-        //TODO: custom handling simple types to prevent exceptions?
-        try
-          json.ToObject(targetType, serializer) |> Some
-        with
-        | _ -> None
+        if targetType = typeof<string> then
+          if json.Type = JTokenType.String then
+            reader.Value
+            |> Some
+          else
+            None
+        elif targetType = typeof<bool> then
+          if json.Type = JTokenType.Boolean then
+            reader.Value
+            |> Some
+          else
+            None
+        elif targetType = typeof<int> || targetType = typeof<float> || targetType = typeof<byte> then
+          match json.Type with
+          | JTokenType.Integer | JTokenType.Float ->
+              json.ToObject(targetType, serializer)
+              |> Some
+          | _ -> None
+        else
+            try
+              json.ToObject(targetType, serializer) |> Some
+            with
+            | _ -> None
 
     let union = getUnionInfo t
     let json = JToken.ReadFrom reader
