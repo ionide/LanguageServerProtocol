@@ -79,42 +79,45 @@ module private UnionInfo =
 
 let private getUnionInfo: Type -> _ = memorise (fun t -> UnionInfo.create t)
 
-let private defaultSerializer = JsonSerializer()
-
 /// Newtonsoft.Json parses parses a number inside quotations as number too:
 /// `"42"` -> can be parsed to `42: int`
 /// This converter prevents that. `"42"` cannot be parsed to `int` (or `float`) any more
 type StrictNumberConverter() =
   inherit JsonConverter()
 
-  let canConvert =
-    memorise(fun (t: Type) ->
-      t = typeof<int>
-      || t = typeof<float>
-      || t = typeof<byte>
-      || t = typeof<uint>
-      //ENHANCEMENT: other number types
-    )
+  static let defaultSerializer = JsonSerializer()
+  static let numericHashes = [|
+    typeof<int>.GetHashCode()
+    typeof<float>.GetHashCode()
+    typeof<byte>.GetHashCode()
+    typeof<uint>.GetHashCode()
+    //ENHANCEMENT: other number types
+  |]
+  static let isNumeric (t: Type) =
+    let hash = t.GetHashCode()
+    numericHashes |> Array.contains hash
 
-  override _.CanConvert(t) = canConvert t
+  override _.CanConvert(t) = isNumeric t
 
   override __.ReadJson(reader, t, _, serializer) =
     match reader.TokenType with
     | JsonToken.Integer
     | JsonToken.Float ->
-        // cannot use `serializer`: Endless Recursion into StrictNumberConverter for same value
+        // cannot use `serializer`: Endless recursion into StrictNumberConverter for same value
         defaultSerializer.Deserialize(reader, t)
     | _ ->
         failwith $"Expected a number, but was {reader.TokenType}"
 
   override _.CanWrite = false
   override _.WriteJson(_,_,_) = raise (NotImplementedException())
+
 /// Like `StrictNumberConverter`, but prevents numbers to be parsed as string:
 /// `42` -> no quotation marks -> not a string
 type StrictStringConverter() =
   inherit JsonConverter()
 
-  override _.CanConvert(t) = t = typeof<string>
+  static let stringHash = typeof<string>.GetHashCode()
+  override _.CanConvert(t) = t.GetHashCode() = stringHash
 
   override __.ReadJson(reader, t, _, serializer) =
     match reader.TokenType with
@@ -125,12 +128,14 @@ type StrictStringConverter() =
 
   override _.CanWrite = false
   override _.WriteJson(_,_,_) = raise (NotImplementedException())
+
 /// Like `StrictNumberConverter`, but prevents boolean to be parsed as string:
 /// `true` -> no quotation marks -> not a string
 type StrictBoolConverter() =
   inherit JsonConverter()
 
-  override _.CanConvert(t) = t = typeof<bool>
+  static let boolHash = typeof<bool>.GetHashCode()
+  override _.CanConvert(t) = t.GetHashCode() = boolHash
 
   override __.ReadJson(reader, t, _, serializer) =
     match reader.TokenType with
