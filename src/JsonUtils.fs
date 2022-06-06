@@ -46,9 +46,16 @@ type OptionAndCamelCasePropertyNamesContractResolver() =
     contract
 
 
-let inline private memorise (f: 'a -> 'b) : ('a -> 'b) =
-  let d = ConcurrentDictionary<'a, 'b>()
-  fun key -> d.GetOrAdd(key, f)
+let inline private memoriseByHash (f: 'a -> 'b): 'a -> 'b =
+  let d = ConcurrentDictionary<int, 'b>()
+  fun key ->
+    let hash = key.GetHashCode()
+    match d.TryGetValue(hash) with
+    | (true, value) -> value
+    | _ ->
+      let value = f key
+      d.TryAdd(hash, value) |> ignore
+      value
 
 type private CaseInfo =
   { Info: UnionCaseInfo
@@ -77,7 +84,7 @@ module private UnionInfo =
 
     { Cases = cases; GetTag = FSharpValue.PreComputeUnionTagReader ty }
 
-let private getUnionInfo: Type -> _ = memorise (fun t -> UnionInfo.create t)
+let private getUnionInfo: Type -> _ = memoriseByHash (fun t -> UnionInfo.create t)
 
 /// Newtonsoft.Json parses parses a number inside quotations as number too:
 /// `"42"` -> can be parsed to `42: int`
@@ -151,7 +158,7 @@ type ErasedUnionConverter() =
   inherit JsonConverter()
 
   let canConvert =
-    memorise (fun t ->
+    memoriseByHash (fun t ->
       FSharpType.IsUnion t
       && (
       // Union
@@ -208,7 +215,7 @@ type SingleCaseUnionConverter() =
   let canConvert =
     let allCases (t: System.Type) = FSharpType.GetUnionCases t
 
-    memorise (fun t ->
+    memoriseByHash (fun t ->
       FSharpType.IsUnion t
       && allCases t
          |> Array.forall (fun c -> c.GetFields().Length = 0))
@@ -235,7 +242,7 @@ type OptionConverter() =
   inherit JsonConverter()
 
   let canConvert =
-    memorise (fun (t: System.Type) ->
+    memoriseByHash (fun (t: System.Type) ->
       t.IsGenericType
       && t.GetGenericTypeDefinition() = typedefof<option<_>>)
 
