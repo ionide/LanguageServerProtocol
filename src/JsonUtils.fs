@@ -25,6 +25,7 @@ open System.Reflection
 /// {}                                // error
 /// { "name": "foo", "data": "bar" }  // ok
 /// ```
+[<Sealed>]
 type OptionAndCamelCasePropertyNamesContractResolver() =
   inherit CamelCasePropertyNamesContractResolver()
 
@@ -89,6 +90,7 @@ module private UnionInfo =
 /// Newtonsoft.Json parses parses a number inside quotations as number too:
 /// `"42"` -> can be parsed to `42: int`
 /// This converter prevents that. `"42"` cannot be parsed to `int` (or `float`) any more
+[<Sealed>]
 type StrictNumberConverter() =
   inherit JsonConverter()
 
@@ -120,6 +122,7 @@ type StrictNumberConverter() =
 
 /// Like `StrictNumberConverter`, but prevents numbers to be parsed as string:
 /// `42` -> no quotation marks -> not a string
+[<Sealed>]
 type StrictStringConverter() =
   inherit JsonConverter()
 
@@ -138,6 +141,7 @@ type StrictStringConverter() =
 
 /// Like `StrictNumberConverter`, but prevents boolean to be parsed as string:
 /// `true` -> no quotation marks -> not a string
+[<Sealed>]
 type StrictBoolConverter() =
   inherit JsonConverter()
 
@@ -154,6 +158,7 @@ type StrictBoolConverter() =
   override _.CanWrite = false
   override _.WriteJson(_,_,_) = raise (NotImplementedException())
 
+[<Sealed>]
 type ErasedUnionConverter() =
   inherit JsonConverter()
 
@@ -227,6 +232,7 @@ type ErasedUnionConverter() =
     | Some c -> c
 
 /// converter that can convert enum-style DUs
+[<Sealed>]
 type SingleCaseUnionConverter() =
   inherit JsonConverter()
 
@@ -256,6 +262,7 @@ type SingleCaseUnionConverter() =
     | Some case -> case.Create [||]
     | None -> failwith $"Could not create an instance of the type '%s{t.Name}' with the name '%s{caseName}'"
 
+[<Sealed>]
 type OptionConverter() =
   inherit JsonConverter()
 
