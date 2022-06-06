@@ -71,7 +71,7 @@ type private UnionInfo =
     u.Cases |> Array.find (fun case -> case.Info.Tag = tag)
 
 module private UnionInfo =
-  let create (ty: Type) =
+  let private create (ty: Type) =
     assert (ty |> FSharpType.IsUnion)
 
     let cases =
@@ -83,8 +83,8 @@ module private UnionInfo =
           Create = FSharpValue.PreComputeUnionConstructor case })
 
     { Cases = cases; GetTag = FSharpValue.PreComputeUnionTagReader ty }
-
-let private getUnionInfo: Type -> _ = memoriseByHash (fun t -> UnionInfo.create t)
+  
+  let get: Type -> _ = memoriseByHash (create)
 
 /// Newtonsoft.Json parses parses a number inside quotations as number too:
 /// `"42"` -> can be parsed to `42: int`
@@ -170,7 +170,7 @@ type ErasedUnionConverter() =
   override __.CanConvert(t) = canConvert t
 
   override __.WriteJson(writer, value, serializer) =
-    let union = getUnionInfo (value.GetType())
+    let union = UnionInfo.get (value.GetType())
     let case = union.GetCaseOf value
     // Must be exactly 1 field
     // Deliberately fail here to signal incorrect usage
@@ -205,7 +205,7 @@ type ErasedUnionConverter() =
             with
             | _ -> None
 
-    let union = getUnionInfo t
+    let union = UnionInfo.get t
     let json = JToken.ReadFrom reader
 
     let tryMakeUnionCase (json: JToken) (case: CaseInfo) =
@@ -246,7 +246,7 @@ type SingleCaseUnionConverter() =
   override _.ReadJson(reader: Newtonsoft.Json.JsonReader, t, _existingValue, serializer) =
     let caseName = string reader.Value
 
-    let union = getUnionInfo t
+    let union = UnionInfo.get t
 
     let case =
       union.Cases
@@ -271,7 +271,7 @@ type OptionConverter() =
       if isNull value then
         null
       else
-        let union = getUnionInfo (value.GetType())
+        let union = UnionInfo.get (value.GetType())
         let case = union.GetCaseOf value
         case.GetFieldValues value |> Array.head
 
@@ -294,5 +294,5 @@ type OptionConverter() =
       if isNull value then
         null
       else
-        let union = getUnionInfo t
+        let union = UnionInfo.get t
         union.Cases[ 1 ].Create [| value |]
