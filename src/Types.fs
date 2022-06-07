@@ -1750,7 +1750,7 @@ type CodeAction =
 
     /// A data entry field that is preserved on a code action between
     /// a `textDocument/codeAction` and a `codeAction/resolve` request.
-    Data: obj option }
+    Data: JToken option }
 
 [<ErasedUnion>]
 [<RequireQualifiedAccess>]
