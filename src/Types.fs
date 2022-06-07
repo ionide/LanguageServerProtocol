@@ -1675,9 +1675,7 @@ type Diagnostic =
     /// A data entry field that is preserved between a
     /// `textDocument/publishDiagnostics` notification and
     /// `textDocument/codeAction` request.
-    Data: obj option
-
-   }
+    Data: JToken option }
   [<DebuggerBrowsable(DebuggerBrowsableState.Never); JsonIgnore>]
   member x.DebuggerDisplay =
     $"[{defaultArg x.Severity DiagnosticSeverity.Error}] ({x.Range.DebuggerDisplay}) {x.Message} ({defaultArg x.Code String.Empty})"
