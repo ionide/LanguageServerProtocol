@@ -26,8 +26,10 @@ open System.Reflection
 /// { "name": "foo", "data": "bar" }  // ok
 /// ```
 [<Sealed>]
-type OptionAndCamelCasePropertyNamesContractResolver() =
+type OptionAndCamelCasePropertyNamesContractResolver() as this =
   inherit CamelCasePropertyNamesContractResolver()
+
+  do this.NamingStrategy.ProcessDictionaryKeys <- false
 
   override _.CreateObjectContract(objectType: Type) =
     let contract = ``base``.CreateObjectContract(objectType)

@@ -1097,7 +1097,7 @@ type InitializeResult =
 /// edits and if `documentChanges` are present, the latter are preferred over `changes`.
 type WorkspaceEdit =
   { /// Holds changes to existing resources.
-    Changes: Map<string, TextEdit []> option
+    Changes: Map<DocumentUri, TextEdit []> option
 
     /// An array of `TextDocumentEdit`s to express changes to n different text documents
     /// where each text document edit addresses a specific version of a text document.

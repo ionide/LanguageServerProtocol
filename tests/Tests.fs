@@ -87,6 +87,48 @@ let private serializationTests =
         Expect.equal output input "Input -> serialize -> deserialize should be Input again"
 
       testList
+        "capitalization"
+        [ testCase "changes lower cases start in F# to lower case in JSON"
+          <| fun _ ->
+               let o = {| Name = "foo"; SomeValue = 42 |}
+               let json = serialize o :?> JObject
+
+               let name = json.Property("name")
+               Expect.equal name.Name "name" "name should be lower case start"
+
+               let someValue = json.Property("someValue")
+
+               Expect.equal
+                 someValue.Name
+                 "someValue"
+                 "someValue should be lowercase start, but keep upper case 2nd word"
+
+          testCase "keeps capitalization of Map"
+          <| fun _ ->
+               let keys =
+                 [| "foo"; "Bar"; "BAZ"; "SomeValue"; "anotherValue"; "l"; "P" |]
+                 |> Array.sort
+
+               let m = keys |> Seq.mapi (fun i k -> (k, i)) |> Map.ofSeq
+               let json = serialize m :?> JObject
+
+               let propNames =
+                 json.Properties()
+                 |> Seq.map (fun p -> p.Name)
+                 |> Seq.toArray
+                 |> Array.sort
+
+               Expect.equal propNames keys "Property names from Map should be unchanged"
+          testCase "can deserialize Map back"
+          <| fun _ ->
+               let m =
+                 [| "foo"; "Bar"; "BAZ"; "SomeValue"; "anotherValue"; "l"; "P" |]
+                 |> Seq.mapi (fun i k -> (k, i))
+                 |> Map.ofSeq
+
+               testThereAndBackAgain m ]
+
+      testList
         "Optional & Required Fields"
         [ testList
             "Two Required"
@@ -278,54 +320,66 @@ let private serializationTests =
                      (fun _ -> json |> deserialize<OneOptional> |> ignore)
                      "Should fail without required member"
 
-              ] 
+              ]
 
-          testList "string vs int" [
-            testCase "can deserialize int to U2<int,string>" <| fun _ ->
-              let input: U2<int, string> = U2.First 42
-              testThereAndBackAgain input
-            testCase "can deserialize string to U2<int,string>" <| fun _ ->
-              let input: U2<int, string> = U2.Second "foo"
-              testThereAndBackAgain input
-            testCase "can deserialize 42 string to U2<int,string>" <| fun _ ->
-              let input: U2<int, string> = U2.Second "42"
-              testThereAndBackAgain input
+          testList
+            "string vs int"
+            [ testCase "can deserialize int to U2<int,string>"
+              <| fun _ ->
+                   let input: U2<int, string> = U2.First 42
+                   testThereAndBackAgain input
+              testCase "can deserialize string to U2<int,string>"
+              <| fun _ ->
+                   let input: U2<int, string> = U2.Second "foo"
+                   testThereAndBackAgain input
+              testCase "can deserialize 42 string to U2<int,string>"
+              <| fun _ ->
+                   let input: U2<int, string> = U2.Second "42"
+                   testThereAndBackAgain input
 
-            testCase "can deserialize int to U2<string, int>" <| fun _ ->
-              let input: U2<string, int> = U2.Second 42
-              testThereAndBackAgain input
-            testCase "can deserialize string to U2<string, string>" <| fun _ ->
-              let input: U2<string, int> = U2.First "foo"
-              testThereAndBackAgain input
-            testCase "can deserialize 42 string to U2<string,int>" <| fun _ ->
-              let input: U2<string, int> = U2.First "42"
-              testThereAndBackAgain input
-          ]
-          testList "string vs bool" [
-            testCase "can deserialize bool to U2<bool,string>" <| fun _ ->
-              let input: U2<bool, string> = U2.First true
-              testThereAndBackAgain input
-            testCase "can deserialize string to U2<bool,string>" <| fun _ ->
-              let input: U2<bool, string> = U2.Second "foo"
-              testThereAndBackAgain input
-            testCase "can deserialize true string to U2<bool,string>" <| fun _ ->
-              let input: U2<bool, string> = U2.Second "true"
-              testThereAndBackAgain input
+              testCase "can deserialize int to U2<string, int>"
+              <| fun _ ->
+                   let input: U2<string, int> = U2.Second 42
+                   testThereAndBackAgain input
+              testCase "can deserialize string to U2<string, string>"
+              <| fun _ ->
+                   let input: U2<string, int> = U2.First "foo"
+                   testThereAndBackAgain input
+              testCase "can deserialize 42 string to U2<string,int>"
+              <| fun _ ->
+                   let input: U2<string, int> = U2.First "42"
+                   testThereAndBackAgain input ]
+          testList
+            "string vs bool"
+            [ testCase "can deserialize bool to U2<bool,string>"
+              <| fun _ ->
+                   let input: U2<bool, string> = U2.First true
+                   testThereAndBackAgain input
+              testCase "can deserialize string to U2<bool,string>"
+              <| fun _ ->
+                   let input: U2<bool, string> = U2.Second "foo"
+                   testThereAndBackAgain input
+              testCase "can deserialize true string to U2<bool,string>"
+              <| fun _ ->
+                   let input: U2<bool, string> = U2.Second "true"
+                   testThereAndBackAgain input
 
-            testCase "can deserialize bool true to U2<string, bool>" <| fun _ ->
-              let input: U2<string, bool> = U2.Second true
-              testThereAndBackAgain input
-            testCase "can deserialize bool false to U2<string, bool>" <| fun _ ->
-              let input: U2<string, bool> = U2.Second false
-              testThereAndBackAgain input
-            testCase "can deserialize string to U2<string, string>" <| fun _ ->
-              let input: U2<string, bool> = U2.First "foo"
-              testThereAndBackAgain input
-            testCase "can deserialize true string to U2<string,bool>" <| fun _ ->
-              let input: U2<string, bool> = U2.First "true"
-              testThereAndBackAgain input
-          ]
-        ]
+              testCase "can deserialize bool true to U2<string, bool>"
+              <| fun _ ->
+                   let input: U2<string, bool> = U2.Second true
+                   testThereAndBackAgain input
+              testCase "can deserialize bool false to U2<string, bool>"
+              <| fun _ ->
+                   let input: U2<string, bool> = U2.Second false
+                   testThereAndBackAgain input
+              testCase "can deserialize string to U2<string, string>"
+              <| fun _ ->
+                   let input: U2<string, bool> = U2.First "foo"
+                   testThereAndBackAgain input
+              testCase "can deserialize true string to U2<string,bool>"
+              <| fun _ ->
+                   let input: U2<string, bool> = U2.First "true"
+                   testThereAndBackAgain input ] ]
 
       testList
         "ErasedUnionConverter"
