@@ -655,7 +655,7 @@ type SemanticTokenFullRequestType =
 type SemanticTokensRequests =
   { /// The client will send the `textDocument/semanticTokens/range` request
     /// if the server provides a corresponding handler.
-    Range: U2<bool, obj> option
+    Range: bool option
 
     /// The client will send the `textDocument/semanticTokens/full` request
     /// if the server provides a corresponding handler.
@@ -917,7 +917,7 @@ type SemanticTokensOptions =
     Legend: SemanticTokensLegend
 
     /// Server supports providing semantic tokens for a specific range of a document.
-    Range: U2<bool, obj> option
+    Range: bool option
 
     /// Server supports providing semantic tokens for a full document.
     Full: U2<bool, SemanticTokenFullOptions> option }
