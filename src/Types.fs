@@ -808,8 +808,10 @@ type InitializeParams =
     WorkspaceFolders: WorkspaceFolder [] option }
 
 type InitializedParams() =
-  class
-  end
+  override _.Equals(o) = o :? InitializedParams
+  override _.GetHashCode() = 0
+  override _.ToString() = "{}"
+
 
 /// Completion options.
 type CompletionOptions =
