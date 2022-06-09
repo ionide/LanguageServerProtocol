@@ -8,6 +8,8 @@ open Ionide.LanguageServerProtocol.Tests
 open Newtonsoft.Json.Linq
 open Newtonsoft.Json
 open Ionide.LanguageServerProtocol.JsonRpc
+open System.Collections.Generic
+open System.Collections
 
 type Record1 = { Name: string; Value: int }
 type Record2 = { Name: string; Position: int }
@@ -55,6 +57,20 @@ type AllRequired = { RequiredName: string; RequiredValue: int }
 type OneOptional = { RequiredName: string; OptionalValue: int option }
 type AllOptional = { OptionalName: string option; OptionalValue: int option }
 
+type MutableField = {
+  Name: string
+  mutable Value: int
+}
+
+type RequiredAttributeFields = {
+  [<JsonProperty(Required = Required.DisallowNull)>]
+  Name: string
+  [<JsonProperty(Required = Required.Always)>]
+  Value: int option
+  [<JsonProperty(Required = Required.AllowNull)>]
+  AnotherValue: string
+}
+
 let private serializationTests =
   testList
     "(de)serialization"
@@ -85,6 +101,23 @@ let private serializationTests =
       let testThereAndBackAgain input =
         let output = thereAndBackAgain input
         Expect.equal output input "Input -> serialize -> deserialize should be Input again"
+
+      testList "mutable field" [
+          // Newtonsoft.Json serializes all public fields
+          // F# emits a public field for mutable data:
+          // `{ mutable Data: int }`
+          // -> public property `Data` & public field `Data@`
+          // -> Data gets serialized twice
+          // Solution: exclude fields with trailing `@` (-> consider private)
+          testCase "doesn't serialize backing field" <| fun _ ->
+            let o: MutableField = {MutableField.Name = "foo"; Value = 42}
+            let json = o |> serialize :?> JObject
+            let props =
+              json.Properties()
+              |> Seq.map (fun p -> p.Name)
+            let expected = [ "name"; "value" ]
+            Expect.sequenceEqual props expected "backing field should not get serialized"
+      ]
 
       testList
         "capitalization"
@@ -242,7 +275,35 @@ let private serializationTests =
                      |> addProperty "foo" "bar"
                      |> addProperty "baz" 42
 
-                   json |> deserialize<AllOptional> |> ignore ] ]
+                   json |> deserialize<AllOptional> |> ignore ] 
+        
+          testList "Existing JsonProperty.Required" [
+            testCase "all present according to required should not fail" <| fun _ ->
+              let json = JToken.Parse """{ "name": "foo", "value": 42, "anotherValue": "bar" }"""
+              json
+              |> deserialize<RequiredAttributeFields>
+              |> ignore
+            testCase "Option with Required fails when no present" <| fun _ ->
+              let json = JToken.Parse """{ "name": "foo", "anotherValue": "bar" }"""
+              Expect.throws (fun _ ->
+                json
+                |> deserialize<RequiredAttributeFields>
+                |> fun e -> eprintfn "%A" e
+                |> ignore
+              ) "Value is Required and should fail when not present despite Option"
+            testCase "DisallowNull fails when null" <| fun _ ->
+              let json = JToken.Parse """{ "name": null, "value": 42, "anotherValue": "bar" }"""
+              Expect.throws (fun _ ->
+                json
+                |> deserialize<RequiredAttributeFields>
+                |> ignore
+              ) "Name should fail when null"
+            testCase "AllowNull allows null" <| fun _ ->
+              let json = JToken.Parse """{ "name": "foo", "value": 42, "anotherValue": null }"""
+              let o = json |> deserialize<RequiredAttributeFields>
+              Expect.isNull o.AnotherValue "AnotherValue should be null"
+          ]
+        ]
 
       testList
         "U2"

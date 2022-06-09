@@ -9,6 +9,36 @@ open Newtonsoft.Json.Linq
 open Newtonsoft.Json.Serialization
 open System.Reflection
 
+[<assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Ionide.LanguageServerProtocol.Tests")>]
+do ()
+module internal Type =
+  let numerics =
+    [| 
+      typeof<int>
+      typeof<float>
+      typeof<byte>
+      typeof<uint>
+      //ENHANCEMENT: other number types
+    |]
+  let numericHashes = 
+    numerics
+    |> Array.map (fun t -> t.GetHashCode())
+  let stringHash = typeof<string>.GetHashCode()
+  let boolHash = typeof<bool>.GetHashCode()
+
+  let inline isOption (t: Type) =
+    t.IsGenericType
+    &&
+    t.GetGenericTypeDefinition() = typedefof<_ option>
+  let inline isString (t: Type) =
+    t.GetHashCode() = stringHash
+  let inline isBool (t: Type) =
+    t.GetHashCode() = boolHash
+  let inline isNumeric (t: Type) =
+    let hash = t.GetHashCode()
+    numericHashes
+    |> Array.contains hash
+
 /// Handles fields of type `Option`:
 /// * Allows missing json properties when `Option` -> Optional
 /// * Fails when missing json property when not `Option` -> Required
@@ -31,22 +61,34 @@ type OptionAndCamelCasePropertyNamesContractResolver() as this =
 
   do this.NamingStrategy.ProcessDictionaryKeys <- false
 
-  override _.CreateObjectContract(objectType: Type) =
-    let contract = ``base``.CreateObjectContract(objectType)
+  let isOptionType (ty: Type) =
+    ty.IsGenericType
+    && ty.GetGenericTypeDefinition() = typedefof<Option<_>>
 
-    let isOptionType (ty: Type) =
-      ty.IsGenericType
-      && ty.GetGenericTypeDefinition() = typedefof<Option<_>>
+  override _.CreateProperty(memberInfo, memberSerialization) =
+    // mutable properties in records have their corresponding field deserialized too
+    // field has postfix `@`
+    // -> exclude everything ending in `@` (-> ~ private fields)
+    if memberInfo.Name.EndsWith "@" then
+      null
+    else
+      let prop = base.CreateProperty(memberInfo, memberSerialization)
 
-    let props = contract.Properties
+      let shouldUpdateRequired =
+        // change nothing when specified:
+        // * `JsonProperty.Required`
+        //    * Don't know if specified -> compare with `Default`
+        match memberInfo.GetCustomAttribute<JsonPropertyAttribute>() with
+        | null -> true
+        | jp -> jp.Required = Required.Default
 
-    for prop in props do
-      if isOptionType prop.PropertyType then
-        prop.Required <- Required.Default
-      else
-        prop.Required <- Required.Always
+      if shouldUpdateRequired then
+        if Type.isOption prop.PropertyType then
+          prop.Required <- Required.Default
+        else
+          prop.Required <- Required.Always
 
-    contract
+      prop
 
 
 let inline private memoriseByHash (f: 'a -> 'b) : 'a -> 'b =
@@ -91,36 +133,6 @@ module private UnionInfo =
 
   let get: Type -> _ = memoriseByHash (create)
 
-[<assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Ionide.LanguageServerProtocol.Tests")>]
-do ()
-module internal Type =
-  let numerics =
-    [| 
-      typeof<int>
-      typeof<float>
-      typeof<byte>
-      typeof<uint>
-      //ENHANCEMENT: other number types
-    |]
-  let numericHashes = 
-    numerics
-    |> Array.map (fun t -> t.GetHashCode())
-  let stringHash = typeof<string>.GetHashCode()
-  let boolHash = typeof<bool>.GetHashCode()
-
-  let inline isOption (t: Type) =
-    t.IsGenericType
-    &&
-    t.GetGenericTypeDefinition() = typedefof<_ option>
-  let inline isString (t: Type) =
-    t.GetHashCode() = stringHash
-  let inline isBool (t: Type) =
-    t.GetHashCode() = boolHash
-  let inline isNumeric (t: Type) =
-    let hash = t.GetHashCode()
-    numericHashes
-    |> Array.contains hash
-
 /// Newtonsoft.Json parses parses a number inside quotations as number too:
 /// `"42"` -> can be parsed to `42: int`
 /// This converter prevents that. `"42"` cannot be parsed to `int` (or `float`) any more
@@ -154,6 +166,7 @@ type StrictStringConverter() =
   override __.ReadJson(reader, t, _, serializer) =
     match reader.TokenType with
     | JsonToken.String -> reader.Value
+    | JsonToken.Null -> null
     | _ -> failwith $"Expected a string, but was {reader.TokenType}"
 
   override _.CanWrite = false
