@@ -91,6 +91,36 @@ module private UnionInfo =
 
   let get: Type -> _ = memoriseByHash (create)
 
+[<assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Ionide.LanguageServerProtocol.Tests")>]
+do ()
+module internal Type =
+  let numerics =
+    [| 
+      typeof<int>
+      typeof<float>
+      typeof<byte>
+      typeof<uint>
+      //ENHANCEMENT: other number types
+    |]
+  let numericHashes = 
+    numerics
+    |> Array.map (fun t -> t.GetHashCode())
+  let stringHash = typeof<string>.GetHashCode()
+  let boolHash = typeof<bool>.GetHashCode()
+
+  let inline isOption (t: Type) =
+    t.IsGenericType
+    &&
+    t.GetGenericTypeDefinition() = typedefof<_ option>
+  let inline isString (t: Type) =
+    t.GetHashCode() = stringHash
+  let inline isBool (t: Type) =
+    t.GetHashCode() = boolHash
+  let inline isNumeric (t: Type) =
+    let hash = t.GetHashCode()
+    numericHashes
+    |> Array.contains hash
+
 /// Newtonsoft.Json parses parses a number inside quotations as number too:
 /// `"42"` -> can be parsed to `42: int`
 /// This converter prevents that. `"42"` cannot be parsed to `int` (or `float`) any more
@@ -100,19 +130,7 @@ type StrictNumberConverter() =
 
   static let defaultSerializer = JsonSerializer()
 
-  static let numericHashes =
-    [| typeof<int>.GetHashCode ()
-       typeof<float>.GetHashCode ()
-       typeof<byte>.GetHashCode ()
-       typeof<uint>.GetHashCode ()
-       //ENHANCEMENT: other number types
-       |]
-
-  static let isNumeric (t: Type) =
-    let hash = t.GetHashCode()
-    numericHashes |> Array.contains hash
-
-  override _.CanConvert(t) = isNumeric t
+  override _.CanConvert(t) = t |> Type.isNumeric
 
   override __.ReadJson(reader, t, _, serializer) =
     match reader.TokenType with
@@ -131,8 +149,7 @@ type StrictNumberConverter() =
 type StrictStringConverter() =
   inherit JsonConverter()
 
-  static let stringHash = typeof<string>.GetHashCode ()
-  override _.CanConvert(t) = t.GetHashCode() = stringHash
+  override _.CanConvert(t) = t |> Type.isString
 
   override __.ReadJson(reader, t, _, serializer) =
     match reader.TokenType with
@@ -148,8 +165,7 @@ type StrictStringConverter() =
 type StrictBoolConverter() =
   inherit JsonConverter()
 
-  static let boolHash = typeof<bool>.GetHashCode ()
-  override _.CanConvert(t) = t.GetHashCode() = boolHash
+  override _.CanConvert(t) = t |> Type.isBool
 
   override __.ReadJson(reader, t, _, serializer) =
     match reader.TokenType with
@@ -267,9 +283,7 @@ type OptionConverter() =
   inherit JsonConverter()
 
   let canConvert =
-    memoriseByHash (fun (t: System.Type) ->
-      t.IsGenericType
-      && t.GetGenericTypeDefinition() = typedefof<option<_>>)
+    memoriseByHash (Type.isOption)
 
   override __.CanConvert(t) = canConvert t
 

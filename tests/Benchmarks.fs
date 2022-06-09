@@ -1,10 +1,144 @@
 module Ionide.LanguageServerProtocol.Tests.Benchmarks
 
 open Ionide.LanguageServerProtocol.Types
+open Ionide.LanguageServerProtocol.JsonUtils
 open Ionide.LanguageServerProtocol.Server
 open Newtonsoft.Json.Linq
 open BenchmarkDotNet.Attributes
 open BenchmarkDotNet.Running
+open BenchmarkDotNet.Configs
+open System
+open System.Collections.Concurrent
+
+let inline private memorise (f: 'a -> 'b) : 'a -> 'b =
+  let d = ConcurrentDictionary<'a, 'b>()
+  fun key ->
+    d.GetOrAdd(key, f)
+let inline private memoriseByHash (f: 'a -> 'b) : 'a -> 'b =
+  let d = ConcurrentDictionary<int, 'b>()
+
+  fun key ->
+    let hash = key.GetHashCode()
+
+    match d.TryGetValue(hash) with
+    | (true, value) -> value
+    | _ ->
+      let value = f key
+      d.TryAdd(hash, value) |> ignore
+      value
+
+[<MemoryDiagnoser>]
+[<GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)>]
+[<CategoriesColumn>]
+type TypeCheckBenchmarks() =
+  static let values: obj array =
+    [|
+      1
+      3.14
+      true
+      "foo"
+      4uy
+      Some "foo"
+      123456
+      "bar"
+      false
+      Some true
+      987.654321
+      0
+      Some 0
+      5u
+      Some "string"
+      Some "bar"
+      Some "baz"
+      Some "lorem ipsum dolor sit"
+      321654
+      2.71828
+      "lorem ipsum dolor sit"
+      Some 42
+      Some true
+      Some 3.14
+    |]
+  static let types =
+    values
+    |> Array.map (fun v -> v.GetType())
+
+  static let isOptionType (ty: Type) =
+    ty.IsGenericType
+    &&
+    ty.GetGenericTypeDefinition() = typedefof<_ option>
+  static let memorisedIsOptionType =
+    memorise isOptionType
+  static let memorisedHashIsOptionType =
+    memoriseByHash isOptionType
+
+  [<BenchmarkCategory("IsNumeric"); Benchmark(Baseline = true)>]
+  member _.IsNumeric_typeof() =
+    let mutable count = 0
+    for ty in types do
+      if Type.numerics |> Array.exists ((=) ty) then
+        count <- count + 1
+    count
+  [<BenchmarkCategory("IsNumeric"); Benchmark>]
+  member _.IsNumeric_hash() =
+    let mutable count = 0
+    for ty in types do
+      let hash = ty.GetHashCode()
+      if Type.numericHashes |> Array.contains hash then
+        count <- count + 1
+    count
+
+  [<BenchmarkCategory("IsBool"); Benchmark(Baseline = true)>]
+  member _.IsBool_typeof() =
+    let mutable count = 0
+    for ty in types do
+      if ty = typeof<bool> then
+        count <- count + 1
+    count
+  [<BenchmarkCategory("IsBool"); Benchmark>]
+  member _.IsBool_hash() =
+    let mutable count = 0
+    for ty in types do
+      if ty.GetHashCode() = Type.boolHash then
+        count <- count + 1
+    count
+
+  [<BenchmarkCategory("IsString"); Benchmark(Baseline = true)>]
+  member _.IsString_typeof() =
+    let mutable count = 0
+    for ty in types do
+      if ty = typeof<string> then
+        count <- count + 1
+    count
+  [<BenchmarkCategory("IsString"); Benchmark>]
+  member _.IsString_hash() =
+    let mutable count = 0
+    for ty in types do
+      if ty.GetHashCode() = Type.stringHash then
+        count <- count + 1
+    count
+  
+  [<BenchmarkCategory("IsOption"); Benchmark(Baseline = true)>]
+  member _.IsOption_check() =
+    let mutable count = 0
+    for ty in types do
+      if isOptionType ty then
+        count <- count + 1
+    count
+  [<BenchmarkCategory("IsOption"); Benchmark>]
+  member _.IsOption_memoriseType() =
+    let mutable count = 0
+    for ty in types do
+      if memorisedIsOptionType ty then
+        count <- count + 1
+    count
+  [<BenchmarkCategory("IsOption"); Benchmark>]
+  member _.IsOption_memoriseHash() =
+    let mutable count = 0
+    for ty in types do
+      if memorisedHashIsOptionType ty then
+        count <- count + 1
+    count
+
 
 [<MemoryDiagnoser>]
 type MultipleTypesBenchmarks() =
@@ -158,6 +292,6 @@ type MultipleTypesBenchmarks() =
       b.All_Roundtrip()
 
 let run (args: string []) =
-  let switcher = BenchmarkSwitcher.FromTypes([| typeof<MultipleTypesBenchmarks> |])
+  let switcher = BenchmarkSwitcher.FromTypes([| typeof<MultipleTypesBenchmarks>; typeof<TypeCheckBenchmarks> |])
   switcher.Run(args) |> ignore
   0
