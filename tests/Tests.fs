@@ -63,18 +63,23 @@ type MutableField = {
 }
 
 type RequiredAttributeFields = {
+  NoProperty: string
+  NoPropertyOption: string option
   [<JsonProperty(Required = Required.DisallowNull)>]
-  Name: string
+  DisallowNull: string
   [<JsonProperty(Required = Required.Always)>]
-  Value: int option
+  Always: string option
   [<JsonProperty(Required = Required.AllowNull)>]
-  AnotherValue: string
+  AllowNull: string
 }
 
 let private serializationTests =
   testList
     "(de)serialization"
-    [ let mkLower (str: string) = sprintf "%c%s" (Char.ToLowerInvariant str[0]) (str.Substring(1))
+    [ 
+      
+      /// Decapitalizes first letter
+      let mkLower (str: string) = sprintf "%c%s" (Char.ToLowerInvariant str[0]) (str.Substring(1))
 
       /// Note: changes first letter into lower case
       let removeProperty (name: string) (json: JToken) =
@@ -278,30 +283,90 @@ let private serializationTests =
                    json |> deserialize<AllOptional> |> ignore ] 
         
           testList "Existing JsonProperty.Required" [
-            testCase "all present according to required should not fail" <| fun _ ->
-              let json = JToken.Parse """{ "name": "foo", "value": 42, "anotherValue": "bar" }"""
+            let o: RequiredAttributeFields = {
+                NoProperty = ""
+                NoPropertyOption = None
+                DisallowNull = ""
+                Always = None
+                AllowNull = ""
+            }
+            let l = mkLower
+
+            testCase "all according to Required Attribute should not fail" <| fun _ ->
+              let json =
+                JObject(
+                  JProperty(l (nameof o.NoProperty), "lorem"),
+                  JProperty(l (nameof o.NoPropertyOption), "ipsum"),
+                  JProperty(l (nameof o.DisallowNull), "dolor"),
+                  JProperty(l (nameof o.Always), "sit"),
+                  JProperty(l (nameof o.AllowNull), "amet")
+                )
               json
               |> deserialize<RequiredAttributeFields>
               |> ignore
-            testCase "Option with Required fails when no present" <| fun _ ->
-              let json = JToken.Parse """{ "name": "foo", "anotherValue": "bar" }"""
-              Expect.throws (fun _ ->
+            testCase "No property fails when not provided" <| fun _ ->
+              let json =
+                JObject(
+                  JProperty(l (nameof o.NoPropertyOption), "ipsum"),
+                  JProperty(l (nameof o.DisallowNull), "dolor"),
+                  JProperty(l (nameof o.Always), "sit"),
+                  JProperty(l (nameof o.AllowNull), "amet")
+                )
+              Expect.throws (fun _ -> 
                 json
                 |> deserialize<RequiredAttributeFields>
-                |> fun e -> eprintfn "%A" e
                 |> ignore
-              ) "Value is Required and should fail when not present despite Option"
+              ) "No Property means required and should fail when not present"
+            testCase "No property on option succeeds when not provided" <| fun _ ->
+              let json =
+                JObject(
+                  JProperty(l (nameof o.NoProperty), "lorem"),
+                  JProperty(l (nameof o.DisallowNull), "dolor"),
+                  JProperty(l (nameof o.Always), "sit"),
+                  JProperty(l (nameof o.AllowNull), "amet")
+                )
+              json
+              |> deserialize<RequiredAttributeFields>
+              |> ignore
             testCase "DisallowNull fails when null" <| fun _ ->
-              let json = JToken.Parse """{ "name": null, "value": 42, "anotherValue": "bar" }"""
-              Expect.throws (fun _ ->
+              let json =
+                JObject(
+                  JProperty(l (nameof o.NoProperty), "lorem"),
+                  JProperty(l (nameof o.NoPropertyOption), "ipsum"),
+                  JProperty(l (nameof o.DisallowNull), null),
+                  JProperty(l (nameof o.Always), "sit"),
+                  JProperty(l (nameof o.AllowNull), "amet")
+                )
+              Expect.throws (fun _ -> 
                 json
                 |> deserialize<RequiredAttributeFields>
                 |> ignore
-              ) "Name should fail when null"
-            testCase "AllowNull allows null" <| fun _ ->
-              let json = JToken.Parse """{ "name": "foo", "value": 42, "anotherValue": null }"""
-              let o = json |> deserialize<RequiredAttributeFields>
-              Expect.isNull o.AnotherValue "AnotherValue should be null"
+              ) "DisallowNull cannot be null"
+            testCase "Option with Always fails when not present" <| fun _ ->
+              let json =
+                JObject(
+                  JProperty(l (nameof o.NoProperty), "lorem"),
+                  JProperty(l (nameof o.NoPropertyOption), "ipsum"),
+                  JProperty(l (nameof o.DisallowNull), "dolor"),
+                  JProperty(l (nameof o.AllowNull), "amet")
+                )
+              Expect.throws (fun _ -> 
+                json
+                |> deserialize<RequiredAttributeFields>
+                |> ignore
+              ) "Always is required despite Option"
+            testCase "AllowNull doesn't fail when null" <| fun _ ->
+              let json =
+                JObject(
+                  JProperty(l (nameof o.NoProperty), "lorem"),
+                  JProperty(l (nameof o.NoPropertyOption), "ipsum"),
+                  JProperty(l (nameof o.DisallowNull), "dolor"),
+                  JProperty(l (nameof o.Always), "sit"),
+                  JProperty(l (nameof o.AllowNull), null)
+                )
+              json
+              |> deserialize<RequiredAttributeFields>
+              |> ignore
           ]
         ]
 
