@@ -8,6 +8,7 @@
   <ItemGroup>
     <Compile Include="Utils.fs" />
     <Compile Include="Benchmarks.fs" />
+    <Compile Include="Shotgun.fs" />
     <Compile Include="Tests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
@@ -15,6 +16,8 @@
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.13.1" />
     <PackageReference Include="Expecto" Version="9.0.4" />
+    <PackageReference Include="Expecto.FsCheck" Version="9.0.4" />
+    <PackageReference Include="FsCheck" Version="2.16.5" />
   </ItemGroup>
 
   <ItemGroup>

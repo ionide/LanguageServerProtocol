@@ -838,6 +838,12 @@ let private serializationTests =
                    PaddingRight = Some false
                    Data = Some(JToken.FromObject "some data") }
 
-               testThereAndBackAgain theInlayHint ] ]
+               testThereAndBackAgain theInlayHint ]
 
-let tests = testList "LSP" [ serializationTests ]
+      Shotgun.tests
+    ]
+
+let tests = testList "LSP" [ 
+  serializationTests 
+  Utils.tests
+]

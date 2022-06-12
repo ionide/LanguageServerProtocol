@@ -9,9 +9,7 @@ open Newtonsoft.Json.Linq
 open Newtonsoft.Json.Serialization
 open System.Reflection
 
-[<assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Ionide.LanguageServerProtocol.Tests")>]
-do ()
-module internal Type =
+module Type =
   let numerics =
     [| 
       typeof<int>
