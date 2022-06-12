@@ -628,7 +628,7 @@ type DiagnosticTagSupport =
     ValueSet: DiagnosticTag [] }
 
 /// Capabilities specific to `textDocument/publishDiagnostics`.
-type PublishDiagnosticsCapabilites =
+type PublishDiagnosticsCapabilities =
   {
 
     /// Whether the clients accepts diagnostics with related information.
@@ -714,7 +714,7 @@ type TextDocumentClientCapabilities =
   { Synchronization: SynchronizationCapabilities option
 
     /// Capabilities specific to `textDocument/publishDiagnostics`.
-    PublishDiagnostics: PublishDiagnosticsCapabilites
+    PublishDiagnostics: PublishDiagnosticsCapabilities
 
     /// Capabilities specific to the `textDocument/completion`
     Completion: CompletionCapabilities option
