@@ -9,7 +9,7 @@ open Newtonsoft.Json.Linq
 open Newtonsoft.Json
 open Ionide.LanguageServerProtocol.JsonRpc
 open System.Collections.Generic
-open System.Collections
+open System.Runtime.Serialization
 
 type Record1 = { Name: string; Value: int }
 type Record2 = { Name: string; Position: int }
@@ -73,6 +73,27 @@ type RequiredAttributeFields = {
   AllowNull: string
 }
 
+type ExtensionDataField = 
+  {
+    Name: string
+    Value: string option
+    /// Note: Must be mutable to allow deserializing to something `null` (uninitialized)
+    [<JsonExtensionData>]
+    mutable AdditionalData: IDictionary<string, JToken>
+  }
+  /// Required because:
+  /// If no AdditionalData, AdditionalData stays null
+  /// -> Must be initialized manually
+  /// But no ctor in Record
+  /// -> initialize in After Deserialization if necessary
+  /// 
+  /// Note: it's possible to set in `OnDeserializing` -- which is before Dictionary gets filled.
+  /// But cannot use `Map` there: Map values cannot be mutated
+  [<OnDeserialized>]
+  member x.OnDeserialized(context: StreamingContext) =
+    if isNull x.AdditionalData then
+      x.AdditionalData <- Map.empty
+
 let private serializationTests =
   testList
     "(de)serialization"
@@ -122,6 +143,104 @@ let private serializationTests =
               |> Seq.map (fun p -> p.Name)
             let expected = [ "name"; "value" ]
             Expect.sequenceEqual props expected "backing field should not get serialized"
+      ]
+
+      testList "ExtensionData" [
+        let testThereAndBackAgain (input: ExtensionDataField) =
+          let output = thereAndBackAgain input
+          // Dictionaries aren't structural comparable
+          // and additional: `Dictionary` when deserialized, whatever user provided for serializing (probably `Map`)
+          // -> custom compare `AdditionalData`
+          let extractAdditionalData o =
+            let ad = o.AdditionalData
+            let o = { o with AdditionalData = Map.empty }
+            (o, ad)
+          let (input, inputAdditionalData) = extractAdditionalData input
+          let (output, outputAdditionalData) = extractAdditionalData output
+          Expect.equal output input "Input -> serialize -> deserialize should be Input again (ignoring AdditionalData)"
+          Expect.sequenceEqual outputAdditionalData inputAdditionalData "AdditionalData should match"
+
+        testCase "can (de)serialize with all fields and additional data" <| fun _ ->
+          let input = {
+            ExtensionDataField.Name = "foo"
+            Value = Some "bar"
+            AdditionalData = 
+              [
+                "alpha", JToken.FromObject("lorem")
+                "beta", JToken.FromObject("ipsum")
+                "gamma", JToken.FromObject("dolor")
+              ]
+              |> Map.ofList
+          }
+          testThereAndBackAgain input
+        testCase "can (de)serialize with all fields and no additional data" <| fun _ ->
+          let input = {
+            ExtensionDataField.Name = "foo"
+            Value = Some "bar"
+            AdditionalData = Map.empty
+          }
+          testThereAndBackAgain input
+        testCase "can (de)serialize when just required fields" <| fun _ ->
+          let input = {
+            ExtensionDataField.Name = "foo"
+            Value = None
+            AdditionalData = Map.empty
+          }
+          testThereAndBackAgain input
+        testCase "can (de)serialize with required fields and additional data" <| fun _ ->
+          let input = {
+            ExtensionDataField.Name = "foo"
+            Value = None
+            AdditionalData = 
+              [
+                "alpha", JToken.FromObject("lorem")
+                "beta", JToken.FromObject("ipsum")
+                "gamma", JToken.FromObject("dolor")
+              ]
+              |> Map.ofList
+          }
+          testThereAndBackAgain input
+        testCase "fails when not required field" <| fun _ ->
+          let json =
+            JObject(
+              JProperty("value", "bar"),
+              JProperty("alpha", "lorem"),
+              JProperty("beta", "ipsum")
+            )
+          Expect.throws (fun _ ->
+            json
+            |> deserialize<ExtensionDataField>
+            |> ignore
+          ) "Should throw when required property is missing"
+        testCase "serializes items in AdditionalData as properties" <| fun _ ->
+          let input = {
+            ExtensionDataField.Name = "foo"
+            Value = Some "bar"
+            AdditionalData = 
+              [
+                "alpha", JToken.FromObject("lorem")
+                "beta", JToken.FromObject("ipsum")
+                "gamma", JToken.FromObject("dolor")
+              ]
+              |> Map.ofList
+          }
+          let json = input |> serialize
+          let expected =
+            JObject(
+              JProperty("name", "foo"),
+              JProperty("value", "bar"),
+              JProperty("alpha", "lorem"),
+              JProperty("beta", "ipsum"),
+              JProperty("gamma", "dolor")
+            )
+          Expect.equal (json.ToString()) (expected.ToString()) "Items in AdditionalData should be normal properties"
+        testCase "AdditionalData is not null when no additional properties" <| fun _ ->
+          let json =
+            JObject(
+              JProperty("name", "foo")
+            )
+          let output = json |> deserialize<ExtensionDataField>
+          Expect.isNotNull output.AdditionalData "Empty AdditionalData should not be null"
       ]
 
       testList

@@ -4,6 +4,8 @@ open System.Diagnostics
 open Newtonsoft.Json
 open Newtonsoft.Json.Linq
 open System
+open System.Collections.Generic
+open System.Runtime.Serialization
 
 type ErasedUnionAttribute() =
   inherit Attribute()
@@ -1276,17 +1278,30 @@ type DidCloseTextDocumentParams =
     TextDocument: TextDocumentIdentifier }
 
 /// Value-object describing what options formatting should use.
-type FormattingOptions() =
-  /// Size of a tab in spaces.
-  member val TabSize: int = 0 with get, set
-
-  /// Prefer spaces over tabs.
-  member val InsertSpaces: bool = false with get, set
-
-  /// Further properties.
-  [<JsonExtensionData>]
-  member val AdditionalData: System.Collections.Generic.IDictionary<string, JToken> =
-    new System.Collections.Generic.Dictionary<_, _>() :> _ with get, set
+type FormattingOptions =
+  { /// Size of a tab in spaces.
+    TabSize: int
+    /// Prefer spaces over tabs.
+    InsertSpaces: bool
+    /// Trim trailing whitespace on a line.
+    ///
+    /// @since 3.15.0
+    TrimTrailingWhitespace: bool option
+    /// Insert a newline character at the end of the file if one does not exist.
+    ///
+    /// @since 3.15.0
+    InsertFinalNewline: bool option
+    /// Trim all newlines after the final newline at the end of the file.
+    ///
+    /// @since 3.15.0
+    TrimFinalNewlines: bool option
+    /// Signature for further properties.
+    [<JsonExtensionData>]
+    mutable AdditionalData: IDictionary<string, JToken> }
+  [<OnDeserialized>]
+  member o.OnDeserialized(context: StreamingContext) =
+    if isNull o.AdditionalData then
+      o.AdditionalData <- Map.empty
 
 type DocumentFormattingParams =
   { /// The document to format.
