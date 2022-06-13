@@ -11,31 +11,27 @@ open System.Reflection
 
 module Type =
   let numerics =
-    [| 
-      typeof<int>
-      typeof<float>
-      typeof<byte>
-      typeof<uint>
-      //ENHANCEMENT: other number types
-    |]
-  let numericHashes = 
-    numerics
-    |> Array.map (fun t -> t.GetHashCode())
-  let stringHash = typeof<string>.GetHashCode()
-  let boolHash = typeof<bool>.GetHashCode()
+    [| typeof<int>
+       typeof<float>
+       typeof<byte>
+       typeof<uint>
+       //ENHANCEMENT: other number types
+       |]
+
+  let numericHashes = numerics |> Array.map (fun t -> t.GetHashCode())
+  let stringHash = typeof<string>.GetHashCode ()
+  let boolHash = typeof<bool>.GetHashCode ()
 
   let inline isOption (t: Type) =
     t.IsGenericType
-    &&
-    t.GetGenericTypeDefinition() = typedefof<_ option>
-  let inline isString (t: Type) =
-    t.GetHashCode() = stringHash
-  let inline isBool (t: Type) =
-    t.GetHashCode() = boolHash
+    && t.GetGenericTypeDefinition() = typedefof<_ option>
+
+  let inline isString (t: Type) = t.GetHashCode() = stringHash
+  let inline isBool (t: Type) = t.GetHashCode() = boolHash
+
   let inline isNumeric (t: Type) =
     let hash = t.GetHashCode()
-    numericHashes
-    |> Array.contains hash
+    numericHashes |> Array.contains hash
 
 /// Handles fields of type `Option`:
 /// * Allows missing json properties when `Option` -> Optional
@@ -70,7 +66,7 @@ type OptionAndCamelCasePropertyNamesContractResolver() as this =
     if memberInfo.Name.EndsWith "@" then
       null
     else
-      let prop = base.CreateProperty(memberInfo, memberSerialization)
+      let prop = ``base``.CreateProperty(memberInfo, memberSerialization)
 
       let shouldUpdateRequired =
         // change nothing when specified:
@@ -91,8 +87,7 @@ type OptionAndCamelCasePropertyNamesContractResolver() as this =
 
 let inline private memorise (f: 'a -> 'b) : 'a -> 'b =
   let d = ConcurrentDictionary<'a, 'b>()
-  fun key ->
-    d.GetOrAdd(key, f)
+  fun key -> d.GetOrAdd(key, f)
 
 let inline private memoriseByHash (f: 'a -> 'b) : 'a -> 'b =
   let d = ConcurrentDictionary<int, 'b>()
@@ -299,14 +294,13 @@ type OptionConverter() =
   let getInnerType =
     memoriseByHash (fun (t: Type) ->
       let innerType = t.GetGenericArguments()[0]
-      if innerType.IsValueType then
-        typedefof<Nullable<_>>.MakeGenericType([|innerType|])
-      else
-        innerType
-    )
 
-  let canConvert =
-    memoriseByHash (Type.isOption)
+      if innerType.IsValueType then
+        typedefof<Nullable<_>>.MakeGenericType ([| innerType |])
+      else
+        innerType)
+
+  let canConvert = memoriseByHash (Type.isOption)
 
   override __.CanConvert(t) = canConvert t
 

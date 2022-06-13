@@ -1769,7 +1769,7 @@ type CodeAction =
     /// a `textDocument/codeAction` and a `codeAction/resolve` request.
     Data: JToken option }
 
-type TextDocumentCodeActionResult = U2<Command, CodeAction>[]
+type TextDocumentCodeActionResult = U2<Command, CodeAction> []
 
 type RenameParams =
   { /// The document to rename.
