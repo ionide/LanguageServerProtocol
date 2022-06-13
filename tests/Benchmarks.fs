@@ -9,6 +9,8 @@ open BenchmarkDotNet.Running
 open BenchmarkDotNet.Configs
 open System
 open System.Collections.Concurrent
+open System.Collections.Generic
+open BenchmarkDotNet.Order
 
 let inline private memorise (f: 'a -> 'b) : 'a -> 'b =
   let d = ConcurrentDictionary<'a, 'b>()
@@ -139,8 +141,248 @@ type TypeCheckBenchmarks() =
         count <- count + 1
     count
 
+module Example =
+  open System.Text.Json.Serialization
+  type private Random with
+    member rand.NextBool() =
+      // 2nd is exclusive!
+      rand.Next(0,2) = 0
+    member rand.NextOption (value) =
+      if rand.NextBool() then
+        Some value
+      else
+        None
+    member rand.NextCount depth =
+      rand.Next(2, max 4 depth)
+    member rand.NextDepth depth =
+      if depth <= 1 then
+        0
+      elif depth = 2 then
+        1
+      else
+        let lower = max 2 (depth-1)
+        let upper = max lower (depth-1)
+        rand.Next(lower, upper+1)
+
+  [<RequireQualifiedAccess>]
+  type SingleCaseUnion =
+    | Lorem
+    | Ipsum
+  type SingleCaseUnionHolder = {
+    SingleCaseUnion: SingleCaseUnion
+  }
+  module SingleCaseUnionHolder =
+    let gen (rand: Random) (depth: int) =
+      {
+        SingleCaseUnion =
+          if rand.NextBool() then
+            SingleCaseUnion.Ipsum
+          else
+            SingleCaseUnion.Ipsum
+      }
+  type WithExtensionData = {
+    NoExtensionData: string
+    [<JsonExtensionData>]
+    mutable AdditionalData: IDictionary<string, JToken>
+  }
+  module WithExtensionData =
+    let gen (rand: Random) (depth: int) =
+      {
+        NoExtensionData = $"WithExtensionData {depth}"
+        AdditionalData =
+          List.init (rand.NextCount depth) (fun i ->
+            let key = $"Data{depth}Ele{i}"
+            let value = JToken.FromObject (i * depth)
+            (key, value)
+          )
+          |> Map.ofList
+      }
+  type RecordWithOption = {
+    RequiredValue: string
+    OptionalValue: string option
+    AnotherOptionalValue: int option
+    FinalOptionalValue: int option
+  }
+  module RecordWithOption =
+    let gen (rand: Random) (depth: int) =
+      {
+        RequiredValue = $"RecordWithOption {depth}"
+        OptionalValue = rand.NextOption $"Hello {depth}"
+        AnotherOptionalValue = rand.NextOption (42000 + depth)
+        FinalOptionalValue = rand.NextOption (13000 + depth)
+      }
+  [<RequireQualifiedAccess>]
+  [<ErasedUnion>]
+  type ErasedUnionData =
+    | Alpha of string
+    | Beta of int
+    | Gamma of bool
+    | Delta of float
+    | Epsilon of RecordWithOption
+  module ErasedUnionData =
+    let gen (rand: Random) (depth: int) =
+      match rand.Next(0, 5) with
+      | 0 -> ErasedUnionData.Alpha $"Erased {depth}"
+      | 1 -> ErasedUnionData.Beta (42000 + depth)
+      | 2 -> ErasedUnionData.Gamma false
+      | 3 -> ErasedUnionData.Delta (42000.123 + (float depth))
+      | 4 -> ErasedUnionData.Epsilon (RecordWithOption.gen rand (depth-1))
+      | _ -> failwith "unreachable"
+  type ErasedUnionDataHolder = {
+    ErasedUnion: ErasedUnionData
+  }
+  module ErasedUnionDataHolder =
+    let gen (rand: Random) (depth: int) =
+      {
+        ErasedUnion = ErasedUnionData.gen rand depth
+      }
+  type U2Holder = {
+    BoolString: U2<bool, string>
+    StringInt: U2<string, int>
+    BoolErasedUnionData: U2<bool, ErasedUnionDataHolder>
+  }
+  module U2Holder =
+    let gen (rand: Random) (depth: int) =
+      {
+        BoolString =
+          if rand.NextBool() then
+            U2.First true
+          else
+            U2.Second $"U2 {depth}"
+        StringInt =
+          if rand.NextBool() then
+            U2.First $"U2 {depth}"
+          else
+            U2.Second (42000 + depth)
+        BoolErasedUnionData =
+          if rand.NextBool() then
+            U2.First true
+          else
+            U2.Second (ErasedUnionDataHolder.gen rand (depth-1))
+      }
+
+  [<RequireQualifiedAccess>]
+  type MyEnum =
+    | X = 1
+    | Y = 2
+    | Z = 3
+  type MyEnumHolder = {
+    EnumValue: MyEnum
+    EnumArray: MyEnum[]
+  }
+  module MyEnumHolder =
+    let gen (rand: Random) (depth: int) =
+      let n = Enum.GetNames(typeof<MyEnum>).Length
+      {
+        EnumValue = 
+          rand.Next(0, n)
+          |> enum<_>
+        EnumArray = 
+          Array.init (rand.NextCount depth) (fun i ->
+            rand.Next(0, n)
+            |> enum<_>
+          )
+      }
+  type MapHolder = {
+    MyMap: Map<string, string>
+  }
+  module MapHolder =
+    let gen (rand: Random) (depth: int) =
+      {
+        MyMap =
+          Array.init (rand.NextCount depth) (fun i ->
+            let key = $"Key{i}"
+            let value = $"Data{i}@{depth}"
+            (key, value)
+          )
+          |> Map.ofArray
+      }
+
+  type BasicData = {
+    IntData: int
+    FloatData: float
+    BoolData: bool
+    StringData: string
+    CharData: char
+    StringOptionData: string option
+    IntArrayOptionData: int [] option
+  }
+  module BasicData =
+    let gen (rand: Random) (depth: int) =
+      {
+        IntData = rand.Next(0, 500)
+        FloatData = rand.NextDouble()
+        BoolData = rand.NextBool()
+        StringData = $"Data {depth}"
+        CharData = '_'
+        StringOptionData = rand.NextOption $"Option {depth}"
+        IntArrayOptionData = 
+          Array.init (rand.NextCount depth) id
+          |> rand.NextOption
+      }
+
+
+  [<RequireQualifiedAccess>]
+  [<ErasedUnion>]
+  type Data =
+    | SingleCaseUnion of SingleCaseUnionHolder
+    | WithExtensionData of WithExtensionData
+    | RecordWithOption of RecordWithOption
+    | ErasedUnion of ErasedUnionDataHolder
+    | U2 of U2Holder
+    | Enum of MyEnumHolder
+    | Map of MapHolder
+    | BasicData of BasicData
+    | More of Data[]
+  module Data =
+    let rec gen (rand: Random) (depth: int) =
+      match rand.Next(0, 11) with
+      | _ when depth <= 0 -> Data.More [||]
+      | 0 -> Data.SingleCaseUnion (SingleCaseUnionHolder.gen rand depth)
+      | 1 -> Data.WithExtensionData (WithExtensionData.gen rand depth)
+      | 2 -> Data.RecordWithOption (RecordWithOption.gen rand depth)
+      | 3 -> Data.ErasedUnion (ErasedUnionDataHolder.gen rand depth)
+      | 4 -> Data.U2 (U2Holder.gen rand depth)
+      | 5 -> Data.Enum (MyEnumHolder.gen rand depth)
+      | 6 -> Data.Map (MapHolder.gen rand depth)
+      | 7 -> Data.BasicData (BasicData.gen rand depth)
+      | 8 | 9 | 10 -> 
+          Data.More (
+            Array.init (rand.NextCount depth) (fun _ ->
+              let depth = rand.NextDepth depth
+              gen rand depth
+            )
+          )
+      | _ -> failwith "unreachable"
+
+  let createData (seed: int, additionalWidth: int, maxDepth: int) =
+    // Note: deterministic (-> seed)
+    let rand = Random(seed)
+    
+    let always = [|
+      Data.SingleCaseUnion (SingleCaseUnionHolder.gen rand maxDepth)
+      Data.WithExtensionData (WithExtensionData.gen rand maxDepth)
+      Data.RecordWithOption (RecordWithOption.gen rand maxDepth)
+      Data.ErasedUnion (ErasedUnionDataHolder.gen rand maxDepth)
+      Data.U2 (U2Holder.gen rand maxDepth)
+      Data.Enum (MyEnumHolder.gen rand maxDepth)
+      Data.Map (MapHolder.gen rand maxDepth)
+      Data.BasicData (BasicData.gen rand maxDepth)
+    |]
+
+    let additional =
+      Array.init additionalWidth (fun _ ->
+        let depth = rand.NextDepth maxDepth
+        Data.gen rand depth
+      )
+
+    let data = Array.append always additional
+    Data.More data
 
 [<MemoryDiagnoser>]
+[<GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)>]
+[<CategoriesColumn>]
+[<Orderer(SummaryOrderPolicy.Declared, MethodOrderPolicy.Declared)>]
 type MultipleTypesBenchmarks() =
   let initializeParams: InitializeParams =
     { ProcessId = Some 42
@@ -277,19 +519,35 @@ type MultipleTypesBenchmarks() =
       PaddingRight = Some false
       Data = Some(JToken.FromObject "some data") }
 
-  let all: obj [] = [| initializeParams; inlayHint |]
+  let allLsp: obj [] = [| initializeParams; inlayHint |]
 
-  [<Benchmark>]
-  member _.All_Roundtrip() =
-    for o in all do
+  /// Some complex data which covers all converters
+  let example = Example.createData (1234, 9, 5)
+
+  member _.AllLsp_Roundtrip() =
+    for o in allLsp do
       let json = inlayHint |> serialize
       let res = json.ToObject(o.GetType(), jsonRpcFormatter.JsonSerializer)
       ()
 
-  [<Benchmark>]
-  member b.All_MultipleRoundtrips() =
-    for _ in 0..250 do
-      b.All_Roundtrip()
+  [<BenchmarkCategory("LSP"); Benchmark>]
+  [<Arguments(1)>]
+  [<Arguments(250)>]
+  member b.AllLsp_Roundtrips(count: int) =
+    for _ in 1..count do
+      b.AllLsp_Roundtrip()
+
+  member _.Example_Roundtrip() =
+    let json = example |> serialize
+    let res = json.ToObject(example.GetType(), jsonRpcFormatter.JsonSerializer)
+    ()
+
+  [<BenchmarkCategory("Example"); Benchmark>]
+  [<Arguments(1)>]
+  [<Arguments(50)>]
+  member b.Example_Roundtrips(count: int) =
+    for _ in 1..count do
+      b.Example_Roundtrip()
 
 let run (args: string []) =
   let switcher = BenchmarkSwitcher.FromTypes([| typeof<MultipleTypesBenchmarks>; typeof<TypeCheckBenchmarks> |])
