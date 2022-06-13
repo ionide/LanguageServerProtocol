@@ -525,6 +525,13 @@ type MultipleTypesBenchmarks() =
   let example = Example.createData (1234, 9, 5)
   let option = {| Some = Some 123; None = (None: int option) |}
 
+  let withCounts (counts) data =
+    data
+    |> Array.collect (fun data ->
+      counts
+      |> Array.map (fun count -> [| box count; box data |])
+    )
+
   member _.AllLsp_Roundtrip() =
     for o in allLsp do
       let json = inlayHint |> serialize
@@ -551,12 +558,48 @@ type MultipleTypesBenchmarks() =
       b.Example_Roundtrip()
 
   [<BenchmarkCategory("Basic"); Benchmark>]
+  [<Arguments(1)>]
   [<Arguments(50)>]
-  [<Arguments(1_000)>]
   member _.Option_Roundtrips(count: int) =
     for _ in 1 .. count do
       let json = option |> serialize
       let _ = json.ToObject(option.GetType(), jsonRpcFormatter.JsonSerializer)
+      ()
+
+  member _.SingleCaseUnion_ArgumentsSource() =
+    [|
+      Example.SingleCaseUnion.Ipsum
+      Example.SingleCaseUnion.Lorem
+    |]
+    |> withCounts [|1;50|]
+  [<BenchmarkCategory("Basic"); Benchmark>]
+  [<ArgumentsSource("SingleCaseUnion_ArgumentsSource")>]
+  member _.SingleCaseUnion_Roundtrips(count: int, data: Example.SingleCaseUnion) =
+    for _ in 1 .. count do
+      let json = data |> serialize
+      let _ = json.ToObject(typeof<Example.SingleCaseUnion>, jsonRpcFormatter.JsonSerializer)
+      ()
+
+  member _.ErasedUnion_ArgumentsSource() =
+    [|
+      Example.ErasedUnionData.Alpha "foo"
+      Example.ErasedUnionData.Beta 42
+      Example.ErasedUnionData.Gamma true
+      Example.ErasedUnionData.Delta 3.14
+      Example.ErasedUnionData.Epsilon { 
+        RequiredValue = "foo" 
+        OptionalValue = None
+        AnotherOptionalValue = None
+        FinalOptionalValue = None
+      }
+    |]
+    |> withCounts [|1;50|]
+  [<BenchmarkCategory("Basic"); Benchmark>]
+  [<ArgumentsSource("ErasedUnion_ArgumentsSource")>]
+  member _.ErasedUnion_Roundtrips(count: int, data: Example.ErasedUnionData) =
+    for _ in 1 .. count do
+      let json = data |> serialize
+      let _ = json.ToObject(typeof<Example.ErasedUnionData>, jsonRpcFormatter.JsonSerializer)
       ()
 
 
