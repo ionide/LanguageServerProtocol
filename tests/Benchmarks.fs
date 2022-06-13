@@ -523,6 +523,7 @@ type MultipleTypesBenchmarks() =
 
   /// Some complex data which covers all converters
   let example = Example.createData (1234, 9, 5)
+  let option = {| Some = Some 123; None = (None: int option) |}
 
   member _.AllLsp_Roundtrip() =
     for o in allLsp do
@@ -548,6 +549,16 @@ type MultipleTypesBenchmarks() =
   member b.Example_Roundtrips(count: int) =
     for _ in 1..count do
       b.Example_Roundtrip()
+
+  [<BenchmarkCategory("Basic"); Benchmark>]
+  [<Arguments(50)>]
+  [<Arguments(1_000)>]
+  member _.Option_Roundtrips(count: int) =
+    for _ in 1 .. count do
+      let json = option |> serialize
+      let _ = json.ToObject(option.GetType(), jsonRpcFormatter.JsonSerializer)
+      ()
+
 
 let run (args: string []) =
   let switcher = BenchmarkSwitcher.FromTypes([| typeof<MultipleTypesBenchmarks>; typeof<TypeCheckBenchmarks> |])

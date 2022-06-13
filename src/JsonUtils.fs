@@ -89,6 +89,11 @@ type OptionAndCamelCasePropertyNamesContractResolver() as this =
       prop
 
 
+let inline private memorise (f: 'a -> 'b) : 'a -> 'b =
+  let d = ConcurrentDictionary<'a, 'b>()
+  fun key ->
+    d.GetOrAdd(key, f)
+
 let inline private memoriseByHash (f: 'a -> 'b) : 'a -> 'b =
   let d = ConcurrentDictionary<int, 'b>()
 
@@ -291,6 +296,15 @@ type SingleCaseUnionConverter() =
 type OptionConverter() =
   inherit JsonConverter()
 
+  let getInnerType =
+    memoriseByHash (fun (t: Type) ->
+      let innerType = t.GetGenericArguments()[0]
+      if innerType.IsValueType then
+        typedefof<Nullable<_>>.MakeGenericType([|innerType|])
+      else
+        innerType
+    )
+
   let canConvert =
     memoriseByHash (Type.isOption)
 
@@ -311,13 +325,7 @@ type OptionConverter() =
     match reader.TokenType with
     | JsonToken.Null -> null // = None
     | _ ->
-      let innerType = t.GetGenericArguments()[0]
-
-      let innerType =
-        if innerType.IsValueType then
-          (typedefof<Nullable<_>>).MakeGenericType([| innerType |])
-        else
-          innerType
+      let innerType = getInnerType t
 
       let value = serializer.Deserialize(reader, innerType)
 
