@@ -214,19 +214,17 @@ type ErasedUnionConverter() =
 
   override __.ReadJson(reader: JsonReader, t, _existingValue, serializer) =
     let tryReadValue (json: JToken) (targetType: Type) =
-      if targetType = typeof<string> then
+      if Type.isString targetType then
         if json.Type = JTokenType.String then
           reader.Value |> Some
         else
           None
-      elif targetType = typeof<bool> then
+      elif Type.isBool targetType then
         if json.Type = JTokenType.Boolean then
           reader.Value |> Some
         else
           None
-      elif targetType = typeof<int>
-           || targetType = typeof<float>
-           || targetType = typeof<byte> then
+      elif Type.isNumeric targetType then
         match json.Type with
         | JTokenType.Integer
         | JTokenType.Float -> json.ToObject(targetType, serializer) |> Some
