@@ -20,7 +20,7 @@ jobs:
       - name: Run build
         run: dotnet build -c Release src
       - name: Run tests
-        run: dotnet test
+        run: dotnet test --logger GitHubActions
       - name: Run publish
         run: dotnet pack -c Release -o release src
       - name: Upload NuGet packages
