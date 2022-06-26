@@ -845,4 +845,5 @@ let private serializationTests =
 
       Shotgun.tests ]
 
+[<Tests>]
 let tests = testList "LSP" [ serializationTests; Utils.tests ]
