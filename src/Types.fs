@@ -1796,6 +1796,20 @@ type PrepareRenameParams =
     member this.TextDocument = this.TextDocument
     member this.Position = this.Position
 
+type DefaultBehavior = {DefaultBehavior: bool}
+
+type RangeWithPlaceholder = {Range: Range; Placeholder: string}
+
+[<ErasedUnion>]
+[<RequireQualifiedAccess>]
+type PrepareRenameResult =
+    /// A range of the string to rename.
+    | Range of Range
+    /// A range of the string to rename and a placeholder text of the string content to be renamed.
+    | RangeWithPlaceholder of RangeWithPlaceholder
+    /// The rename position is valid and the client should use its default behavior to compute the rename range.
+    | Default of DefaultBehavior
+
 [<ErasedUnion>]
 [<RequireQualifiedAccess>]
 type GotoResult =
