@@ -1786,6 +1786,16 @@ type RenameParams =
     member this.TextDocument = this.TextDocument
     member this.Position = this.Position
 
+type PrepareRenameParams =
+  { /// The document to rename.
+    TextDocument: TextDocumentIdentifier
+
+    /// The position at which this request was sent.
+    Position: Position }
+  interface ITextDocumentPositionParams with
+    member this.TextDocument = this.TextDocument
+    member this.Position = this.Position
+
 [<ErasedUnion>]
 [<RequireQualifiedAccess>]
 type GotoResult =

@@ -92,6 +92,11 @@ type LspServer() =
   abstract member TextDocumentRename: RenameParams -> AsyncLspResult<WorkspaceEdit option>
   default __.TextDocumentRename(_) = notImplemented
 
+  /// The prepare rename request is sent from the client to the server to setup and test the validity of a rename operation at a given location.
+  /// TODO: support additional types of response, e.g. { range: Range, placeholder: String } or { defaultBehavior: boolean }
+  abstract member TextDocumentPrepareRename: PrepareRenameParams -> AsyncLspResult<Range option>
+  default __.TextDocumentPrepareRename(_) = notImplemented
+
   /// The goto definition request is sent from the client to the server to resolve the definition location of
   /// a symbol at a given text document position.
   abstract member TextDocumentDefinition: TextDocumentPositionParams -> AsyncLspResult<GotoResult option>
