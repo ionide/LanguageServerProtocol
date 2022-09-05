@@ -13,6 +13,17 @@ module Server =
   open Ionide.LanguageServerProtocol.JsonUtils
   open Newtonsoft.Json.Linq
 
+  let rec (|HandleableException|_|) (e: exn) =
+    match e with
+    | :? LocalRpcException -> Some ()
+    | :? TaskCanceledException -> Some ()
+    | :? System.AggregateException as aex ->
+        if aex.InnerExceptions.Count = 1 then
+            (|HandleableException|_|) aex.InnerException
+        else
+            None
+    | _ -> None
+
   let logger = LogProvider.getLoggerByName "LSP Server"
 
   let jsonRpcFormatter = new JsonMessageFormatter()
@@ -92,7 +103,7 @@ module Server =
       { new JsonRpc(jsonRpcHandler) with
           member this.IsFatalException(ex: Exception) =
               match ex with
-              | :? LocalRpcException -> false
+              | HandleableException -> false
               | _ -> true
       }
 
