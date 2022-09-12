@@ -246,7 +246,7 @@ let tests =
           testCase "Client isn't lsp"
           <| fun _ ->
                let isLsp =
-                 typeof<Ionide.LanguageServerProtocol.Client.Client>
+                 typeof<Ionide.LanguageServerProtocol.ILspClient>
                  |> isLspType []
 
                Expect.isFalse isLsp "Client isn't lsp" ]

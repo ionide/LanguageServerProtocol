@@ -18,6 +18,14 @@ type U2<'a, 'b> =
 /// The LSP any type
 type LSPAny = JToken
 
+module LspError =
+  open StreamJsonRpc.Protocol
+  open StreamJsonRpc
+
+  let invalidParams message = LocalRpcException(message, ErrorCode = int JsonRpcErrorCode.InvalidParams)
+  let internalError message = LocalRpcException(message, ErrorCode = int JsonRpcErrorCode.InternalError)
+  let notImplemented () = NotImplementedException()
+
 type TextDocumentSyncKind =
   | None = 0
   | Full = 1

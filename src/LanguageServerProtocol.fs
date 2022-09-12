@@ -12,7 +12,7 @@ module Server =
   open Newtonsoft.Json
   open Ionide.LanguageServerProtocol.JsonUtils
 
-  let private jsonRpcFormatter () =
+  let jsonRpcFormatter () =
     let f = new JsonMessageFormatter()
     f.JsonSerializer.NullValueHandling <- NullValueHandling.Ignore
     f.JsonSerializer.ConstructorHandling <- ConstructorHandling.AllowNonPublicDefaultConstructor

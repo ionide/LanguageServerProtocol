@@ -14,6 +14,9 @@ open Newtonsoft.Json.Linq
 open Expecto
 open Ionide.LanguageServerProtocol.Server
 open Ionide.LanguageServerProtocol.Types
+open System.Text
+open Newtonsoft.Json
+open System.IO
 
 // must be public
 type Gens =
@@ -85,8 +88,22 @@ type Gens =
 
 let private fsCheckConfig = { FsCheckConfig.defaultConfig with arbitrary = [ typeof<Gens> ] }
 
-type private Roundtripper =
-  static member ThereAndBackAgain(input: 'a) = input |> serialize |> deserialize<'a>
+type private Roundtripper() =
+
+  static let formatter = jsonRpcFormatter ()
+
+  static member serialize item =
+    let sb = new StringBuilder()
+    use writer = new JsonTextWriter(new StringWriter(sb))
+    formatter.JsonSerializer.Serialize(writer, item)
+    JToken.Parse(sb.ToString())
+
+  static member deserialize<'T>(json: JToken) = json.ToObject<'T>(formatter.JsonSerializer)
+
+  static member ThereAndBackAgain(input: 'a) =
+    input
+    |> Roundtripper.serialize
+    |> Roundtripper.deserialize<'a>
 
   static member TestThereAndBackAgain(input: 'a) =
     let output = Roundtripper.ThereAndBackAgain input

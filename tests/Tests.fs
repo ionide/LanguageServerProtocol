@@ -10,6 +10,8 @@ open Newtonsoft.Json
 open Ionide.LanguageServerProtocol.JsonRpc
 open System.Collections.Generic
 open System.Runtime.Serialization
+open System.Text
+open System.IO
 
 type Record1 = { Name: string; Value: int }
 type Record2 = { Name: string; Position: int }
@@ -87,6 +89,16 @@ type ExtensionDataField =
   member x.OnDeserialized(context: StreamingContext) =
     if isNull x.AdditionalData then
       x.AdditionalData <- Map.empty
+
+let private formatter = jsonRpcFormatter ()
+
+let serialize item =
+  let sb = new StringBuilder()
+  use writer = new JsonTextWriter(new StringWriter(sb))
+  formatter.JsonSerializer.Serialize(writer, item)
+  JToken.Parse(sb.ToString())
+
+let deserialize<'T> (json: JToken) = json.ToObject<'T>(formatter.JsonSerializer)
 
 let private serializationTests =
   testList
@@ -674,71 +686,7 @@ let private serializationTests =
           testCase "can deserialize null Version in VersionedTextDocumentIdentifier"
           <| fun _ ->
                let textDoc = { VersionedTextDocumentIdentifier.Uri = "..."; Version = None }
-               testThereAndBackAgain textDoc
-
-          testCase "serialize to name specified in JsonProperty in Response"
-          <| fun _ ->
-               let response: Response = { Version = "123"; Id = None; Error = None; Result = None }
-               let json = response |> serialize
-               // Version -> jsonrpc
-               Expect.isNone
-                 (json |> tryGetProperty (nameof response.Version))
-                 "Version should exist, but instead as jsonrpc"
-
-               Expect.isSome (json |> tryGetProperty "jsonrpc") "jsonrcp should exist because of Version"
-               // Id & Error optional -> not in json
-               Expect.isNone (json |> tryGetProperty (nameof response.Id)) "None Id shouldn't be in json"
-               Expect.isNone (json |> tryGetProperty (nameof response.Error)) "None Error shouldn't be in json"
-               // Result even when null/None
-               let prop =
-                 json
-                 |> tryGetProperty (nameof response.Result)
-                 |> Flip.Expect.wantSome "Result should exist even when null/None"
-
-               Expect.equal prop.Value.Type (JTokenType.Null) "Result should be null"
-          testCase "can (de)serialize empty response"
-          <| fun _ ->
-               let response: Response = { Version = "123"; Id = None; Error = None; Result = None }
-               testThereAndBackAgain response
-          testCase "can (de)serialize Response.Result"
-          <| fun _ ->
-               let response: Response =
-                 { Version = "123"
-                   Id = None
-                   Error = None
-                   Result = Some(JToken.Parse "\"some result\"") }
-
-               testThereAndBackAgain response
-          testCase "can (de)serialize Result when Error is None"
-          <| fun _ ->
-               // Note: It's either `Error` or `Result`, but not both together
-               let response: Response =
-                 { Version = "123"
-                   Id = Some 42
-                   Error = None
-                   Result = Some(JToken.Parse "\"some result\"") }
-
-               testThereAndBackAgain response
-          testCase "can (de)serialize Error when error is Some"
-          <| fun _ ->
-               let response: Response =
-                 { Version = "123"
-                   Id = Some 42
-                   Error = Some { Code = 13; Message = "oh no"; Data = Some(JToken.Parse "\"some data\"") }
-                   Result = None }
-
-               testThereAndBackAgain response
-          testCase "doesn't serialize Result when Error is Some"
-          <| fun _ ->
-               let response: Response =
-                 { Version = "123"
-                   Id = Some 42
-                   Error = Some { Code = 13; Message = "oh no"; Data = Some(JToken.Parse "\"some data\"") }
-                   Result = Some(JToken.Parse "\"some result\"") }
-
-               let output = thereAndBackAgain response
-               Expect.isSome output.Error "Error should be serialized"
-               Expect.isNone output.Result "Result should not be serialized when Error is Some" ]
+               testThereAndBackAgain textDoc ]
 
       testList
         (nameof InlayHint)
