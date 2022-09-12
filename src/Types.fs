@@ -801,14 +801,14 @@ type WorkspaceFolder =
 
 type ClientInfo = { Name: string; Version: string option }
 
-type InitializeParams =
+type InitializeParams<'ServerOptions> =
   { ProcessId: int option
     /// Information about the client.
     /// @since 3.15.0
     ClientInfo: ClientInfo option
     RootPath: string option
     RootUri: string option
-    InitializationOptions: JToken option
+    InitializationOptions: 'ServerOptions option
     Capabilities: ClientCapabilities option
     trace: string option
     /// The workspace folders configured in the client when the server starts.
