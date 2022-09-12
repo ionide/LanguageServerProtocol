@@ -7,7 +7,7 @@ open System.Threading
 open System.Threading.Tasks
 
 [<Interface>]
-type LspServer =
+type ILspServer =
   inherit System.IDisposable
 
   abstract member Dispose: unit -> unit
