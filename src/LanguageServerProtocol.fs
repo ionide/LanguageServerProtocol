@@ -77,7 +77,7 @@ module Server =
     | ErrorExitWithoutShutdown = 1
     | ErrorStreamClosed = 2
 
-  let startWithSetup<'client when 'client :> Ionide.LanguageServerProtocol.LspClient>
+  let startWithSetup<'client when 'client :> Ionide.LanguageServerProtocol.ILspClient>
     (setupRequestHandlings: 'client -> Map<string, Delegate>)
     (input: Stream)
     (output: Stream)
@@ -91,10 +91,9 @@ module Server =
     use jsonRpc =
       { new JsonRpc(jsonRpcHandler) with
           member this.IsFatalException(ex: Exception) =
-              match ex with
-              | :? LocalRpcException -> false
-              | _ -> true
-      }
+            match ex with
+            | :? LocalRpcException -> false
+            | _ -> true }
 
     /// When the server wants to send a notification to the client
     let sendServerNotification (rpcMethod: string) (notificationObj: obj) : AsyncLspResult<unit> =
@@ -178,10 +177,10 @@ module Server =
     | false, true -> LspCloseReason.ErrorExitWithoutShutdown
     | _ -> LspCloseReason.ErrorStreamClosed
 
-  type ServerRequestHandling<'server when 'server :> Ionide.LanguageServerProtocol.LspServer> =
+  type ServerRequestHandling<'server when 'server :> Ionide.LanguageServerProtocol.ILspServer> =
     { Run: 'server -> Delegate }
 
-  let serverRequestHandling<'server, 'param, 'result when 'server :> Ionide.LanguageServerProtocol.LspServer>
+  let serverRequestHandling<'server, 'param, 'result when 'server :> Ionide.LanguageServerProtocol.ILspServer>
     (run: 'server -> 'param -> AsyncLspResult<'result>)
     : ServerRequestHandling<'server> =
     { Run = fun s -> requestHandling (run s) }
@@ -247,7 +246,7 @@ module Server =
       "exit", requestHandling (fun s () -> s.Exit() |> notificationSuccess) ]
     |> Map.ofList
 
-  let start<'client, 'server when 'client :> Ionide.LanguageServerProtocol.LspClient and 'server :> Ionide.LanguageServerProtocol.LspServer>
+  let start<'client, 'server when 'client :> Ionide.LanguageServerProtocol.ILspClient and 'server :> Ionide.LanguageServerProtocol.ILspServer>
     (requestHandlings: Map<string, ServerRequestHandling<'server>>)
     (input: Stream)
     (output: Stream)
