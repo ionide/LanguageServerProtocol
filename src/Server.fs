@@ -10,8 +10,6 @@ open System.Threading.Tasks
 type ILspServer =
   inherit System.IDisposable
 
-  abstract member Dispose: unit -> unit
-
   /// The initialize request is sent as the first request from the client to the server.
   /// The initialize request may only be sent once.
   abstract member initialize: InitializeParams * IProgress<'T> -> Task<InitializeResult>
