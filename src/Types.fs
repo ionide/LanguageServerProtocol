@@ -15,36 +15,6 @@ type U2<'a, 'b> =
   | First of 'a
   | Second of 'b
 
-type LspResult<'t> = Result<'t, JsonRpc.Error>
-type AsyncLspResult<'t> = Async<LspResult<'t>>
-
-module LspResult =
-  open Ionide.LanguageServerProtocol
-
-  let success x : LspResult<_> = Result.Ok x
-
-  let invalidParams s : LspResult<_> = Result.Error(JsonRpc.Error.Create(JsonRpc.ErrorCodes.invalidParams, s))
-
-  let internalError<'a> (s: string) : LspResult<'a> =
-    Result.Error(JsonRpc.Error.Create(JsonRpc.ErrorCodes.internalError, s))
-
-  let notImplemented<'a> : LspResult<'a> = Result.Error(JsonRpc.Error.MethodNotFound)
-
-  let requestCancelled<'a> : LspResult<'a> = Result.Error(JsonRpc.Error.RequestCancelled)
-
-module AsyncLspResult =
-  open Ionide.LanguageServerProtocol
-
-  let success x : AsyncLspResult<_> = async.Return(Result.Ok x)
-
-  let invalidParams s : AsyncLspResult<_> =
-    async.Return(Result.Error(JsonRpc.Error.Create(JsonRpc.ErrorCodes.invalidParams, s)))
-
-  let internalError s : AsyncLspResult<_> =
-    async.Return(Result.Error(JsonRpc.Error.Create(JsonRpc.ErrorCodes.internalError, s)))
-
-  let notImplemented<'a> : AsyncLspResult<'a> = async.Return(Result.Error(JsonRpc.Error.MethodNotFound))
-
 /// The LSP any type
 type LSPAny = JToken
 
@@ -333,16 +303,15 @@ type InlayHintWorkspaceClientCapabilities =
     /// change that requires such a calculation.
     RefreshSupport: bool option }
 
-type CodeLensWorkspaceClientCapabilities = {
-  /// Whether the client implementation supports a refresh request sent from the
-  /// server to the client.
-  ///
-  /// Note that this event is global and will force the client to refresh all
-  /// code lenses currently shown. It should be used with absolute care and is
-  /// useful for situation where a server for example detect a project wide
-  /// change that requires such a calculation.
-   RefreshSupport: bool option
-}
+type CodeLensWorkspaceClientCapabilities =
+  { /// Whether the client implementation supports a refresh request sent from the
+    /// server to the client.
+    ///
+    /// Note that this event is global and will force the client to refresh all
+    /// code lenses currently shown. It should be used with absolute care and is
+    /// useful for situation where a server for example detect a project wide
+    /// change that requires such a calculation.
+    RefreshSupport: bool option }
 
 /// Workspace specific client capabilities.
 type WorkspaceClientCapabilities =
@@ -2117,6 +2086,8 @@ type SemanticTokens =
     ResultId: string option
     Data: uint32 [] }
 
+type SemanticTokensPartialResult = { data: uint32 [] }
+
 type SemanticTokensEdit =
   { /// The start offset of the edit.
     Start: uint32
@@ -2132,6 +2103,8 @@ type SemanticTokensDelta =
 
     /// The semantic token edits to transform a previous result into a new result.
     Edits: SemanticTokensEdit [] }
+
+type SemanticTokensDeltaPartialResult = { Edits: SemanticTokensEdit [] }
 
 /// Represents information on a file/folder create.
 ///@since 3.16.0

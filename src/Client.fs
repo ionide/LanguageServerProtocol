@@ -2,14 +2,6 @@ namespace Ionide.LanguageServerProtocol
 
 open Ionide.LanguageServerProtocol.Types
 
-module private ClientUtil =
-  /// Return the JSON-RPC "not implemented" error
-  let notImplemented<'t> = async.Return LspResult.notImplemented<'t>
-
-  /// Do nothing and ignore the notification
-  let ignoreNotification = async.Return(())
-
-open ClientUtil
 
 [<Interface>]
 type ILspClient =
