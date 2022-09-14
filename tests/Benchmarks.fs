@@ -11,6 +11,9 @@ open System
 open System.Collections.Concurrent
 open System.Collections.Generic
 open BenchmarkDotNet.Order
+open System.Text
+open Newtonsoft.Json
+open System.IO
 
 let inline private memorise (f: 'a -> 'b) : 'a -> 'b =
   let d = ConcurrentDictionary<'a, 'b>()
@@ -514,15 +517,23 @@ type MultipleTypesBenchmarks() =
   /// Some complex data which covers all converters
   let example = Example.createData (1234, 9, 5)
   let option = {| Some = Some 123; None = (None: int option) |}
+  let formatter = jsonRpcFormatter ()
+
+  let serialize item =
+    let sb = new StringBuilder()
+    use writer = new JsonTextWriter(new StringWriter(sb))
+    formatter.JsonSerializer.Serialize(writer, item)
+    JToken.Parse(sb.ToString())
 
   let withCounts (counts) data =
     data
     |> Array.collect (fun data -> counts |> Array.map (fun count -> [| box count; box data |]))
 
   member _.AllLsp_Roundtrip() =
+
     for o in allLsp do
       let json = inlayHint |> serialize
-      let res = json.ToObject(o.GetType(), jsonRpcFormatter.JsonSerializer)
+      let res = json.ToObject(o.GetType(), formatter.JsonSerializer)
       ()
 
   [<BenchmarkCategory("LSP"); Benchmark>]
@@ -534,7 +545,7 @@ type MultipleTypesBenchmarks() =
 
   member _.Example_Roundtrip() =
     let json = example |> serialize
-    let res = json.ToObject(example.GetType(), jsonRpcFormatter.JsonSerializer)
+    let res = json.ToObject(example.GetType(), formatter.JsonSerializer)
     ()
 
   [<BenchmarkCategory("Example"); Benchmark>]
@@ -550,7 +561,7 @@ type MultipleTypesBenchmarks() =
   member _.Option_Roundtrips(count: int) =
     for _ in 1..count do
       let json = option |> serialize
-      let _ = json.ToObject(option.GetType(), jsonRpcFormatter.JsonSerializer)
+      let _ = json.ToObject(option.GetType(), formatter.JsonSerializer)
       ()
 
   member _.SingleCaseUnion_ArgumentsSource() =
@@ -562,7 +573,7 @@ type MultipleTypesBenchmarks() =
   member _.SingleCaseUnion_Roundtrips(count: int, data: Example.SingleCaseUnion) =
     for _ in 1..count do
       let json = data |> serialize
-      let _ = json.ToObject(typeof<Example.SingleCaseUnion>, jsonRpcFormatter.JsonSerializer)
+      let _ = json.ToObject(typeof<Example.SingleCaseUnion>, formatter.JsonSerializer)
       ()
 
   member _.ErasedUnion_ArgumentsSource() =
@@ -582,7 +593,7 @@ type MultipleTypesBenchmarks() =
   member _.ErasedUnion_Roundtrips(count: int, data: Example.ErasedUnionData) =
     for _ in 1..count do
       let json = data |> serialize
-      let _ = json.ToObject(typeof<Example.ErasedUnionData>, jsonRpcFormatter.JsonSerializer)
+      let _ = json.ToObject(typeof<Example.ErasedUnionData>, formatter.JsonSerializer)
       ()
 
 
