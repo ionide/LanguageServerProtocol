@@ -92,11 +92,7 @@ type ExtensionDataField =
 
 let private formatter = jsonRpcFormatter ()
 
-let serialize item =
-  let sb = new StringBuilder()
-  use writer = new JsonTextWriter(new StringWriter(sb))
-  formatter.JsonSerializer.Serialize(writer, item)
-  JToken.Parse(sb.ToString())
+let serialize item = JToken.FromObject(item, formatter.JsonSerializer)
 
 let deserialize<'T> (json: JToken) = json.ToObject<'T>(formatter.JsonSerializer)
 

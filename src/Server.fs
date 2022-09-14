@@ -12,8 +12,7 @@ type ILspServer =
 
   /// The initialize request is sent as the first request from the client to the server.
   /// The initialize request may only be sent once.
-  abstract member initialize: InitializeParams<'ServerOptions> -> Task<InitializeResult>
-
+  abstract member initialize: InitializeParams -> Task<InitializeResult>
 
   /// The initialized notification is sent from the client to the server after the client received the result
   /// of the initialize request but before the client is sending any other request or notification to the server.

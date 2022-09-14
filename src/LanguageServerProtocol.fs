@@ -26,11 +26,11 @@ module Server =
     f.JsonSerializer.ContractResolver <- OptionAndCamelCasePropertyNamesContractResolver()
     f
 
-  let configureServerAndClient<'server, 'client when 'server :> ILspServer and 'client :> ILspClient>
+
+  let configureBidirectionalServer<'server when 'server :> ILspServer and 'server :> ILspClient>
     (serverInput: Stream)
     (serverOutput: Stream)
-    (serverInstance: 'server)
-    (clientInstance: 'client)
+    (serverFactory: JsonSerializer -> 'server)
     modifyJsonSerializer
     =
 
@@ -47,6 +47,8 @@ module Server =
       )
 
     let serverJson = createJsonFormatter ()
+    let serverInstance = serverFactory (createJsonFormatter().JsonSerializer)
+
     let serverRpcHandler = new HeaderDelimitedMessageHandler(serverOutput, serverInput, serverJson)
     let serverRpc = new JsonRpc(serverRpcHandler)
     serverRpc.AddLocalRpcTarget(serverInstance, commonOptions)
@@ -55,18 +57,9 @@ module Server =
     let clientJson = createJsonFormatter ()
     let clientRpcHandler = new HeaderDelimitedMessageHandler(serverInput, serverOutput, clientJson)
     let clientRpc = new JsonRpc(clientRpcHandler)
-    clientRpc.AddLocalRpcTarget(clientInstance, commonOptions)
+    clientRpc.AddLocalRpcTarget(serverInstance, commonOptions)
 
     serverRpc, clientRpc
-
-  let configureBidirectionalServer<'server when 'server :> ILspServer and 'server :> ILspClient>
-    (serverInput: Stream)
-    (serverOutput: Stream)
-    (serverInstance: 'server)
-    modifyJsonSerializer
-    =
-    configureServerAndClient serverInput serverOutput serverInstance serverInstance modifyJsonSerializer
-    |> fst
 
   let start (serverRpc: JsonRpc) =
     serverRpc.StartListening()
