@@ -333,16 +333,15 @@ type InlayHintWorkspaceClientCapabilities =
     /// change that requires such a calculation.
     RefreshSupport: bool option }
 
-type CodeLensWorkspaceClientCapabilities = {
-  /// Whether the client implementation supports a refresh request sent from the
-  /// server to the client.
-  ///
-  /// Note that this event is global and will force the client to refresh all
-  /// code lenses currently shown. It should be used with absolute care and is
-  /// useful for situation where a server for example detect a project wide
-  /// change that requires such a calculation.
-   RefreshSupport: bool option
-}
+type CodeLensWorkspaceClientCapabilities =
+  { /// Whether the client implementation supports a refresh request sent from the
+    /// server to the client.
+    ///
+    /// Note that this event is global and will force the client to refresh all
+    /// code lenses currently shown. It should be used with absolute care and is
+    /// useful for situation where a server for example detect a project wide
+    /// change that requires such a calculation.
+    RefreshSupport: bool option }
 
 /// Workspace specific client capabilities.
 type WorkspaceClientCapabilities =
@@ -1739,6 +1738,9 @@ type PublishDiagnosticsParams =
   { /// The URI for which diagnostic information is reported.
     Uri: DocumentUri
 
+    // The version number of the document the diagnostics are published for.
+    Version: int option
+
     /// An array of diagnostic information items.
     Diagnostics: Diagnostic [] }
 
@@ -1942,11 +1944,11 @@ type ColorPresentation =
 type CodeActionKind = string
 
 type CodeActionTriggerKind =
-/// Code actions were explicitly requested by the user or by an extension.
-| Invoked = 1
-/// Code actions were requested automatically.
-/// This typically happens when current selection in a file changes, but can also be triggered when file content changes.
-| Automatic = 2
+  /// Code actions were explicitly requested by the user or by an extension.
+  | Invoked = 1
+  /// Code actions were requested automatically.
+  /// This typically happens when current selection in a file changes, but can also be triggered when file content changes.
+  | Automatic = 2
 
 /// Contains additional diagnostic information about the context in which
 /// a code action is run.
