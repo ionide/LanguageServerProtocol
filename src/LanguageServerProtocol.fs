@@ -232,6 +232,7 @@ module Server =
       "textDocument/semanticTokens/range", requestHandling (fun s p -> s.TextDocumentSemanticTokensRange(p))
       "textDocument/inlayHint", requestHandling (fun s p -> s.TextDocumentInlayHint(p))
       "inlayHint/resolve", requestHandling (fun s p -> s.InlayHintResolve(p))
+      "textDocument/diagnosti", requestHandling (fun s p -> s.TextDocumentDiagnostic(p))
       "workspace/didChangeWatchedFiles",
       requestHandling (fun s p -> s.WorkspaceDidChangeWatchedFiles(p) |> notificationSuccess)
       "workspace/didChangeWorkspaceFolders",

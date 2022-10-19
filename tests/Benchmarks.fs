@@ -465,7 +465,13 @@ type MultipleTypesBenchmarks() =
                   InlayHint =
                     Some
                       { DynamicRegistration = Some true
-                        ResolveSupport = Some { Properties = [| "Tooltip"; "Position"; "TextEdits" |] } } }
+                        ResolveSupport = Some { Properties = [| "Tooltip"; "Position"; "TextEdits" |] } }
+                  Diagnostic =
+                    Some
+                      { DiagnosticClientCapabilities.DynamicRegistration = Some true
+                        RelatedDocumentSupport = Some true }
+
+                }
             Experimental = None }
       trace = None
       WorkspaceFolders =

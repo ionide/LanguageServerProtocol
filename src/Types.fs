@@ -15,6 +15,12 @@ type U2<'a, 'b> =
   | First of 'a
   | Second of 'b
 
+[<ErasedUnion>]
+type U3<'a, 'b, 'c> =
+  | First of 'a
+  | Second of 'b
+  | Three of 'c
+
 type LspResult<'t> = Result<'t, JsonRpc.Error>
 type AsyncLspResult<'t> = Async<LspResult<'t>>
 
@@ -333,16 +339,15 @@ type InlayHintWorkspaceClientCapabilities =
     /// change that requires such a calculation.
     RefreshSupport: bool option }
 
-type CodeLensWorkspaceClientCapabilities = {
-  /// Whether the client implementation supports a refresh request sent from the
-  /// server to the client.
-  ///
-  /// Note that this event is global and will force the client to refresh all
-  /// code lenses currently shown. It should be used with absolute care and is
-  /// useful for situation where a server for example detect a project wide
-  /// change that requires such a calculation.
-   RefreshSupport: bool option
-}
+type CodeLensWorkspaceClientCapabilities =
+  { /// Whether the client implementation supports a refresh request sent from the
+    /// server to the client.
+    ///
+    /// Note that this event is global and will force the client to refresh all
+    /// code lenses currently shown. It should be used with absolute care and is
+    /// useful for situation where a server for example detect a project wide
+    /// change that requires such a calculation.
+    RefreshSupport: bool option }
 
 /// Workspace specific client capabilities.
 type WorkspaceClientCapabilities =
@@ -638,6 +643,10 @@ type DiagnosticTag =
   /// Clients are allowed to render diagnostics with this tag faded out instead of having
   /// an error squiggle.
   | Unnecessary = 1
+  /// Deprecated or obsolete code.
+  ///
+  /// Clients are allowed to rendered diagnostics with this tag strike through.
+  | Deprecated = 2
 
 type DiagnosticTagSupport =
   {
@@ -740,6 +749,19 @@ type RenameClientCapabilities =
     /// @since 3.16.0
     HonorsChangeAnnotations: bool option }
 
+///  Client capabilities specific to diagnostic pull requests.
+///
+///  @since 3.17.0
+type DiagnosticClientCapabilities =
+  { /// Whether implementation supports dynamic registration. If this is set to
+    /// true` the client supports the new
+    /// (TextDocumentRegistrationOptions & StaticRegistrationOptions)`
+    /// eturn value for the corresponding server capability as well.
+    DynamicRegistration: bool option
+
+    /// Whether the clients supports related documents for document diagnostic pulls.
+    RelatedDocumentSupport: bool option }
+
 /// Text document specific client capabilities.
 type TextDocumentClientCapabilities =
   { Synchronization: SynchronizationCapabilities option
@@ -802,7 +824,14 @@ type TextDocumentClientCapabilities =
     /// Capabilities specific to the `textDocument/inlayHint` request.
     ///
     /// @since 3.17.0
-    InlayHint: InlayHintClientCapabilities option }
+    InlayHint: InlayHintClientCapabilities option
+
+    /// Capabilities specific to the diagnostic pull model.
+    ///
+    /// @since 3.17.0
+    Diagnostic: DiagnosticClientCapabilities option
+
+   }
 
 type ClientCapabilities =
   { /// Workspace specific client capabilities.
@@ -973,6 +1002,40 @@ module FileOperationPatternKind =
   let File = "file"
   let Folder = "folder"
 
+/// Parameters of the document diagnostic request.
+///
+/// @since 3.17.0
+type DocumentDiagnosticParams =
+  { TextDocument: TextDocumentIdentifier
+    Identifier: string option
+    PreviousResultId: int option
+
+   }
+
+module DocumentDiagnosticReportKind =
+  [<Literal>]
+  let Full = "full"
+
+  [<Literal>]
+  let Unchanged = "unchanged"
+
+
+
+
+/// Diagnostic options.
+///
+///  @since 3.17.0
+type DiagnosticOptions =
+  { /// An optional identifier under which the diagnostics are managed by the client.
+    Identifier: string option
+    /// Whether the language has inter file dependencies meaning that
+    /// editing code in one file can result in a different diagnostic
+    /// set in another file. Inter file dependencies are common for
+    /// most programming languages and typically uncommon for linters.
+    InterFileDependencies: bool
+    /// The server provides support for workspace diagnostics as well.
+    WorkspaceDiagnostics: bool }
+
 type FileOperationPatternOptions =
   { /// The pattern should be matched ignoring casing.
     IgnoreCase: bool option }
@@ -1099,6 +1162,11 @@ type ServerCapabilities =
 
     InlayHintProvider: InlayHintOptions option
 
+    /// The server has support for pull model diagnostics.
+    ///
+    /// @since 3.17.0
+    DiagnosticProvider: DiagnosticOptions option
+
     /// Workspace specific server capabilities.
     Workspace: WorkspaceServerCapabilities option
 
@@ -1128,6 +1196,7 @@ type ServerCapabilities =
       SelectionRangeProvider = None
       SemanticTokensProvider = None
       InlayHintProvider = None
+      DiagnosticProvider = None
       Workspace = None }
 
 type InitializeResult =
@@ -1742,6 +1811,80 @@ type PublishDiagnosticsParams =
     /// An array of diagnostic information items.
     Diagnostics: Diagnostic [] }
 
+
+
+/// A diagnostic report with a full set of problems.
+///
+/// @since 3.17.0
+type FullDocumentDiagnosticReport =
+  /// A full document diagnostic report.
+  abstract member Kind: string //  DocumentDiagnosticReportKind.Full
+
+  /// An optional result id. If provided it will
+  /// be sent on the next diagnostic request for the
+  /// same document.
+  abstract member ResultId: string option
+
+  /// The actual items.
+  abstract member Items: Diagnostic array
+
+/// A diagnostic report indicating that the last returned
+///
+/// report is still accurate.
+type UnchangedDocumentDiagnosticReport =
+  /// A document diagnostic report indicating
+  /// no changes to the last result. A server can
+  /// only return `unchanged` if result ids are
+  /// provided.
+  abstract member Kind: string //  DocumentDiagnosticReportKind.Unchanged
+
+  /// A result id which will be sent on the next
+  /// diagnostic request for the same document.
+  abstract member ResultId: string option
+
+
+
+/// A full diagnostic report with a set of related documents.
+///
+/// @since 3.17.0
+type RelatedFullDocumentDiagnosticReport =
+  { ///  Diagnostics of related documents. This information is useful
+    /// in programming languages where code in a file A can generate
+    /// diagnostics in a file B which A depends on. An example of
+    /// such a language is C/C++ where marco definitions in a file
+    /// a.cpp and result in errors in a header file b.hpp.
+    ///
+    /// @since 3.17.0
+    RelatedDocuments: U3<string, FullDocumentDiagnosticReport, UnchangedDocumentDiagnosticReport>
+    ResultId: string option
+    Items: Diagnostic array }
+  interface FullDocumentDiagnosticReport with
+    member x.Kind = DocumentDiagnosticReportKind.Full
+    member x.ResultId = x.ResultId
+    member x.Items = x.Items
+
+type RelatedUnchangedDocumentDiagnosticReport =
+  { ///  Diagnostics of related documents. This information is useful
+    /// in programming languages where code in a file A can generate
+    /// diagnostics in a file B which A depends on. An example of
+    /// such a language is C/C++ where marco definitions in a file
+    /// a.cpp and result in errors in a header file b.hpp.
+    ///
+    /// @since 3.17.0
+    RelatedDocuments: U3<string, FullDocumentDiagnosticReport, UnchangedDocumentDiagnosticReport>
+    ResultId: string option }
+  interface UnchangedDocumentDiagnosticReport with
+    member x.Kind = DocumentDiagnosticReportKind.Unchanged
+    member x.ResultId = x.ResultId
+
+/// The result of a document diagnostic pull request. A report can
+/// either be a full report containing all diagnostics for the
+/// requested document or a unchanged report indicating that nothing
+/// has changed in terms of diagnostics in comparison to the last
+/// pull request.
+type DocumentDiagnosticReport = U2<RelatedFullDocumentDiagnosticReport, RelatedUnchangedDocumentDiagnosticReport>
+
+
 type CodeActionDisabled =
   { /// Human readable description of why the code action is currently
     /// disabled.
@@ -1942,11 +2085,11 @@ type ColorPresentation =
 type CodeActionKind = string
 
 type CodeActionTriggerKind =
-/// Code actions were explicitly requested by the user or by an extension.
-| Invoked = 1
-/// Code actions were requested automatically.
-/// This typically happens when current selection in a file changes, but can also be triggered when file content changes.
-| Automatic = 2
+  /// Code actions were explicitly requested by the user or by an extension.
+  | Invoked = 1
+  /// Code actions were requested automatically.
+  /// This typically happens when current selection in a file changes, but can also be triggered when file content changes.
+  | Automatic = 2
 
 /// Contains additional diagnostic information about the context in which
 /// a code action is run.

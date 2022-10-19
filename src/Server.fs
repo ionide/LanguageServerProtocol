@@ -300,6 +300,12 @@ type ILspServer =
   /// then an inlay hint with a label part without a location needs to be resolved using the `inlayHint/resolve` request before it can be used.
   abstract member InlayHintResolve: InlayHint -> AsyncLspResult<InlayHint>
 
+  /// The text document diagnostic request is sent from the client to the server to ask the server to compute
+  /// the diagnostics for a given document. As with other pull requests the server is asked to compute the
+  /// diagnostics for the currently synced version of the document.
+  abstract member TextDocumentDiagnostic: DocumentDiagnosticParams -> AsyncLspResult<DocumentDiagnosticReport>
+
+
 [<AbstractClass>]
 type LspServer() =
   abstract member Dispose: unit -> unit
@@ -646,6 +652,13 @@ type LspServer() =
 
   default __.InlayHintResolve(_) = notImplemented
 
+  /// The text document diagnostic request is sent from the client to the server to ask the server to compute
+  /// the diagnostics for a given document. As with other pull requests the server is asked to compute the
+  /// diagnostics for the currently synced version of the document.
+  abstract member TextDocumentDiagnostic: DocumentDiagnosticParams -> AsyncLspResult<DocumentDiagnosticReport>
+
+  default __.TextDocumentDiagnostic(_) = notImplemented
+
   interface ILspServer with
     member this.Dispose() = this.Dispose()
     member this.Initialize(p: InitializeParams) = this.Initialize(p)
@@ -707,3 +720,4 @@ type LspServer() =
     member this.TextDocumentSemanticTokensRange(p: SemanticTokensRangeParams) = this.TextDocumentSemanticTokensRange(p)
     member this.TextDocumentInlayHint(p: InlayHintParams) = this.TextDocumentInlayHint(p)
     member this.InlayHintResolve(p: InlayHint) = this.InlayHintResolve(p)
+    member this.TextDocumentDiagnostic(p : DocumentDiagnosticParams) = this.TextDocumentDiagnostic(p)
