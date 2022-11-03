@@ -466,7 +466,8 @@ type MultipleTypesBenchmarks() =
                     Some
                       { DynamicRegistration = Some true
                         ResolveSupport = Some { Properties = [| "Tooltip"; "Position"; "TextEdits" |] } } }
-            Experimental = None }
+            Experimental = None
+            Window = None }
       trace = None
       WorkspaceFolders =
         Some [| { Uri = "..."; Name = "foo" }

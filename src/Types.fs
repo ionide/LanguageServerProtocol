@@ -333,16 +333,15 @@ type InlayHintWorkspaceClientCapabilities =
     /// change that requires such a calculation.
     RefreshSupport: bool option }
 
-type CodeLensWorkspaceClientCapabilities = {
-  /// Whether the client implementation supports a refresh request sent from the
-  /// server to the client.
-  ///
-  /// Note that this event is global and will force the client to refresh all
-  /// code lenses currently shown. It should be used with absolute care and is
-  /// useful for situation where a server for example detect a project wide
-  /// change that requires such a calculation.
-   RefreshSupport: bool option
-}
+type CodeLensWorkspaceClientCapabilities =
+  { /// Whether the client implementation supports a refresh request sent from the
+    /// server to the client.
+    ///
+    /// Note that this event is global and will force the client to refresh all
+    /// code lenses currently shown. It should be used with absolute care and is
+    /// useful for situation where a server for example detect a project wide
+    /// change that requires such a calculation.
+    RefreshSupport: bool option }
 
 /// Workspace specific client capabilities.
 type WorkspaceClientCapabilities =
@@ -804,6 +803,48 @@ type TextDocumentClientCapabilities =
     /// @since 3.17.0
     InlayHint: InlayHintClientCapabilities option }
 
+/// Client capabilities for the showDocument request.
+///
+/// @since 3.16.0
+type ShowDocumentClientCapabilities =
+  { /// The client has support for the showDocument request
+    support: bool }
+
+/// Capabilities specific to the `MessageActionItem` type
+type MessageActionItemCapabilties =
+  { /// Whether the client supports additional attributes which
+    /// are preserved and send back to the server in the
+    /// request's response.
+    additionalPropertiesSupport: bool option }
+
+/// Show message request client capabilities
+type ShowMessageRequestClientCapabilities =
+  { /// Capabilities specific to the `MessageActionItem` type
+    messageActionItem: MessageActionItemCapabilties option }
+
+type WindowClientCapabilities =
+  { ///
+    /// It indicates whether the client supports server initiated
+    /// progress using the `window/workDoneProgress/create` request.
+    ///
+    /// The capability also controls Whether client supports handling
+    /// of progress notifications. If set servers are allowed to report a
+    /// `workDoneProgress` property in the request specific server
+    /// capabilities.
+    ///
+    /// @since 3.15.0
+    workDoneProgress: bool option
+
+    /// Capabilities specific to the showMessage request.
+    ///
+    /// @since 3.16.0
+    showMessage: ShowMessageRequestClientCapabilities option
+
+    /// Capabilities specific to the showDocument request.
+    ///
+    ///  @since 3.16.0
+    showDocument: ShowDocumentClientCapabilities option }
+
 type ClientCapabilities =
   { /// Workspace specific client capabilities.
     Workspace: WorkspaceClientCapabilities option
@@ -812,7 +853,10 @@ type ClientCapabilities =
     TextDocument: TextDocumentClientCapabilities option
 
     /// Experimental client capabilities.
-    Experimental: JToken option }
+    Experimental: JToken option
+
+    /// Window specific client capabilities.
+    Window: WindowClientCapabilities option }
 
 type WorkspaceFolder =
   { /// The associated URI for this workspace folder.
@@ -1942,11 +1986,11 @@ type ColorPresentation =
 type CodeActionKind = string
 
 type CodeActionTriggerKind =
-/// Code actions were explicitly requested by the user or by an extension.
-| Invoked = 1
-/// Code actions were requested automatically.
-/// This typically happens when current selection in a file changes, but can also be triggered when file content changes.
-| Automatic = 2
+  /// Code actions were explicitly requested by the user or by an extension.
+  | Invoked = 1
+  /// Code actions were requested automatically.
+  /// This typically happens when current selection in a file changes, but can also be triggered when file content changes.
+  | Automatic = 2
 
 /// Contains additional diagnostic information about the context in which
 /// a code action is run.
@@ -2285,3 +2329,101 @@ type InlayHint =
     /// A data entry field that is preserved on a inlay hint between
     /// a `textDocument/inlayHint` and a `inlayHint/resolve` request.
     Data: LSPAny option }
+
+type ProgressToken = U2<int, string>
+
+type WorkDoneProgressCreateParams =
+  { ///The token to be used to report progress.
+    token: ProgressToken }
+
+/// The base protocol offers also support to report progress in a generic fashion.
+/// This mechanism can be used to report any kind of progress including work done progress
+/// (usually used to report progress in the user interface using a progress bar) and partial
+/// result progress to support streaming of results.
+type ProgressParams<'T> =
+  { /// The progress token provided by the client or server.
+    token: ProgressToken
+    /// The progress data.
+    value: 'T }
+
+type WorkDoneProgressKind =
+  | Begin
+  | Report
+  | End
+  override x.ToString() =
+    match x with
+    | Begin -> "begin"
+    | Report -> "report"
+    | End -> "end"
+
+type WorkDoneProgressEnd =
+  { /// WorkDoneProgressKind.End
+    kind: string
+    /// Optional, a final message indicating to for example indicate the outcome of the operation.
+    message: string option }
+  static member Create(?message) = { kind = WorkDoneProgressKind.End.ToString(); message = message }
+
+type WorkDoneProgressBegin =
+  { /// WorkDoneProgressKind.Begin
+    kind: string
+
+    /// Mandatory title of the progress operation. Used to briefly inform about
+    /// the kind of operation being performed.
+    ///
+    /// Examples: "Indexing" or "Linking dependencies".
+    title: string option
+    ///  Controls if a cancel button should show to allow the user to cancel the
+    ///  long running operation. Clients that don't support cancellation are allowed
+    ///  to ignore the setting.
+    cancellable: bool option
+    /// Optional, more detailed associated progress message. Contains
+    /// complementary information to the `title`.
+    ///
+    /// Examples: "3/25 files", "project/src/module2", "node_modules/some_dep".
+    /// If unset, the previous progress message (if any) is still valid.
+    message: string option
+    /// Optional progress percentage to display (value 100 is considered 100%).
+    /// If not provided infinite progress is assumed and clients are allowed
+    /// to ignore the `percentage` value in subsequent in report notifications.
+    ///
+    /// The value should be steadily rising. Clients are free to ignore values
+    /// that are not following this rule. The value range is [0, 100].
+    percentage: uint option }
+
+  static member Create(title, ?cancellable, ?message, ?percentage) =
+    { kind = WorkDoneProgressKind.Begin.ToString()
+      title = Some title
+      cancellable = cancellable
+      message = message
+      percentage = percentage }
+
+type WorkDoneProgressReport =
+  { /// WorkDoneProgressKind.Report
+    kind: string
+    /// Controls enablement state of a cancel button.
+    ///
+    /// Clients that don't support cancellation or don't support controlling the button's
+    /// enablement state are allowed to ignore the property.
+    cancellable: bool option
+    /// Optional, more detailed associated progress message. Contains
+    /// complementary information to the `title`.
+    ///
+    /// Examples: "3/25 files", "project/src/module2", "node_modules/some_dep".
+    /// If unset, the previous progress message (if any) is still valid.
+    message: string option
+    /// Optional progress percentage to display (value 100 is considered 100%).
+    /// If not provided infinite progress is assumed and clients are allowed
+    /// to ignore the `percentage` value in subsequent in report notifications.
+    ///
+    /// The value should be steadily rising. Clients are free to ignore values
+    /// that are not following this rule. The value range is [0, 100].
+    percentage: uint option }
+
+  static member Create(?cancellable, ?message, ?percentage) =
+    { kind = WorkDoneProgressKind.Report.ToString()
+      cancellable = cancellable
+      message = message
+      percentage = percentage }
+
+/// The token to be used to report progress.
+type WorkDoneProgressCancelParams = { token: ProgressToken }

@@ -100,6 +100,15 @@ type ILspClient =
   /// on the client side.
   abstract member TextDocumentPublishDiagnostics: PublishDiagnosticsParams -> Async<unit>
 
+  /// The window/workDoneProgress/create request is sent from the server to the client to ask the client to create a work done progress.
+  abstract member WorkDoneProgressCreate: ProgressToken -> AsyncLspResult<unit>
+
+  /// The base protocol offers also support to report progress in a generic fashion.
+  /// This mechanism can be used to report any kind of progress including work done progress
+  /// (usually used to report progress in the user interface using a progress bar) and
+  /// partial result progress to support streaming of results.
+  abstract member Progress: ProgressToken * 'Progress -> Async<unit>
+
 [<AbstractClass>]
 type LspClient() =
 
@@ -208,6 +217,14 @@ type LspClient() =
 
   default __.TextDocumentPublishDiagnostics(_) = ignoreNotification
 
+  abstract member Progress: ProgressToken * 'Progress -> Async<unit>
+
+  default __.Progress(_, _) = ignoreNotification
+
+  /// The window/workDoneProgress/create request is sent from the server to the client to ask the client to create a work done progress.
+  abstract member WorkDoneProgressCreate: ProgressToken -> AsyncLspResult<unit>
+  default __.WorkDoneProgressCreate(_) = notImplemented
+
   interface ILspClient with
     member this.WindowShowMessage(p: ShowMessageParams) = this.WindowShowMessage(p)
     member this.WindowShowMessageRequest(p: ShowMessageRequestParams) = this.WindowShowMessageRequest(p)
@@ -221,3 +238,5 @@ type LspClient() =
     member this.WorkspaceSemanticTokensRefresh() = this.WorkspaceSemanticTokensRefresh()
     member this.WorkspaceInlayHintRefresh() = this.WorkspaceInlayHintRefresh()
     member this.TextDocumentPublishDiagnostics(p: PublishDiagnosticsParams) = this.TextDocumentPublishDiagnostics(p)
+    member this.WorkDoneProgressCreate(token: ProgressToken) = this.WorkDoneProgressCreate(token)
+    member this.Progress(token, data) = this.Progress(token, data)

@@ -300,6 +300,12 @@ type ILspServer =
   /// then an inlay hint with a label part without a location needs to be resolved using the `inlayHint/resolve` request before it can be used.
   abstract member InlayHintResolve: InlayHint -> AsyncLspResult<InlayHint>
 
+  /// The `window/workDoneProgress/cancel` notification is sent from the client to the server to cancel a
+  /// progress initiated on the server side using the `window/workDoneProgress/create`. The progress need
+  /// not be marked as cancellable to be cancelled and a client may cancel a progress for any number of
+  /// reasons: in case of error, reloading a workspace etc.
+  abstract member WorkDoneProgessCancel: ProgressToken -> Async<unit>
+
 [<AbstractClass>]
 type LspServer() =
   abstract member Dispose: unit -> unit
@@ -646,6 +652,14 @@ type LspServer() =
 
   default __.InlayHintResolve(_) = notImplemented
 
+  /// The `window/workDoneProgress/cancel` notification is sent from the client to the server to cancel a
+  /// progress initiated on the server side using the `window/workDoneProgress/create`. The progress need
+  /// not be marked as cancellable to be cancelled and a client may cancel a progress for any number of
+  /// reasons: in case of error, reloading a workspace etc.
+  abstract member WorkDoneProgessCancel: ProgressToken -> Async<unit>
+
+  default __.WorkDoneProgessCancel(_) = ignoreNotification
+
   interface ILspServer with
     member this.Dispose() = this.Dispose()
     member this.Initialize(p: InitializeParams) = this.Initialize(p)
@@ -707,3 +721,4 @@ type LspServer() =
     member this.TextDocumentSemanticTokensRange(p: SemanticTokensRangeParams) = this.TextDocumentSemanticTokensRange(p)
     member this.TextDocumentInlayHint(p: InlayHintParams) = this.TextDocumentInlayHint(p)
     member this.InlayHintResolve(p: InlayHint) = this.InlayHintResolve(p)
+    member this.WorkDoneProgessCancel(token) = this.WorkDoneProgessCancel(token)
