@@ -720,4 +720,4 @@ type LspServer() =
     member this.TextDocumentSemanticTokensRange(p: SemanticTokensRangeParams) = this.TextDocumentSemanticTokensRange(p)
     member this.TextDocumentInlayHint(p: InlayHintParams) = this.TextDocumentInlayHint(p)
     member this.InlayHintResolve(p: InlayHint) = this.InlayHintResolve(p)
-    member this.TextDocumentDiagnostic(p : DocumentDiagnosticParams) = this.TextDocumentDiagnostic(p)
+    member this.TextDocumentDiagnostic(p: DocumentDiagnosticParams) = this.TextDocumentDiagnostic(p)

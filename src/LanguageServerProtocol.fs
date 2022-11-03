@@ -12,7 +12,6 @@ module Server =
   open Newtonsoft.Json
   open Ionide.LanguageServerProtocol.JsonUtils
   open Newtonsoft.Json.Linq
-  open StreamJsonRpc
 
   let logger = LogProvider.getLoggerByName "LSP Server"
 

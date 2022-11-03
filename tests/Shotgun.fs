@@ -109,7 +109,12 @@ let tests =
       let abbrevTys =
         [| nameof DocumentUri, typeof<DocumentUri>
            nameof DocumentSelector, typeof<DocumentSelector>
-           nameof TextDocumentCodeActionResult, typeof<TextDocumentCodeActionResult> |]
+           nameof TextDocumentCodeActionResult, typeof<TextDocumentCodeActionResult>
+           //  nameof RelatedFullDocumentDiagnosticReport, typeof<RelatedFullDocumentDiagnosticReport>
+           //  nameof RelatedUnchangedDocumentDiagnosticReport, typeof<RelatedUnchangedDocumentDiagnosticReport>
+           //  nameof FullDocumentDiagnosticReport, typeof<FullDocumentDiagnosticReport>
+
+           |]
 
       let tys =
         let shouldTestType (t: Type) = Utils.isLspType [ not << Lsp.Is.Generic; not << Lsp.Is.Nested ] t
