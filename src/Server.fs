@@ -306,6 +306,10 @@ type ILspServer =
   /// reasons: in case of error, reloading a workspace etc.
   abstract member WorkDoneProgessCancel: ProgressToken -> Async<unit>
 
+  /// The inline value request is sent from the client to the server to compute inline values for a given text document 
+  /// that may be rendered in the editor at the end of lines.
+  abstract member TextDocumentInlineValue: InlineValueParams -> AsyncLspResult<InlineValue [] option>
+
 [<AbstractClass>]
 type LspServer() =
   abstract member Dispose: unit -> unit
@@ -660,6 +664,11 @@ type LspServer() =
 
   default __.WorkDoneProgessCancel(_) = ignoreNotification
 
+  /// The inline value request is sent from the client to the server to compute inline values for a given text document 
+  /// that may be rendered in the editor at the end of lines.
+  abstract member TextDocumentInlineValue: InlineValueParams -> AsyncLspResult<InlineValue [] option>
+  default __.TextDocumentInlineValue(_) = notImplemented
+
   interface ILspServer with
     member this.Dispose() = this.Dispose()
     member this.Initialize(p: InitializeParams) = this.Initialize(p)
@@ -722,3 +731,4 @@ type LspServer() =
     member this.TextDocumentInlayHint(p: InlayHintParams) = this.TextDocumentInlayHint(p)
     member this.InlayHintResolve(p: InlayHint) = this.InlayHintResolve(p)
     member this.WorkDoneProgessCancel(token) = this.WorkDoneProgessCancel(token)
+    member this.TextDocumentInlineValue(p: InlineValueParams) = this.TextDocumentInlineValue(p)

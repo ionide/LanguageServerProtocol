@@ -843,6 +843,22 @@ let private serializationTests =
 
                testThereAndBackAgain theInlayHint ]
 
+      testList
+        (nameof InlineValue)
+        [
+          // Life of InlineValue:
+          // * output of `textDocument/inlineValue` (`InlineValue[]`)
+          // -> must be serializable as well as deserializable
+          testCase "can roundtrip InlineValue with all fields (simple)"
+          <| fun _ ->
+               let theInlineValue: InlineValue =
+                  { InlineValueText.Range = { Start = { Line = 5; Character = 7 }; End = { Line = 5; Character = 10 } } 
+                    Text = "test" }
+                  |> InlineValue.InlineValueText 
+
+               testThereAndBackAgain theInlineValue ]
+
+       
       Shotgun.tests ]
 
 [<Tests>]
