@@ -333,6 +333,17 @@ type InlayHintWorkspaceClientCapabilities =
     /// change that requires such a calculation.
     RefreshSupport: bool option }
 
+/// Client workspace capabilities specific to inline values.
+type InlineValueWorkspaceClientCapabilities =
+  { /// Whether the client implementation supports a refresh request sent from
+    /// the server to the client.
+    ///
+    /// Note that this event is global and will force the client to refresh all
+    /// inline values currently shown. It should be used with absolute care and
+    /// is useful for situation where a server for example detects a project wide
+    /// change that requires such a calculation.
+    RefreshSupport: bool option }
+
 type CodeLensWorkspaceClientCapabilities =
   { /// Whether the client implementation supports a refresh request sent from the
     /// server to the client.
@@ -371,6 +382,12 @@ type WorkspaceClientCapabilities =
     ///
     /// @since 3.17.0
     InlayHint: InlayHintWorkspaceClientCapabilities option
+
+
+    /// Client workspace capabilities specific to inline value.
+    ///
+    /// @since 3.17.0
+    InlineValue: InlineValueWorkspaceClientCapabilities option
 
     /// Client workspace capabilities specific to code lenses.
     ///
@@ -726,6 +743,19 @@ type InlayHintClientCapabilities =
     /// hint.
     ResolveSupport: InlayHintClientCapabilitiesResolveSupport option }
 
+
+type InlineValueClientCapabilitiesResolveSupport =
+  { /// The properties that a client can resolve lazily.
+    Properties: string [] }
+
+/// Inline value client capabilities.
+type InlineValueClientCapabilities =
+  { /// Whether inline value support dynamic registration.
+    DynamicRegistration: bool option
+    /// Indicates which properties a client can resolve lazily on a inline
+    /// value.
+    ResolveSupport: InlineValueClientCapabilitiesResolveSupport option }
+
 type RenameClientCapabilities =
   { /// Whether rename supports dynamic registration.
     DynamicRegistration: bool option
@@ -1005,6 +1035,10 @@ type InlayHintOptions =
   { /// The server provides support to resolve additional information for an inlay hint item.
     ResolveProvider: bool option }
 
+type InlineValueOptions =
+  { /// The server provides support to resolve additional information for aniline lay hint item.
+    ResolveProvider: bool option }
+
 type WorkspaceFoldersServerCapabilities =
   { /// The server has support for workspace folders.
     Supported: bool option
@@ -1143,6 +1177,8 @@ type ServerCapabilities =
 
     InlayHintProvider: InlayHintOptions option
 
+    InlineValueProvider: InlineValueOptions option
+
     /// Workspace specific server capabilities.
     Workspace: WorkspaceServerCapabilities option
 
@@ -1171,7 +1207,8 @@ type ServerCapabilities =
       FoldingRangeProvider = None
       SelectionRangeProvider = None
       SemanticTokensProvider = None
-      InlayHintProvider = None
+      InlayHintProvider = None 
+      InlineValueProvider = None
       Workspace = None }
 
 type InitializeResult =
@@ -2329,6 +2366,40 @@ type InlayHint =
     /// A data entry field that is preserved on a inlay hint between
     /// a `textDocument/inlayHint` and a `inlayHint/resolve` request.
     Data: LSPAny option }
+
+/// InlineValue Context
+type InlineValueContext =
+    {
+        /// The stack frame (as a DAP Id) where the execution has stopped.
+        FrameId: int
+
+        /// The document range where execution has stopped.
+        /// Typically the end position of the range denotes the line where the inline values are shown.
+        StoppedLocation: Range }
+
+/// A parameter literal used in inline value requests.
+type InlineValueParams = (*WorkDoneProgressParams &*)
+  { /// The text document.
+    TextDocument: TextDocumentIdentifier
+    /// The visible document range for which inline values should be computed.
+    Range: Range 
+    /// Additional information about the context in which inline values were requested
+    Context: InlineValueContext }
+
+/// Provide inline value as text.
+type InlineValueText = 
+    {
+        /// The document range for which the inline value applies.
+        Range: Range
+        /// The text of the inline value.
+        Text: String
+    }
+
+[<ErasedUnion>]
+[<RequireQualifiedAccess>]  
+type InlineValue =
+  | InlineValueText of InlineValueText
+
 
 type ProgressToken = U2<int, string>
 
