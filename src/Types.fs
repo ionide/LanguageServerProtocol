@@ -162,6 +162,9 @@ type SymbolKind =
   | Operator = 25
   | TypeParameter = 26
 
+type SymbolTag =
+  | Deprecated = 1
+
 /// Represents information about programming constructs like variables, classes,
 /// interfaces etc.
 type SymbolInformation =
@@ -824,6 +827,11 @@ type TextDocumentClientCapabilities =
     /// Capabilities for the `textDocument/selectionRange`
     SelectionRange: DynamicCapabilities option
 
+    /// Capabilities specific to the various call hierarchy requests.
+    ///
+    /// @since 3.16.0
+    CallHierarchy: DynamicCapabilities option
+
     /// Capabilities specific to the various semantic token requests.
     /// @since 3.16.0
     SemanticTokens: SemanticTokensClientCapabilities option
@@ -1173,6 +1181,8 @@ type ServerCapabilities =
 
     SelectionRangeProvider: bool option
 
+    CallHierarchyProvider: bool option
+
     SemanticTokensProvider: SemanticTokensOptions option
 
     InlayHintProvider: InlayHintOptions option
@@ -1206,6 +1216,7 @@ type ServerCapabilities =
       Experimental = None
       FoldingRangeProvider = None
       SelectionRangeProvider = None
+      CallHierarchyProvider = None
       SemanticTokensProvider = None
       InlayHintProvider = None 
       InlineValueProvider = None
@@ -2195,6 +2206,63 @@ type SelectionRange =
 
     /// The parent selection range containing this range. Therefore `parent.range` must contain `this.range`.
     Parent: SelectionRange option }
+
+type CallHierarchyPrepareParams =
+  { TextDocument: TextDocumentIdentifier
+
+    /// The position at which this request was sent.
+    Position: Position }
+
+type HierarchyItem =
+  { /// The name of this item.
+    Name: string
+
+    /// The kind of this item.
+    Kind: SymbolKind
+
+    /// Tags for this item.
+    Tags: SymbolTag [] option
+
+    /// More detail for this item, e.g., the signature of a function.
+    Detail: string option
+
+    /// The resource identifier of this item.
+    Uri: DocumentUri
+
+    /// The range enclosing this symbol not including leading/trailing
+    /// whitespace but everything else, e.g., comments and code.
+    Range: Range
+
+    /// The range that should be selected and revealed when this symbol is being
+    /// picked, e.g., the name of a function. Must be contained by the [`range`].
+    SelectionRange: Range
+
+    /// A data entry field that is preserved between a call hierarchy prepare
+    /// and incoming calls or outgoing calls requests.
+    Data: JToken option }
+
+type CallHierarchyItem = HierarchyItem
+
+type CallHierarchyIncomingCallsParams = { Item: CallHierarchyItem }
+
+type CallHierarchyIncomingCall =
+  { /// The item that makes the call.
+    From: CallHierarchyItem
+
+    /// The ranges at which the calls appear. This is relative to the caller
+    /// denoted by [`this.From`].
+    FromRanges: Range [] }
+
+type CallHierarchyOutgoingCallsParams = { Item: CallHierarchyItem }
+
+type CallHierarchyOutgoingCall =
+  { /// The item that is called
+    To: CallHierarchyItem
+
+    /// The range at which this item is called. This is the range relative to
+    /// the caller, e.g., the item passed to `callHierarchy/outgoingCalls`
+    /// request.
+    FromRanges: Range[] }
 
 type SemanticTokensParams = { TextDocument: TextDocumentIdentifier }
 
