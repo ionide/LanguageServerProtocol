@@ -327,6 +327,25 @@ type ILspServer =
   /// registers for the `textDocument/prepareCallHierarchy` request.
   abstract member CallHierarchyOutgoingCalls: CallHierarchyOutgoingCallsParams -> AsyncLspResult<CallHierarchyOutgoingCall [] option>
 
+  /// The type hierarchy request is sent from the client to the server to return a type hierarchy for the
+  /// language element of given text document positions. Will return `null` if the server couldn't infer a
+  /// valid type from the position. The type hierarchy requests are executed in two steps:
+  /// 1. first a type hierarchy item is prepared for the given text document position.
+  /// 2. for a type hierarchy item the supertype or subtype type hierarchy items are resolved.
+  abstract member TextDocumentPrepareTypeHierarchy: TypeHierarchyPrepareParams -> AsyncLspResult<TypeHierarchyItem [] option>
+
+  /// The request is sent from the client to the server to resolve the supertype for a given type hierarchy
+  /// item. Will return `null` is the serve couldn't infer a valid type from `item` in the params. The request
+  /// doesn't defines its own client and server capabilities. It is only issued if a server registers for the
+  /// `textDocument/prepareTypeHierarchy` request.
+  abstract member TypeHierarchySupertypes: TypeHierarchySupertypesParams -> AsyncLspResult<TypeHierarchyItem [] option>
+
+  /// The request is sent from the client to the server to resolve the supertype for a given type hierarchy
+  /// item. Will return `null` is the serve couldn't infer a valid type from `item` in the params. The request
+  /// doesn't defines its own client and server capabilities. It is only issued if a server registers for the
+  /// `textDocument/prepareTypeHierarchy` request.
+  abstract member TypeHierarchySubtypes: TypeHierarchySubtypesParams -> AsyncLspResult<TypeHierarchyItem [] option>
+
 [<AbstractClass>]
 type LspServer() =
   abstract member Dispose: unit -> unit
@@ -706,6 +725,28 @@ type LspServer() =
   abstract member CallHierarchyOutgoingCalls: CallHierarchyOutgoingCallsParams -> AsyncLspResult<CallHierarchyOutgoingCall [] option>
   default __.CallHierarchyOutgoingCalls(_) = notImplemented
 
+  /// The type hierarchy request is sent from the client to the server to return a type hierarchy for the
+  /// language element of given text document positions. Will return `null` if the server couldn't infer a
+  /// valid type from the position. The type hierarchy requests are executed in two steps:
+  /// 1. first a type hierarchy item is prepared for the given text document position.
+  /// 2. for a type hierarchy item the supertype or subtype type hierarchy items are resolved.
+  abstract member TextDocumentPrepareTypeHierarchy: TypeHierarchyPrepareParams -> AsyncLspResult<TypeHierarchyItem [] option>
+  default __.TextDocumentPrepareTypeHierarchy(_) = notImplemented
+
+  /// The request is sent from the client to the server to resolve the supertype for a given type hierarchy
+  /// item. Will return `null` is the serve couldn't infer a valid type from `item` in the params. The request
+  /// doesn't defines its own client and server capabilities. It is only issued if a server registers for the
+  /// `textDocument/prepareTypeHierarchy` request.
+  abstract member TypeHierarchySupertypes: TypeHierarchySupertypesParams -> AsyncLspResult<TypeHierarchyItem [] option>
+  default __.TypeHierarchySupertypes(_) = notImplemented
+
+  /// The request is sent from the client to the server to resolve the supertype for a given type hierarchy
+  /// item. Will return `null` is the serve couldn't infer a valid type from `item` in the params. The request
+  /// doesn't defines its own client and server capabilities. It is only issued if a server registers for the
+  /// `textDocument/prepareTypeHierarchy` request.
+  abstract member TypeHierarchySubtypes: TypeHierarchySubtypesParams -> AsyncLspResult<TypeHierarchyItem [] option>
+  default __.TypeHierarchySubtypes(_) = notImplemented
+
   interface ILspServer with
     member this.Dispose() = this.Dispose()
     member this.Initialize(p: InitializeParams) = this.Initialize(p)
@@ -773,3 +814,7 @@ type LspServer() =
     member this.TextDocumentPrepareCallHierarchy(p: CallHierarchyPrepareParams) = this.TextDocumentPrepareCallHierarchy(p)
     member this.CallHierarchyIncomingCalls(p: CallHierarchyIncomingCallsParams) = this.CallHierarchyIncomingCalls(p)
     member this.CallHierarchyOutgoingCalls(p: CallHierarchyOutgoingCallsParams) = this.CallHierarchyOutgoingCalls(p)
+
+    member this.TextDocumentPrepareTypeHierarchy(p: TypeHierarchyPrepareParams) = this.TextDocumentPrepareTypeHierarchy(p)
+    member this.TypeHierarchySupertypes(p: TypeHierarchySupertypesParams) = this.TypeHierarchySupertypes(p)
+    member this.TypeHierarchySubtypes(p: TypeHierarchySubtypesParams) = this.TypeHierarchySubtypes(p)

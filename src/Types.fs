@@ -836,6 +836,11 @@ type TextDocumentClientCapabilities =
     /// @since 3.16.0
     SemanticTokens: SemanticTokensClientCapabilities option
 
+    /// Capabilities specific to the various type hierarchy requests.
+    ///
+    /// @since 3.17.0
+    TypeHierarchy: DynamicCapabilities option
+
     /// Capabilities specific to the `textDocument/inlayHint` request.
     ///
     /// @since 3.17.0
@@ -1185,6 +1190,8 @@ type ServerCapabilities =
 
     SemanticTokensProvider: SemanticTokensOptions option
 
+    TypeHierarchyProvider: bool option
+
     InlayHintProvider: InlayHintOptions option
 
     InlineValueProvider: InlineValueOptions option
@@ -1218,6 +1225,7 @@ type ServerCapabilities =
       SelectionRangeProvider = None
       CallHierarchyProvider = None
       SemanticTokensProvider = None
+      TypeHierarchyProvider = None
       InlayHintProvider = None 
       InlineValueProvider = None
       Workspace = None }
@@ -2263,6 +2271,18 @@ type CallHierarchyOutgoingCall =
     /// the caller, e.g., the item passed to `callHierarchy/outgoingCalls`
     /// request.
     FromRanges: Range[] }
+
+type TypeHierarchyPrepareParams =
+  { TextDocument: TextDocumentIdentifier
+
+    /// The position at which this request was sent.
+    Position: Position }
+
+type TypeHierarchyItem = HierarchyItem
+
+type TypeHierarchySupertypesParams = { Item: TypeHierarchyItem }
+
+type TypeHierarchySubtypesParams = { Item: TypeHierarchyItem }
 
 type SemanticTokensParams = { TextDocument: TextDocumentIdentifier }
 
