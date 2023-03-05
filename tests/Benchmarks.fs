@@ -464,6 +464,7 @@ type MultipleTypesBenchmarks() =
                         Formats = [| TokenFormat.Relative |]
                         OverlappingTokenSupport = Some false
                         MultilineTokenSupport = Some true }
+                  TypeHierarchy = Some { DynamicRegistration = None }
                   InlayHint =
                     Some
                       { DynamicRegistration = Some true
