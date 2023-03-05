@@ -450,6 +450,7 @@ type MultipleTypesBenchmarks() =
                         LineFoldingOnly = Some true
                         RangeLimit = None }
                   SelectionRange = Some { DynamicRegistration = None }
+                  CallHierarchy = Some { DynamicRegistration = None }
                   SemanticTokens =
                     Some
                       { DynamicRegistration = Some false

@@ -858,7 +858,22 @@ let private serializationTests =
 
                testThereAndBackAgain theInlineValue ]
 
-       
+      testList
+        (nameof HierarchyItem)
+        [
+          testCase "can roundtrip HierarchyItem with all fields (simple)"
+          <| fun _ ->
+               let item: HierarchyItem =
+                  { Name = "test"
+                    Kind = SymbolKind.Function 
+                    Tags = None
+                    Detail = None
+                    Uri = "..."
+                    Range = mkRange' (1, 2) (3, 4)
+                    SelectionRange = mkRange' (1, 2) (1, 4)
+                    Data = None }
+               testThereAndBackAgain item
+        ]
       Shotgun.tests ]
 
 [<Tests>]

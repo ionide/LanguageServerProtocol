@@ -310,6 +310,23 @@ type ILspServer =
   /// that may be rendered in the editor at the end of lines.
   abstract member TextDocumentInlineValue: InlineValueParams -> AsyncLspResult<InlineValue [] option>
 
+  /// The call hierarchy request is sent from the client to the server to return a call hierarchy for the
+  /// language element of given text document positions. The call hierarchy requests are executed in two
+  /// steps:
+  /// 1. first a call hierarchy item is resolved for the given text document position
+  /// 2. for a call hierarchy item the incoming or outgoing call hierarchy items are resolved.
+  abstract member TextDocumentPrepareCallHierarchy: CallHierarchyPrepareParams -> AsyncLspResult<CallHierarchyItem [] option>
+
+  /// The request is sent from the client to the server to resolve incoming calls for a given call hierarchy
+  /// item. The request doesn't define its own client and server capabilities. It is only issued if a server
+  /// registers for the `textDocument/prepareCallHierarchy` request.
+  abstract member CallHierarchyIncomingCalls: CallHierarchyIncomingCallsParams -> AsyncLspResult<CallHierarchyIncomingCall [] option>
+
+  /// The request is sent from the client to the server to resolve outgoing calls for a given call hierarchy
+  /// item. The request doesn't define its own  client and server capabilities. It is only issued if a server
+  /// registers for the `textDocument/prepareCallHierarchy` request.
+  abstract member CallHierarchyOutgoingCalls: CallHierarchyOutgoingCallsParams -> AsyncLspResult<CallHierarchyOutgoingCall [] option>
+
 [<AbstractClass>]
 type LspServer() =
   abstract member Dispose: unit -> unit
@@ -669,6 +686,26 @@ type LspServer() =
   abstract member TextDocumentInlineValue: InlineValueParams -> AsyncLspResult<InlineValue [] option>
   default __.TextDocumentInlineValue(_) = notImplemented
 
+  /// The call hierarchy request is sent from the client to the server to return a call hierarchy for the
+  /// language element of given text document positions. The call hierarchy requests are executed in two
+  /// steps:
+  /// 1. first a call hierarchy item is resolved for the given text document position
+  /// 2. for a call hierarchy item the incoming or outgoing call hierarchy items are resolved.
+  abstract member TextDocumentPrepareCallHierarchy: CallHierarchyPrepareParams -> AsyncLspResult<CallHierarchyItem [] option>
+  default __.TextDocumentPrepareCallHierarchy(_) = notImplemented
+
+  /// The request is sent from the client to the server to resolve incoming calls for a given call hierarchy
+  /// item. The request doesn't define its own client and server capabilities. It is only issued if a server
+  /// registers for the `textDocument/prepareCallHierarchy` request.
+  abstract member CallHierarchyIncomingCalls: CallHierarchyIncomingCallsParams -> AsyncLspResult<CallHierarchyIncomingCall [] option>
+  default __.CallHierarchyIncomingCalls(_) = notImplemented
+
+  /// The request is sent from the client to the server to resolve outgoing calls for a given call hierarchy
+  /// item. The request doesn't define its own  client and server capabilities. It is only issued if a server
+  /// registers for the `textDocument/prepareCallHierarchy` request.
+  abstract member CallHierarchyOutgoingCalls: CallHierarchyOutgoingCallsParams -> AsyncLspResult<CallHierarchyOutgoingCall [] option>
+  default __.CallHierarchyOutgoingCalls(_) = notImplemented
+
   interface ILspServer with
     member this.Dispose() = this.Dispose()
     member this.Initialize(p: InitializeParams) = this.Initialize(p)
@@ -732,3 +769,7 @@ type LspServer() =
     member this.InlayHintResolve(p: InlayHint) = this.InlayHintResolve(p)
     member this.WorkDoneProgessCancel(token) = this.WorkDoneProgessCancel(token)
     member this.TextDocumentInlineValue(p: InlineValueParams) = this.TextDocumentInlineValue(p)
+
+    member this.TextDocumentPrepareCallHierarchy(p: CallHierarchyPrepareParams) = this.TextDocumentPrepareCallHierarchy(p)
+    member this.CallHierarchyIncomingCalls(p: CallHierarchyIncomingCallsParams) = this.CallHierarchyIncomingCalls(p)
+    member this.CallHierarchyOutgoingCalls(p: CallHierarchyOutgoingCallsParams) = this.CallHierarchyOutgoingCalls(p)
