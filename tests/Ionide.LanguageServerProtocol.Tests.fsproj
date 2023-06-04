@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
 
@@ -11,35 +11,23 @@
     <Compile Include="Benchmarks.fs" />
     <Compile Include="Shotgun.fs" />
     <Compile Include="StartWithSetup.fs" />
+    <Compile Include="GenerateTests.fs" />
     <Compile Include="Tests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference
-        Include="BenchmarkDotNet"
-        Version="0.13.1" />
-    <PackageReference
-        Include="Expecto"
-        Version="9.0.4" />
-    <PackageReference
-        Include="Expecto.FsCheck"
-        Version="9.0.4" />
-    <PackageReference
-        Include="FsCheck"
-        Version="2.16.5" />
-    <PackageReference
-        Include="GitHubActionsTestLogger"
-        Version="2.0.1">
+    <PackageReference Include="BenchmarkDotNet" Version="0.13.1" />
+    <PackageReference Include="Expecto" Version="9.0.4" />
+    <PackageReference Include="Expecto.FsCheck" Version="9.0.4" />
+    <PackageReference Include="FsCheck" Version="2.16.5" />
+    <PackageReference Include="Fabulous.AST" Version="0.6.1" />
+    <PackageReference Include="GitHubActionsTestLogger" Version="2.0.1">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference
-        Include="Microsoft.NET.Test.Sdk"
-        Version="17.2.0" />
-    <PackageReference
-        Include="YoloDev.Expecto.TestSdk"
-        Version="0.13.3" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.2.0" />
+    <PackageReference Include="YoloDev.Expecto.TestSdk" Version="0.13.3" />
   </ItemGroup>
 
   <ItemGroup>
