@@ -363,7 +363,6 @@ module GenerateTests =
   let createTuple (types: Type array) =
     let types =
       types
-      // |> Array.toList
       |> Array.map (Choice1Of2)
 
     let types =
@@ -403,21 +402,16 @@ module GenerateTests =
 
   let rec createField (currentType: MetaModel.Type) (currentProperty: MetaModel.Property) =
     try
-
-
       let rec getType (currentType: MetaModel.Type) =
         match currentType with
         | MetaModel.Type.ReferenceType r ->
-          match r.Name with
-          | "LSPAny" -> Type.FromString "obj"
-          | _ ->
-            let name = r.Name
+          let name = r.Name
+          Type.FromString name
 
-            Type.FromString name
         | MetaModel.Type.BaseType b ->
           let name = b.Name.ToDotNetType()
-
           Type.FromString name
+          
         | MetaModel.Type.OrType o ->
 
           // TS types can have optional properties (myKey?: string)
@@ -495,8 +489,6 @@ module GenerateTests =
             t.Items
             |> Array.map getType
 
-          
-
           createTuple ts
 
         | _ -> failwithf "todo Property %A" currentType
@@ -564,6 +556,8 @@ module GenerateTests =
     && isEmptyProperties
 
   let createStructure (structure: MetaModel.Structure) (model: MetaModel.MetaModel) =
+  
+    let alreadyAddedKey = ResizeArray<string>()
     let rec expandFields (structure: MetaModel.Structure) = [
       let structure = createSafeStructure structure
 
@@ -589,12 +583,20 @@ module GenerateTests =
           with
           | Some s ->
             for p in s.Properties do
-              createField p.Type p
+              if alreadyAddedKey.Contains(p.NameAsPascalCase) then
+                ()
+              else
+                alreadyAddedKey.Add(p.NameAsPascalCase)
+                createField p.Type p
           | None -> failwithf "Could not find structure %s" r.Name
         | _ -> failwithf "todo Mixins %A" m
 
       for p in structure.Properties do
-        createField p.Type p
+        if alreadyAddedKey.Contains(p.NameAsPascalCase) then
+          ()
+        else
+          alreadyAddedKey.Add(p.NameAsPascalCase)
+          createField p.Type p
     ]
 
     try
