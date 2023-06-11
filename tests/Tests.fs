@@ -874,7 +874,8 @@ let private serializationTests =
                     Data = None }
                testThereAndBackAgain item
         ]
-      Shotgun.tests ]
+      Shotgun.tests
+      StartWithSetup.tests ]
 
 [<Tests>]
 let tests = testList "LSP" [ serializationTests; Utils.tests ]

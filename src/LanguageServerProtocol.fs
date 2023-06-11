@@ -16,17 +16,21 @@ module Server =
 
   let logger = LogProvider.getLoggerByName "LSP Server"
 
-  let jsonRpcFormatter = new JsonMessageFormatter()
-  jsonRpcFormatter.JsonSerializer.NullValueHandling <- NullValueHandling.Ignore
-  jsonRpcFormatter.JsonSerializer.ConstructorHandling <- ConstructorHandling.AllowNonPublicDefaultConstructor
-  jsonRpcFormatter.JsonSerializer.MissingMemberHandling <- MissingMemberHandling.Ignore
-  jsonRpcFormatter.JsonSerializer.Converters.Add(StrictNumberConverter())
-  jsonRpcFormatter.JsonSerializer.Converters.Add(StrictStringConverter())
-  jsonRpcFormatter.JsonSerializer.Converters.Add(StrictBoolConverter())
-  jsonRpcFormatter.JsonSerializer.Converters.Add(SingleCaseUnionConverter())
-  jsonRpcFormatter.JsonSerializer.Converters.Add(OptionConverter())
-  jsonRpcFormatter.JsonSerializer.Converters.Add(ErasedUnionConverter())
-  jsonRpcFormatter.JsonSerializer.ContractResolver <- OptionAndCamelCasePropertyNamesContractResolver()
+  let defaultJsonRpcFormatter() =
+    let jsonRpcFormatter = new JsonMessageFormatter()
+    jsonRpcFormatter.JsonSerializer.NullValueHandling <- NullValueHandling.Ignore
+    jsonRpcFormatter.JsonSerializer.ConstructorHandling <- ConstructorHandling.AllowNonPublicDefaultConstructor
+    jsonRpcFormatter.JsonSerializer.MissingMemberHandling <- MissingMemberHandling.Ignore
+    jsonRpcFormatter.JsonSerializer.Converters.Add(StrictNumberConverter())
+    jsonRpcFormatter.JsonSerializer.Converters.Add(StrictStringConverter())
+    jsonRpcFormatter.JsonSerializer.Converters.Add(StrictBoolConverter())
+    jsonRpcFormatter.JsonSerializer.Converters.Add(SingleCaseUnionConverter())
+    jsonRpcFormatter.JsonSerializer.Converters.Add(OptionConverter())
+    jsonRpcFormatter.JsonSerializer.Converters.Add(ErasedUnionConverter())
+    jsonRpcFormatter.JsonSerializer.ContractResolver <- OptionAndCamelCasePropertyNamesContractResolver()
+    jsonRpcFormatter
+
+  let jsonRpcFormatter = defaultJsonRpcFormatter()
 
   let deserialize<'t> (token: JToken) = token.ToObject<'t>(jsonRpcFormatter.JsonSerializer)
   let serialize<'t> (o: 't) = JToken.FromObject(o, jsonRpcFormatter.JsonSerializer)
@@ -95,7 +99,7 @@ module Server =
     (customizeRpc: IJsonRpcMessageHandler -> JsonRpc)
     =
 
-    use jsonRpcHandler = new HeaderDelimitedMessageHandler(output, input, jsonRpcFormatter)
+    use jsonRpcHandler = new HeaderDelimitedMessageHandler(output, input, defaultJsonRpcFormatter())
     // Without overriding isFatalException, JsonRpc serializes exceptions and sends them to the client.
     // This is particularly bad for notifications such as textDocument/didChange which don't require a response,
     // and thus any exception that happens during e.g. text sync gets swallowed.
