@@ -13,9 +13,7 @@ let setupEndpoints(_: LspClient): Map<string, System.Delegate> =
     [] |> Map.ofList
 
 let requestWithContentLength(request: string) =
-    @$"Content-Length: {request.Length}
-
-{request}"
+    $"Content-Length: {request.Length}\r\n\r\n{request}"
 
 let shutdownRequest = @"{""jsonrpc"":""2.0"",""method"":""shutdown"",""id"":1}"
 
