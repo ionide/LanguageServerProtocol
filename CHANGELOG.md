@@ -5,6 +5,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.4.15] - 13.06.2023
+
+### Fixed
+
+* [Allow multiple instances of the server on a single process](https://github.com/ionide/LanguageServerProtocol/pull/51) (thanks @TrevorThoele2!)
+
 ## [0.4.14] - 04.04.2023
 
 ### Fixed
