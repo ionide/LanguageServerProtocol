@@ -1,14 +1,28 @@
 namespace Ionide.LanguageServerProtocol
 
 
-
 module String =
   open System
+
   let toPascalCase (s: string) =
     s.[0]
     |> Char.ToUpper
-    |> fun c -> c.ToString() + s.Substring(1)
+    |> fun c ->
+        c.ToString()
+        + s.Substring(1)
 
+module Array =
+  /// <summary>Places separator between each element of items</summary>
+  let intersperse (separator: 'a) (items: 'a array) : 'a array = [|
+    let mutable notFirst = false
+
+    for element in items do
+      if notFirst then
+        yield separator
+
+      yield element
+      notFirst <- true
+  |]
 
 module rec MetaModel =
   open System
@@ -136,8 +150,7 @@ module rec MetaModel =
       x.Optional
       |> Option.defaultValue false
 
-    member x.NameAsPascalCase =
-      String.toPascalCase x.Name
+    member x.NameAsPascalCase = String.toPascalCase x.Name
 
   [<Literal>]
   let StructureTypeLiteral = "literal"
@@ -201,17 +214,14 @@ module rec MetaModel =
     Since: string option
     Type: Type
   }
-  
-   [<JsonConverter(typeof<StringEnumConverter>)>]
-  type EnumerationTypeNameValues =
-  | String = 0
-  | Integer = 1
-  | Uinteger = 2
 
-  type EnumerationType = {
-    Kind : string
-    Name : EnumerationTypeNameValues
-  }
+  [<JsonConverter(typeof<Newtonsoft.Json.Converters.StringEnumConverter>)>]
+  type EnumerationTypeNameValues =
+    | String = 0
+    | Integer = 1
+    | Uinteger = 2
+
+  type EnumerationType = { Kind: string; Name: EnumerationTypeNameValues }
 
   type EnumerationEntry = {
     Deprecated: string option
@@ -228,8 +238,8 @@ module rec MetaModel =
     Name: string
     Proposed: bool option
     Since: string option
-    SupportsCustomValues : bool option
-    Type : EnumerationType
+    SupportsCustomValues: bool option
+    Type: EnumerationType
     Values: EnumerationEntry array
   }
 
@@ -365,19 +375,12 @@ module GenerateTests =
       types
       |> Array.map (Choice1Of2)
 
+    let asterisk = SingleTextNode("*", rangeZero)
+
     let types =
       types
-      |> Array.collect (fun x -> 
-        [|
-          x
-          Choice2Of2(SingleTextNode("*", rangeZero))
-        |]
-        
-        )
-    let types =
-      types
-      |> Array.removeAt (types.Length - 1)
-      |> List.ofArray
+      |> Array.intersperse (Choice2Of2(asterisk))
+      |> Array.toList
 
     TypeTupleNode(types, rangeZero)
     |> Type.Tuple
@@ -411,7 +414,7 @@ module GenerateTests =
         | MetaModel.Type.BaseType b ->
           let name = b.Name.ToDotNetType()
           Type.FromString name
-          
+
         | MetaModel.Type.OrType o ->
 
           // TS types can have optional properties (myKey?: string)
@@ -556,8 +559,9 @@ module GenerateTests =
     && isEmptyProperties
 
   let createStructure (structure: MetaModel.Structure) (model: MetaModel.MetaModel) =
-  
+
     let alreadyAddedKey = ResizeArray<string>()
+
     let rec expandFields (structure: MetaModel.Structure) = [
       let structure = createSafeStructure structure
 
@@ -608,7 +612,8 @@ module GenerateTests =
 
   let createTypeAlias (alias: MetaModel.TypeAlias) =
     let rec getType (t: MetaModel.Type) =
-      if alias.Name = "LSPAny" then Type.FromString "obj" 
+      if alias.Name = "LSPAny" then
+        Type.FromString "obj"
       else
         match t with
         | MetaModel.Type.ReferenceType r -> Type.FromString r.Name
@@ -675,11 +680,14 @@ module GenerateTests =
     match enumeration.Type.Name with
     | MetaModel.EnumerationTypeNameValues.String ->
       Enum enumeration.Name {
-        for i,v in enumeration.Values |> Array.mapi(fun i x -> i,x) do
+        for i, v in
+          enumeration.Values
+          |> Array.mapi (fun i x -> i, x) do
           // if v.Name.ToLower() <> v.Value.ToLower() then failwithf "Unknown string literal enum combo %A %A" v.Name v.Value
           EnumCase(String.toPascalCase v.Name, string i)
       }
-    | MetaModel.EnumerationTypeNameValues.Integer | MetaModel.EnumerationTypeNameValues.Uinteger  ->
+    | MetaModel.EnumerationTypeNameValues.Integer
+    | MetaModel.EnumerationTypeNameValues.Uinteger ->
       Enum enumeration.Name {
         for v in enumeration.Values do
           EnumCase(String.toPascalCase v.Name, v.Value)
@@ -774,22 +782,17 @@ module GenerateTests =
             for i in [ 2..5 ] do
               EscapeHatch(createErasedUnionType i)
 
-
             for s in parsedMetaModel.Structures do
               if isUnitStructure s then
                 Abbrev(s.Name, Type.FromString "unit")
               else
                 createStructure s parsedMetaModel
 
-
             for t in parsedMetaModel.TypeAliases do
-              // printfn "%A" t.Name
               Abbrev(t.Name, createTypeAlias t)
 
             for e in parsedMetaModel.Enumerations do
               createEnumeration e
-
-
 
           }
 

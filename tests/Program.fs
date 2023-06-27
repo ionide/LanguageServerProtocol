@@ -18,4 +18,4 @@ let main args =
   | ShouldRunBenchmarks args ->
     // `--filter *` to run all
     Benchmarks.run args
-  | _ -> Expecto.Tests.runTestsWithCLIArgs [ Sequenced ] args Tests.tests
+  | _ -> Expecto.Tests.runTestsWithCLIArgs [ Sequenced ] args Ionide.LanguageServerProtocol.GenerateTests.tests
