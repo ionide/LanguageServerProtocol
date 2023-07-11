@@ -460,7 +460,13 @@ type CompletionItemCapabilities =
     /// Client supports the follow content formats for the documentation
     /// property. The order describes the preferred format of the client.
     /// See `MarkupKind` for common values
-    DocumentationFormat: string [] option }
+    DocumentationFormat: string [] option
+
+    /// Client supports the deprecated property on a completion item.
+    DeprecatedSupport: bool option
+
+    /// Client supports the preselect property on a completion item.
+    PreselectSupport: bool option }
 
 type CompletionItemKind =
   | Text = 1
@@ -1727,6 +1733,16 @@ type CompletionItem =
     /// A human-readable string that represents a doc-comment.
     Documentation: Documentation option
 
+    /// Indicates if this item is deprecated.
+    /// @deprecated Use `tags` instead if supported.
+    Deprecated: bool option
+
+    /// Select this item when showing.
+    /// *Note* that only one completion item can be selected and that the
+    /// tool / client decides which item that is. The rule is that the *first*
+    /// item of those that match best is selected.
+    Preselect: bool option
+
     /// A string that should be used when comparing this item
     /// with other items. When `falsy` the label is used.
     SortText: string option
@@ -1782,6 +1798,8 @@ type CompletionItem =
       Kind = None
       Detail = None
       Documentation = None
+      Deprecated = None
+      Preselect = None
       SortText = None
       FilterText = None
       InsertText = None
