@@ -84,6 +84,24 @@ type ILspClient =
   abstract member WorkspaceInlayHintRefresh: unit -> Async<unit>
 
 
+  /// The workspace/codeLens/refresh request is sent from the server to the client. Servers can use it to ask
+  /// clients to refresh the code lenses currently shown in editors. As a result the client should ask the
+  /// server to recompute the code lenses for these editors. This is useful if a server detects a
+  /// configuration change which requires a re-calculation of all code lenses. Note that the client still has
+  /// the freedom to delay the re-calculation of the code lenses if for example an editor is currently not
+  /// visible.
+  abstract member WorkspaceCodeLensRefresh: unit -> Async<unit>
+
+
+  /// The workspace/inlineValue/refresh request is sent from the server to the client. Servers can use it to
+  /// ask clients to refresh the inline values currently shown in editors. As a result the client should ask
+  /// the server to recompute the inline values for these editors. This is useful if a server detects a
+  /// configuration change which requires a re-calculation of all inline values. Note that the client still
+  /// has the freedom to delay the re-calculation of the inline values if for example an editor is currently
+  /// not visible.
+  abstract member WorkspaceInlineValueRefresh: unit -> Async<unit>
+
+
   /// Diagnostics notification are sent from the server to the client to signal results of validation runs.
   ///
   /// Diagnostics are “owned” by the server so it is the server’s responsibility to clear them if necessary.
@@ -199,6 +217,26 @@ type LspClient() =
 
   default __.WorkspaceInlayHintRefresh() = ignoreNotification
 
+  /// The workspace/codeLens/refresh request is sent from the server to the client. Servers can use it to ask
+  /// clients to refresh the code lenses currently shown in editors. As a result the client should ask the
+  /// server to recompute the code lenses for these editors. This is useful if a server detects a
+  /// configuration change which requires a re-calculation of all code lenses. Note that the client still has
+  /// the freedom to delay the re-calculation of the code lenses if for example an editor is currently not
+  /// visible.
+  abstract member WorkspaceCodeLensRefresh: unit -> Async<unit>
+
+  default __.WorkspaceCodeLensRefresh() = ignoreNotification
+
+  /// The workspace/inlineValue/refresh request is sent from the server to the client. Servers can use it to
+  /// ask clients to refresh the inline values currently shown in editors. As a result the client should ask
+  /// the server to recompute the inline values for these editors. This is useful if a server detects a
+  /// configuration change which requires a re-calculation of all inline values. Note that the client still
+  /// has the freedom to delay the re-calculation of the inline values if for example an editor is currently
+  /// not visible.
+  abstract member WorkspaceInlineValueRefresh: unit -> Async<unit>
+
+  default __.WorkspaceInlineValueRefresh() = ignoreNotification
+
   /// Diagnostics notification are sent from the server to the client to signal results of validation runs.
   ///
   /// Diagnostics are “owned” by the server so it is the server’s responsibility to clear them if necessary.
@@ -237,6 +275,8 @@ type LspClient() =
     member this.WorkspaceApplyEdit(p: ApplyWorkspaceEditParams) = this.WorkspaceApplyEdit(p)
     member this.WorkspaceSemanticTokensRefresh() = this.WorkspaceSemanticTokensRefresh()
     member this.WorkspaceInlayHintRefresh() = this.WorkspaceInlayHintRefresh()
+    member this.WorkspaceCodeLensRefresh() = this.WorkspaceCodeLensRefresh()
+    member this.WorkspaceInlineValueRefresh() = this.WorkspaceInlineValueRefresh()
     member this.TextDocumentPublishDiagnostics(p: PublishDiagnosticsParams) = this.TextDocumentPublishDiagnostics(p)
     member this.WorkDoneProgressCreate(token: ProgressToken) = this.WorkDoneProgressCreate(token)
     member this.Progress(token, data) = this.Progress(token, data)
