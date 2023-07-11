@@ -258,6 +258,7 @@ module Server =
       "workspace/willDeleteFiles", requestHandling (fun s p -> s.WorkspaceWillDeleteFiles(p))
       "workspace/didDeleteFiles", requestHandling (fun s p -> s.WorkspaceDidDeleteFiles(p) |> notificationSuccess)
       "workspace/symbol", requestHandling (fun s p -> s.WorkspaceSymbol(p))
+      "workspaceSymbol/resolve", requestHandling (fun s p -> s.WorkspaceSymbolResolve(p))
       "workspace/executeCommand", requestHandling (fun s p -> s.WorkspaceExecuteCommand(p))
       "window/workDoneProgress/cancel", requestHandling (fun s p -> s.WorkDoneProgessCancel(p) |> notificationSuccess)
       "shutdown", requestHandling (fun s () -> s.Shutdown() |> notificationSuccess)

@@ -236,8 +236,11 @@ type ILspServer =
 
   /// The workspace symbol request is sent from the client to the server to list project-wide symbols matching
   /// the query string.
-  abstract member WorkspaceSymbol: WorkspaceSymbolParams -> AsyncLspResult<SymbolInformation [] option>
+  abstract member WorkspaceSymbol: WorkspaceSymbolParams -> AsyncLspResult<U2<SymbolInformation [], WorkspaceSymbol []> option>
 
+
+  /// The request is sent from the client to the server to resolve additional information for a given workspace symbol.
+  abstract member WorkspaceSymbolResolve: WorkspaceSymbol -> AsyncLspResult<WorkspaceSymbol>
 
 
   /// The `workspace/executeCommand` request is sent from the client to the server to trigger command execution
@@ -612,9 +615,12 @@ type LspServer() =
 
   /// The workspace symbol request is sent from the client to the server to list project-wide symbols matching
   /// the query string.
-  abstract member WorkspaceSymbol: WorkspaceSymbolParams -> AsyncLspResult<SymbolInformation [] option>
+  abstract member WorkspaceSymbol: WorkspaceSymbolParams -> AsyncLspResult<U2<SymbolInformation [], WorkspaceSymbol []> option>
 
   default __.WorkspaceSymbol(_) = notImplemented
+
+  /// The request is sent from the client to the server to resolve additional information for a given workspace symbol.
+  abstract member WorkspaceSymbolResolve: WorkspaceSymbol -> AsyncLspResult<WorkspaceSymbol>
 
   /// The `workspace/executeCommand` request is sent from the client to the server to trigger command execution
   /// on the server. In most cases the server creates a `WorkspaceEdit` structure and applies the changes to the
@@ -793,6 +799,7 @@ type LspServer() =
     member this.WorkspaceWillDeleteFiles(p: DeleteFilesParams) = this.WorkspaceWillDeleteFiles(p)
     member this.WorkspaceDidDeleteFiles(p: DeleteFilesParams) = this.WorkspaceDidDeleteFiles(p)
     member this.WorkspaceSymbol(p: WorkspaceSymbolParams) = this.WorkspaceSymbol(p)
+    member this.WorkspaceSymbolResolve(p: WorkspaceSymbol) = this.WorkspaceSymbolResolve(p)
     member this.WorkspaceExecuteCommand(p: ExecuteCommandParams) = this.WorkspaceExecuteCommand(p)
     member this.TextDocumentWillSave(p: WillSaveTextDocumentParams) = this.TextDocumentWillSave(p)
     member this.TextDocumentWillSaveWaitUntil(p: WillSaveTextDocumentParams) = this.TextDocumentWillSaveWaitUntil(p)

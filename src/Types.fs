@@ -227,6 +227,32 @@ type DocumentSymbol =
     /// Children of this symbol, e.g. properties of a class.
     Children: DocumentSymbol [] option }
 
+type WorkspaceSymbol =
+  { /// The name of this symbol.
+    Name: string
+
+    /// The kind of this symbol.
+    Kind: SymbolKind
+
+    /// Tags for this completion item.
+    Tags: SymbolTag [] option
+
+    /// The name of the symbol containing this symbol. This information is for
+    /// user interface purposes (e.g. to render a qualifier in the user
+    /// interface if necessary). It can't be used to re-infer a hierarchy for
+    /// the document symbols.
+    ContainerName: string option
+
+    /// The location of this symbol. Whether a server is allowed to return a
+    /// location without a range depends on the client capability
+    /// `workspace.symbol.resolveSupport`.
+    /// See also `SymbolInformation.location`.
+    Location: U2<Location, TextDocumentIdentifier>
+
+    /// A data entry field that is preserved on a workspace symbol between a
+    /// workspace symbol request and a workspace symbol resolve request.
+    Data: LSPAny option }
+
 /// A textual edit applicable to a text document.
 type TextEdit =
   { /// The range of the text document to be manipulated. To insert
@@ -1203,6 +1229,11 @@ type RenameOptions =
   { /// Renames should be checked and tested before being executed.
     PrepareProvider: bool option }
 
+type WorkspaceSymbolOptions =
+  { /// The server provides support to resolve additional information for a
+    /// workspace symbol.
+    ResolveProvider: bool option }
+
 type ServerCapabilities =
   { /// Defines how text documents are synced. Is either a detailed structure defining each notification or
     /// for backwards compatibility the TextDocumentSyncKind number.
@@ -1236,7 +1267,7 @@ type ServerCapabilities =
     DocumentSymbolProvider: bool option
 
     /// The server provides workspace symbol support.
-    WorkspaceSymbolProvider: bool option
+    WorkspaceSymbolProvider: U2<bool, WorkspaceSymbolOptions> option
 
     /// The server provides code actions.
     CodeActionProvider: CodeActionOptions option
