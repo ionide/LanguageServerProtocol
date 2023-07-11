@@ -323,6 +323,10 @@ type SymbolTagSupport =
   { /// The tags supported by the client.
     ValueSet: SymbolTag [] }
 
+type ResolveSupport =
+  { /// The properties that a client can resolve lazily.
+    Properties: string [] }
+
 /// Capabilities specific to the `workspace/symbol` request.
 type SymbolCapabilities =
   { /// Symbol request supports dynamic registration.
@@ -453,6 +457,22 @@ type CompletionItemTagSupport =
   { /// The tags supported by the client.
     ValueSet: CompletionItemTag [] }
 
+type InsertTextMode =
+  /// The insertion or replace strings is taken as it is. If the value is multi
+  /// line the lines below the cursor will be inserted using the indentation
+  /// defined in the string value.  The client will not apply any kind of
+  /// adjustments to the string.
+  | AsIs = 1
+  /// The editor adjusts leading whitespace of new lines so that they match the
+  /// indentation up to the cursor of the line for which the item is accepted.
+  /// Consider a line like this: <2tabs><cursor><3tabs>foo. Accepting a multi
+  /// line completion item is indented using 2 tabs and all following lines
+  /// inserted will be indented using 2 tabs as well.
+  | AdjustIndentation = 2
+
+type InsertTextModeSupportCapability =
+  { ValueSet: InsertTextMode [] }
+
 type CompletionItemCapabilities =
   { /// Client supports snippets as insert text.
     ///
@@ -480,7 +500,20 @@ type CompletionItemCapabilities =
     /// supporting tags have to handle unknown tags gracefully. Clients
     /// especially need to preserve unknown tags when sending a completion item
     /// back to the server in a resolve call.
-    TagSupport: CompletionItemTagSupport option }
+    TagSupport: CompletionItemTagSupport option
+
+    /// Client supports insert replace edit to control different behavior if a
+    /// completion item is inserted in the text or should replace text.
+    InsertReplaceSupport: bool option
+
+    /// Indicates which properties a client can resolve lazily on a completion
+    /// item. Before version 3.16.0 only the predefined properties
+    /// `documentation` and `detail` could be resolved lazily.
+    ResolveSupport: ResolveSupport option
+
+    /// The client supports the `insertTextMode` property on a completion item
+    /// to override the whitespace handling mode as defined by the client.
+    InsertTextModeSupport: InsertTextModeSupportCapability option }
 
 type CompletionItemKind =
   | Text = 1
@@ -660,10 +693,6 @@ type CodeActionClientCapabilityLiteralSupport =
   { /// The code action kind is supported with the following value set.
     CodeActionKind: CodeActionClientCapabilityLiteralSupportCodeActionKind }
 
-type CodeActionClientCapabilityResolveSupport =
-  { /// The properties that a client can resolve lazily.
-    Properties: string [] }
-
 /// capabilities specific to the `textDocument/codeAction`
 type CodeActionClientCapabilities =
   { /// Whether document symbol supports dynamic registration.
@@ -686,7 +715,7 @@ type CodeActionClientCapabilities =
 
     /// Whether the client supports resolving additional code action
     /// properties via a separate `codeAction/resolve` request.
-    ResolveSupport: CodeActionClientCapabilityResolveSupport option
+    ResolveSupport: ResolveSupport option
 
     /// Whether the client honors the change annotations in
     /// text edits and resource operations returned via the
@@ -1711,6 +1740,16 @@ type Command =
     /// invoked with.
     Arguments: JToken [] option }
 
+type InsertReplaceEdit =
+  { /// The string to be inserted.
+    NewText: string
+
+    /// The range if the insert is requested
+    Insert: Range
+
+    /// The range if the replace is requested.
+    Replace: Range }
+
 /// Defines whether the insert text in a completion item should be interpreted as
 /// plain text or a snippet.
 type InsertTextFormat =
@@ -1785,12 +1824,17 @@ type CompletionItem =
     /// and the `newText` property of a provided `textEdit`.
     InsertTextFormat: InsertTextFormat option
 
+    /// How whitespace and indentation is handled during completion item
+    /// insertion. If not provided the client's default value depends on the
+    /// `textDocument.completion.insertTextMode` client capability.
+    InsertTextMode: InsertTextMode option
+
     /// An edit which is applied to a document when selecting this completion. When an edit is provided the value of
     /// `insertText` is ignored.
     ///
     /// *Note:* The range of the edit must be a single line range and it must contain the position at which completion
     /// has been requested.
-    TextEdit: TextEdit option
+    TextEdit: U2<TextEdit, InsertReplaceEdit> option
 
     /// An optional array of additional text edits that are applied when
     /// selecting this completion. Edits must not overlap with the main edit
@@ -1822,6 +1866,7 @@ type CompletionItem =
       FilterText = None
       InsertText = None
       InsertTextFormat = None
+      InsertTextMode = None
       TextEdit = None
       AdditionalTextEdits = None
       CommitCharacters = None
