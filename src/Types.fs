@@ -370,7 +370,12 @@ type SymbolCapabilities =
 
     /// The client supports tags on `SymbolInformation` and `WorkspaceSymbol`.
     /// Clients supporting tags have to handle unknown tags gracefully.
-    TagSupport: SymbolTagSupport option }
+    TagSupport: SymbolTagSupport option
+
+    /// The client support partial workspace symbols. The client will send the
+    /// request `workspaceSymbol/resolve` to the server to resolve additional
+    /// properties.
+    ResolveSupport: ResolveSupport option }
 
 type SemanticTokensWorkspaceClientCapabilities =
   { /// Whether the client implementation supports a refresh request sent from

@@ -401,7 +401,8 @@ type MultipleTypesBenchmarks() =
                     Some
                       { DynamicRegistration = Some false
                         SymbolKind = Some { ValueSet = Some SymbolKindCapabilities.DefaultValueSet }
-                        TagSupport = None }
+                        TagSupport = None
+                        ResolveSupport = None }
                   SemanticTokens = Some { RefreshSupport = Some true }
                   InlayHint = Some { RefreshSupport = Some false }
                   InlineValue = Some { RefreshSupport = Some false }
