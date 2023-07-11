@@ -1097,14 +1097,31 @@ type WorkspaceFolder =
 type ClientInfo = { Name: string; Version: string option }
 
 type InitializeParams =
-  { ProcessId: int option
+  { /// The process Id of the parent process that started the server. Is null if
+    /// the process has not been started by another process. If the parent
+    /// process is not alive then the server should exit (see exit notification)
+    /// its process.
+    ProcessId: int option
     /// Information about the client.
     /// @since 3.15.0
     ClientInfo: ClientInfo option
+    /// The locale the client is currently showing the user interface in. This
+    /// must not necessarily be the locale of the operating system.
+    /// Uses IETF language tags as the value's syntax (See
+    /// https://en.wikipedia.org/wiki/IETF_language_tag)
+    Locale: string option
+    /// The rootPath of the workspace. Is null if no folder is open.
+    /// @deprecated in favour of `rootUri`.
     RootPath: string option
+    /// The rootUri of the workspace. Is null if no folder is open. If both
+    /// `rootPath` and `rootUri` are set `rootUri` wins.
+    /// @deprecated in favour of `workspaceFolders`
     RootUri: string option
+    /// User provided initialization options.
     InitializationOptions: JToken option
+    /// The capabilities provided by the client (editor or tool)
     Capabilities: ClientCapabilities option
+    /// The initial trace setting. If omitted trace is disabled ('off').
     trace: string option
     /// The workspace folders configured in the client when the server starts.
     /// This property is only available if the client supports workspace folders.

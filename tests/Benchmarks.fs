@@ -376,6 +376,7 @@ type MultipleTypesBenchmarks() =
   let initializeParams: InitializeParams =
     { ProcessId = Some 42
       ClientInfo = Some { Name = "foo"; Version = None }
+      Locale = None
       RootPath = Some "/"
       RootUri = Some "file://..."
       InitializationOptions = None
