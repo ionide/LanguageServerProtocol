@@ -991,6 +991,14 @@ type WindowClientCapabilities =
     ///  @since 3.16.0
     showDocument: ShowDocumentClientCapabilities option }
 
+type StaleRequestSupportClientCapabilities =
+  { /// The client will actively cancel the request.
+    Cancel: bool
+
+    /// The list of requests for which the client will retry the request if it
+    /// receives a response with error code `ContentModified``
+    RetryOnContentModified: string [] }
+
 type RegularExpressionsClientCapabilities =
   { /// The engine's name.
     Engine: string
@@ -1009,7 +1017,12 @@ type MarkdownClientCapabilities =
     AllowedTags: string [] option }
 
 type GeneralClientCapabilities =
-  { /// Client capabilities specific to regular expressions.
+  { /// Client capability that signals how the client handles stale requests
+    /// (e.g. a request for which the client will not process the response
+    /// anymore since the information is outdated).
+    StaleRequestSupport: StaleRequestSupportClientCapabilities option
+
+    /// Client capabilities specific to regular expressions.
     RegularExpressions: RegularExpressionsClientCapabilities option
 
     /// Client capabilities specific to the client's markdown parser.
