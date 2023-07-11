@@ -471,6 +471,7 @@ type MultipleTypesBenchmarks() =
                         LineFoldingOnly = Some true
                         RangeLimit = None }
                   SelectionRange = Some { DynamicRegistration = None }
+                  LinkedEditingRange = Some { DynamicRegistration = None }
                   CallHierarchy = Some { DynamicRegistration = None }
                   SemanticTokens =
                     Some

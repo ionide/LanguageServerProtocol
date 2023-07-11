@@ -956,6 +956,9 @@ type TextDocumentClientCapabilities =
     /// Capabilities for the `textDocument/selectionRange`
     SelectionRange: DynamicCapabilities option
 
+    /// Capabilities specific to the `textDocument/linkedEditingRange` request.
+    LinkedEditingRange: DynamicCapabilities option
+
     /// Capabilities specific to the various call hierarchy requests.
     ///
     /// @since 3.16.0
@@ -1418,6 +1421,9 @@ type ServerCapabilities =
     /// The server provides selection range support.
     SelectionRangeProvider: bool option
 
+    /// The server provides linked editing range support.
+    LinkedEditingRangeProvider: bool option
+
     /// The server provides call hierarchy support.
     CallHierarchyProvider: bool option
 
@@ -1466,6 +1472,7 @@ type ServerCapabilities =
       Experimental = None
       FoldingRangeProvider = None
       SelectionRangeProvider = None
+      LinkedEditingRangeProvider = None
       CallHierarchyProvider = None
       SemanticTokensProvider = None
       MonikerProvider = None
@@ -2257,6 +2264,17 @@ type PrepareRenameResult =
   | RangeWithPlaceholder of RangeWithPlaceholder
   /// The rename position is valid and the client should use its default behavior to compute the rename range.
   | Default of DefaultBehavior
+
+type LinkedEditingRanges =
+  { /// A list of ranges that can be renamed together. The ranges must have
+    /// identical length and contain identical text content. The ranges cannot
+    /// overlap.
+    Ranges: Range []
+
+    /// An optional word pattern (regular expression) that describes valid
+    /// contents for the given ranges. If no pattern is provided, the client
+    /// configuration's word pattern will be used.
+    WordPattern: string option }
 
 [<ErasedUnion>]
 [<RequireQualifiedAccess>]

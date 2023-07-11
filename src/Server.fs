@@ -194,6 +194,14 @@ type ILspServer =
   abstract member TextDocumentMoniker: TextDocumentPositionParams -> AsyncLspResult<Moniker [] option>
 
 
+  /// The linked editing request is sent from the client to the server to return for a given position in a document the
+  /// range of the symbol at the position and all ranges that have the same content. Optionally a word pattern can be
+  /// returned to describe valid contents. A rename to one of the ranges can be applied to all other ranges if the new
+  /// content is valid. If no result-specific word pattern is provided, the word pattern from the client’s language
+  /// configuration is used.
+  abstract member TextDocumentLinkedEditingRange: TextDocumentPositionParams -> AsyncLspResult<LinkedEditingRanges>
+
+
   /// The watched files notification is sent from the client to the server when the client detects changes
   /// to files watched by the language client. It is recommended that servers register for these file
   /// events using the registration mechanism. In former implementations clients pushed file events without
@@ -577,6 +585,15 @@ type LspServer() =
 
   default __.TextDocumentMoniker(_) = notImplemented
 
+  /// The linked editing request is sent from the client to the server to return for a given position in a document the
+  /// range of the symbol at the position and all ranges that have the same content. Optionally a word pattern can be
+  /// returned to describe valid contents. A rename to one of the ranges can be applied to all other ranges if the new
+  /// content is valid. If no result-specific word pattern is provided, the word pattern from the client’s language
+  /// configuration is used.
+  abstract member TextDocumentLinkedEditingRange: TextDocumentPositionParams -> AsyncLspResult<LinkedEditingRanges>
+
+  default __.TextDocumentLinkedEditingRange(_) = notImplemented
+
   /// The watched files notification is sent from the client to the server when the client detects changes
   /// to files watched by the language client. It is recommended that servers register for these file
   /// events using the registration mechanism. In former implementations clients pushed file events without
@@ -809,6 +826,7 @@ type LspServer() =
     member this.TextDocumentOnTypeFormatting(p: DocumentOnTypeFormattingParams) = this.TextDocumentOnTypeFormatting(p)
     member this.TextDocumentDocumentSymbol(p: DocumentSymbolParams) = this.TextDocumentDocumentSymbol(p)
     member this.TextDocumentMoniker(p: TextDocumentPositionParams) = this.TextDocumentMoniker(p)
+    member this.TextDocumentLinkedEditingRange(p: TextDocumentPositionParams) = this.TextDocumentLinkedEditingRange(p)
     member this.WorkspaceDidChangeWatchedFiles(p: DidChangeWatchedFilesParams) = this.WorkspaceDidChangeWatchedFiles(p)
 
     member this.WorkspaceDidChangeWorkspaceFolders(p: DidChangeWorkspaceFoldersParams) =

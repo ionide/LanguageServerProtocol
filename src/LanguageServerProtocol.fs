@@ -231,6 +231,7 @@ module Server =
       "textDocument/didClose", requestHandling (fun s p -> s.TextDocumentDidClose(p) |> notificationSuccess)
       "textDocument/documentSymbol", requestHandling (fun s p -> s.TextDocumentDocumentSymbol(p))
       "textDocument/moniker", requestHandling (fun s p -> s.TextDocumentMoniker(p))
+      "textDocument/linkedEditingRange", requestHandling (fun s p -> s.TextDocumentLinkedEditingRange(p))
       "textDocument/foldingRange", requestHandling (fun s p -> s.TextDocumentFoldingRange(p))
       "textDocument/selectionRange", requestHandling (fun s p -> s.TextDocumentSelectionRange(p))
       "textDocument/prepareCallHierarchy", requestHandling(fun s p -> s.TextDocumentPrepareCallHierarchy(p))
