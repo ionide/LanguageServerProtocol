@@ -399,7 +399,8 @@ type MultipleTypesBenchmarks() =
                   Symbol =
                     Some
                       { DynamicRegistration = Some false
-                        SymbolKind = Some { ValueSet = Some SymbolKindCapabilities.DefaultValueSet } }
+                        SymbolKind = Some { ValueSet = Some SymbolKindCapabilities.DefaultValueSet }
+                        TagSupport = None }
                   SemanticTokens = Some { RefreshSupport = Some true }
                   InlayHint = Some { RefreshSupport = Some false }
                   InlineValue = Some { RefreshSupport = Some false }

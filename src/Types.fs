@@ -174,6 +174,13 @@ type SymbolInformation =
     /// The kind of this symbol.
     Kind: SymbolKind
 
+    /// Tags for this symbol.
+    Tags: SymbolTag [] option
+
+    /// Indicates if this symbol is deprecated.
+    /// @deprecated Use tags instead
+    Deprecated: bool option
+
     /// The location of this symbol. The location's range is used by a tool
     /// to reveal the location in the editor. If the symbol is selected in the
     /// tool the range's start information is used to position the cursor. So
@@ -204,6 +211,11 @@ type DocumentSymbol =
     Detail: string option
     /// The kind of this symbol.
     Kind: SymbolKind
+    /// tags for this document symbol.
+    Tags: SymbolTag [] option
+    /// Indicates if this symbol is deprecated.
+    /// @deprecated Use tags instead
+    Deprecated: bool option
     /// The range enclosing this symbol not including leading/trailing whitespace
     /// but everything else like comments. This information is typically used to
     /// determine if the clients cursor is inside the symbol to reveal in the
@@ -307,13 +319,21 @@ type SymbolKindCapabilities =
        SymbolKind.Boolean
        SymbolKind.Array |]
 
+type SymbolTagSupport =
+  { /// The tags supported by the client.
+    ValueSet: SymbolTag [] }
+
 /// Capabilities specific to the `workspace/symbol` request.
 type SymbolCapabilities =
   { /// Symbol request supports dynamic registration.
     DynamicRegistration: bool option
 
     /// Specific capabilities for the `SymbolKind` in the `workspace/symbol` request.
-    SymbolKind: SymbolKindCapabilities option }
+    SymbolKind: SymbolKindCapabilities option
+
+    /// The client supports tags on `SymbolInformation` and `WorkspaceSymbol`.
+    /// Clients supporting tags have to handle unknown tags gracefully.
+    TagSupport: SymbolTagSupport option }
 
 type SemanticTokensWorkspaceClientCapabilities =
   { /// Whether the client implementation supports a refresh request sent from
@@ -537,7 +557,12 @@ type DocumentSymbolCapabilities =
     SymbolKind: SymbolKindCapabilities option
 
     /// The client supports hierarchical document symbols.
-    HierarchicalDocumentSymbolSupport: bool option }
+    HierarchicalDocumentSymbolSupport: bool option
+
+    /// The client supports tags on `SymbolInformation`. Tags are supported on
+    /// `DocumentSymbol` if `hierarchicalDocumentSymbolSupport` is set to true.
+    /// Clients supporting tags have to handle unknown tags gracefully.
+    TagSupport: SymbolTagSupport option }
 
 module CodeActionKind =
   /// Empty kind.
