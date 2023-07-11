@@ -1026,7 +1026,20 @@ type GeneralClientCapabilities =
     RegularExpressions: RegularExpressionsClientCapabilities option
 
     /// Client capabilities specific to the client's markdown parser.
-    Markdown: MarkdownClientCapabilities option }
+    Markdown: MarkdownClientCapabilities option
+
+    /// The position encodings supported by the client. Client and server have
+    /// to agree on the same position encoding to ensure that offsets (e.g.
+    /// character position in a line) are interpreted the same on both side.
+    /// To keep the protocol backwards compatible the following applies: if the
+    /// value 'utf-16' is missing from the array of position encodings servers
+    /// can assume that the client supports UTF-16. UTF-16 is therefore a
+    /// mandatory encoding.
+    /// If omitted it defaults to ['utf-16'].
+    /// Implementation considerations: since the conversion from one encoding
+    /// into another requires the content of the file / line the conversion is
+    /// best done where the file is read which is usually on the server side.
+    PositionEncodings: string [] option }
 
 type ClientCapabilities =
   { /// Workspace specific client capabilities.
@@ -1275,7 +1288,14 @@ type WorkspaceSymbolOptions =
     ResolveProvider: bool option }
 
 type ServerCapabilities =
-  { /// Defines how text documents are synced. Is either a detailed structure defining each notification or
+  { /// The position encoding the server picked from the encodings offered by
+    /// the client via the client capability `general.positionEncodings`.
+    /// If the client didn't provide any position encodings the only valid value
+    /// that a server can return is 'utf-16'.
+    /// If omitted it defaults to 'utf-16'.
+    PositionEncoding: string option
+
+    /// Defines how text documents are synced. Is either a detailed structure defining each notification or
     /// for backwards compatibility the TextDocumentSyncKind number.
     TextDocumentSync: TextDocumentSyncOptions option
 
@@ -1357,8 +1377,9 @@ type ServerCapabilities =
 
    }
   static member Default =
-    { HoverProvider = None
+    { PositionEncoding = None
       TextDocumentSync = None
+      HoverProvider = None
       CompletionProvider = None
       SignatureHelpProvider = None
       DefinitionProvider = None
