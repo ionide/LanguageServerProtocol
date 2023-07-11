@@ -965,6 +965,9 @@ type TextDocumentClientCapabilities =
     /// @since 3.16.0
     SemanticTokens: SemanticTokensClientCapabilities option
 
+    /// Capabilities specific to the `textDocument/moniker` request.
+    Moniker: DynamicCapabilities option
+
     /// Capabilities specific to the various type hierarchy requests.
     ///
     /// @since 3.17.0
@@ -1421,6 +1424,10 @@ type ServerCapabilities =
     /// The server provides semantic tokens support.
     SemanticTokensProvider: SemanticTokensOptions option
 
+    /// Whether server provides moniker support.
+    MonikerProvider: bool option
+
+    /// The server provides type hierarchy support.
     TypeHierarchyProvider: bool option
 
     /// The server provides inlay hints.
@@ -1461,6 +1468,7 @@ type ServerCapabilities =
       SelectionRangeProvider = None
       CallHierarchyProvider = None
       SemanticTokensProvider = None
+      MonikerProvider = None
       TypeHierarchyProvider = None
       InlayHintProvider = None
       InlineValueProvider = None
@@ -2789,6 +2797,21 @@ type InlineValueText =
 [<RequireQualifiedAccess>]  
 type InlineValue =
   | InlineValueText of InlineValueText
+
+
+type Moniker =
+  { /// The scheme of the moniker. For example tsc or .Net
+    Scheme: string
+
+    /// The identifier of the moniker. The value is opaque in LSIF however schema owners are allowed
+    /// to define the structure if they want.
+    Identifier: string
+
+    /// The scope in which the moniker is unique
+    Unique: string
+
+    /// The moniker kind if known.
+    Kind: string option }
 
 
 type ProgressToken = U2<int, string>

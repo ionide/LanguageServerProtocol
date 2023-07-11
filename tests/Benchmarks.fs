@@ -486,6 +486,7 @@ type MultipleTypesBenchmarks() =
                         OverlappingTokenSupport = Some false
                         MultilineTokenSupport = Some true }
                   TypeHierarchy = Some { DynamicRegistration = None }
+                  Moniker = Some { DynamicRegistration = None }
                   InlineValue = Some { DynamicRegistration = None }
                   InlayHint =
                     Some

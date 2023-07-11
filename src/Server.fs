@@ -187,6 +187,13 @@ type ILspServer =
     DocumentSymbolParams -> AsyncLspResult<U2<SymbolInformation [], DocumentSymbol []> option>
 
 
+  /// The textDocument/moniker request is sent from the client to the server to get the symbol monikers for a
+  /// given text document position. An array of Moniker types is returned as response to indicate possible
+  /// monikers at the given location. If no monikers can be calculated, an empty array or null should be
+  /// returned.
+  abstract member TextDocumentMoniker: TextDocumentPositionParams -> AsyncLspResult<Moniker [] option>
+
+
   /// The watched files notification is sent from the client to the server when the client detects changes
   /// to files watched by the language client. It is recommended that servers register for these file
   /// events using the registration mechanism. In former implementations clients pushed file events without
@@ -562,6 +569,14 @@ type LspServer() =
 
   default __.TextDocumentDocumentSymbol(_) = notImplemented
 
+  /// The textDocument/moniker request is sent from the client to the server to get the symbol monikers for a
+  /// given text document position. An array of Moniker types is returned as response to indicate possible
+  /// monikers at the given location. If no monikers can be calculated, an empty array or null should be
+  /// returned.
+  abstract member TextDocumentMoniker: TextDocumentPositionParams -> AsyncLspResult<Moniker [] option>
+
+  default __.TextDocumentMoniker(_) = notImplemented
+
   /// The watched files notification is sent from the client to the server when the client detects changes
   /// to files watched by the language client. It is recommended that servers register for these file
   /// events using the registration mechanism. In former implementations clients pushed file events without
@@ -793,6 +808,7 @@ type LspServer() =
     member this.TextDocumentRangeFormatting(p: DocumentRangeFormattingParams) = this.TextDocumentRangeFormatting(p)
     member this.TextDocumentOnTypeFormatting(p: DocumentOnTypeFormattingParams) = this.TextDocumentOnTypeFormatting(p)
     member this.TextDocumentDocumentSymbol(p: DocumentSymbolParams) = this.TextDocumentDocumentSymbol(p)
+    member this.TextDocumentMoniker(p: TextDocumentPositionParams) = this.TextDocumentMoniker(p)
     member this.WorkspaceDidChangeWatchedFiles(p: DidChangeWatchedFilesParams) = this.WorkspaceDidChangeWatchedFiles(p)
 
     member this.WorkspaceDidChangeWorkspaceFolders(p: DidChangeWorkspaceFoldersParams) =
