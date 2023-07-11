@@ -423,6 +423,10 @@ type MultipleTypesBenchmarks() =
                     Some
                       { DynamicRegistration = Some true
                         SignatureInformation = Some { DocumentationFormat = None } }
+                  Declaration =
+                    Some
+                      { DynamicRegistration = Some false
+                        LinkSupport = Some false }
                   References = Some { DynamicRegistration = Some false }
                   DocumentHighlight = Some { DynamicRegistration = None }
                   DocumentSymbol = None

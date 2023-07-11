@@ -82,6 +82,9 @@ type ILspServer =
   abstract member TextDocumentPrepareRename: PrepareRenameParams -> AsyncLspResult<PrepareRenameResult option>
 
 
+  /// The go to declaration request is sent from the client to the server to resolve the declaration location
+  /// of a synbol at a given text document position
+  abstract member TextDocumentDeclaration: TextDocumentPositionParams -> AsyncLspResult<GotoResult option>
 
   /// The goto definition request is sent from the client to the server to resolve the definition location of
   /// a symbol at a given text document position.
@@ -434,6 +437,11 @@ type LspServer() =
   default __.TextDocumentPrepareRename(_) =
     AsyncLspResult.success (Some(PrepareRenameResult.Default { DefaultBehavior = true }))
 
+  /// The go to declaration request is sent from the client to the server to resolve the declaration location
+  /// of a symbol at a given text document position.
+  abstract member TextDocumentDeclaration: TextDocumentPositionParams -> AsyncLspResult<GotoResult option>
+  default __.TextDocumentDeclaration(_) = notImplemented
+
   /// The goto definition request is sent from the client to the server to resolve the definition location of
   /// a symbol at a given text document position.
   abstract member TextDocumentDefinition: TextDocumentPositionParams -> AsyncLspResult<GotoResult option>
@@ -766,6 +774,7 @@ type LspServer() =
     member this.CompletionItemResolve(p: CompletionItem) = this.CompletionItemResolve(p)
     member this.TextDocumentRename(p: RenameParams) = this.TextDocumentRename(p)
     member this.TextDocumentPrepareRename(p: PrepareRenameParams) = this.TextDocumentPrepareRename(p)
+    member this.TextDocumentDeclaration(p: TextDocumentPositionParams) = this.TextDocumentDeclaration(p)
     member this.TextDocumentDefinition(p: TextDocumentPositionParams) = this.TextDocumentDefinition(p)
     member this.TextDocumentReferences(p: ReferenceParams) = this.TextDocumentReferences(p)
     member this.TextDocumentDocumentHighlight(p: TextDocumentPositionParams) = this.TextDocumentDocumentHighlight(p)

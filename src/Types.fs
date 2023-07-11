@@ -285,6 +285,13 @@ type DynamicCapabilities =
   { /// Method supports dynamic registration.
     DynamicRegistration: bool option }
 
+type DynamicLinkSupportCapabilities =
+  { /// Whether implementation supports dynamic registration.
+    DynamicRegistration: bool option
+
+    /// The client supports additional metadata in the form of declaration links.
+    LinkSupport: bool option }
+
 type ResourceOperationKind =
   | Create
   | Rename
@@ -891,6 +898,9 @@ type TextDocumentClientCapabilities =
     /// Capabilities specific to the `textDocument/signatureHelp`
     SignatureHelp: SignatureHelpCapabilities option
 
+    /// Capabilities specific to the `textDocument/declaration` request.
+    Declaration: DynamicLinkSupportCapabilities option
+
     /// Capabilities specific to the `textDocument/references`
     References: DynamicCapabilities option
 
@@ -1308,6 +1318,9 @@ type ServerCapabilities =
     /// The server provides signature help support.
     SignatureHelpProvider: SignatureHelpOptions option
 
+    /// The server provides go to declaration support.
+    DeclarationProvider: bool option
+
     /// The server provides goto definition support.
     DefinitionProvider: bool option
 
@@ -1382,6 +1395,7 @@ type ServerCapabilities =
       HoverProvider = None
       CompletionProvider = None
       SignatureHelpProvider = None
+      DeclarationProvider = None
       DefinitionProvider = None
       TypeDefinitionProvider = None
       ImplementationProvider = None
