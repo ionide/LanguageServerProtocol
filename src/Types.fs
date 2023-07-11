@@ -513,7 +513,10 @@ type CompletionItemCapabilities =
 
     /// The client supports the `insertTextMode` property on a completion item
     /// to override the whitespace handling mode as defined by the client.
-    InsertTextModeSupport: InsertTextModeSupportCapability option }
+    InsertTextModeSupport: InsertTextModeSupportCapability option
+
+    /// The client has support for completion item label details.
+    LabelDetailsSupport: bool option }
 
 type CompletionItemKind =
   | Text = 1
@@ -1007,6 +1010,11 @@ type InitializedParams() =
   override _.ToString() = "{}"
 
 
+type CompletionItemOptions =
+  { /// The server has support for completion item label details (see also
+    /// `CompletionItemLabelDetails`) when receiving a completion item in a resolve call.
+    LabelDetailsSupport: bool option }
+
 /// Completion options.
 type CompletionOptions =
   { /// The server provides support to resolve additional information for a completion item.
@@ -1023,7 +1031,10 @@ type CompletionOptions =
     ///
     /// If a server provides both `allCommitCharacters` and commit characters
     /// on an individual completion item, the ones on the completion item win.
-    AllCommitCharacters: char [] option }
+    AllCommitCharacters: char [] option
+
+    /// The server supports the following `CompletionItem` specific capabilities.
+    CompletionItem: CompletionItemOptions option }
 
 /// Signature help options.
 type SignatureHelpOptions =
@@ -1740,6 +1751,17 @@ type Command =
     /// invoked with.
     Arguments: JToken [] option }
 
+type CompletionItemLabelDetails =
+  { /// An optional string which is rendered less prominently directly after
+    /// {@link CompletionItem.label label}, without any spacing. Should be used
+    /// for function signatures or type annotations.
+    Detail: string option
+
+    /// An optional string which is rendered less prominently after
+    /// {@link CompletionItemLabelDetails.detail}. Should be used for fully
+    /// qualified names or file path.
+    Description: string option }
+
 type InsertReplaceEdit =
   { /// The string to be inserted.
     NewText: string
@@ -1774,6 +1796,9 @@ type CompletionItem =
     /// also the text that is inserted when selecting
     /// this completion.
     Label: string
+
+    /// Additional details for the label
+    LabelDetails: CompletionItemLabelDetails option
 
     /// The kind of this completion item. Based of the kind
     /// an icon is chosen by the editor.
@@ -1836,6 +1861,14 @@ type CompletionItem =
     /// has been requested.
     TextEdit: U2<TextEdit, InsertReplaceEdit> option
 
+    // The edit text used if the completion item is part of a CompletionList and
+    /// CompletionList defines an item default for the text edit range.
+    /// Clients will only honor this property if they opt into completion list
+    /// item defaults using the capability `completionList.itemDefaults`.
+    /// If not provided and a list's default range is provided the label
+    /// property is used as a text.
+    TextEditText: string option
+
     /// An optional array of additional text edits that are applied when
     /// selecting this completion. Edits must not overlap with the main edit
     /// nor with themselves.
@@ -1856,6 +1889,7 @@ type CompletionItem =
     Data: JToken option }
   static member Create(label: string) =
     { Label = label
+      LabelDetails = None
       Kind = None
       Tags = None
       Detail = None
@@ -1868,6 +1902,7 @@ type CompletionItem =
       InsertTextFormat = None
       InsertTextMode = None
       TextEdit = None
+      TextEditText = None
       AdditionalTextEdits = None
       CommitCharacters = None
       Command = None
