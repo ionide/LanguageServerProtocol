@@ -1466,9 +1466,19 @@ type ServerCapabilities =
       InlineValueProvider = None
       Workspace = None }
 
+type ServerInfo =
+  { /// The name of the server as defined by the server.
+    Name: string
+    /// The server's version as defined by the server.
+    Version: string option }
+
 type InitializeResult =
-  { Capabilities: ServerCapabilities }
-  static member Default = { Capabilities = ServerCapabilities.Default }
+  { /// The capabilities the language server provides.
+    Capabilities: ServerCapabilities
+
+    /// Information about the server.
+    ServerInfo: ServerInfo option }
+  static member Default = { Capabilities = ServerCapabilities.Default; ServerInfo = None }
 
 /// A workspace edit represents changes to many resources managed in the workspace.
 /// The edit should either provide `changes` or `documentChanges`. If the client can handle versioned document
