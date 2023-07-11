@@ -470,6 +470,7 @@ type MultipleTypesBenchmarks() =
                     Some
                       { DynamicRegistration = Some true
                         ResolveSupport = Some { Properties = [| "Tooltip"; "Position"; "TextEdits" |] } } }
+            General = None
             Experimental = None
             Window = None }
       trace = None

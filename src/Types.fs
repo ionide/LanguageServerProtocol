@@ -991,12 +991,36 @@ type WindowClientCapabilities =
     ///  @since 3.16.0
     showDocument: ShowDocumentClientCapabilities option }
 
+type RegularExpressionsClientCapabilities =
+  { /// The engine's name.
+    Engine: string
+
+    /// The engine's version.
+    Version: string option }
+
+type MarkdownClientCapabilities =
+  { /// The name of the parser.
+    Parser: string
+
+    /// The version of the parser.
+    Version: string option }
+
+type GeneralClientCapabilities =
+  { /// Client capabilities specific to regular expressions.
+    RegularExpressions: RegularExpressionsClientCapabilities option
+
+    /// Client capabilities specific to the client's markdown parser.
+    Markdown: MarkdownClientCapabilities option }
+
 type ClientCapabilities =
   { /// Workspace specific client capabilities.
     Workspace: WorkspaceClientCapabilities option
 
     /// Text document specific client capabilities.
     TextDocument: TextDocumentClientCapabilities option
+
+    /// General client capabilities.
+    General: GeneralClientCapabilities option
 
     /// Experimental client capabilities.
     Experimental: JToken option
