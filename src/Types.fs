@@ -445,6 +445,14 @@ type HoverCapabilities =
     /// See `MarkupKind` for common values
     ContentFormat: string [] option }
 
+type CompletionItemTag =
+  /// Render a completion as obsolete, usually using a strike-out.
+  | Deprecated = 1
+
+type CompletionItemTagSupport =
+  { /// The tags supported by the client.
+    ValueSet: CompletionItemTag [] }
+
 type CompletionItemCapabilities =
   { /// Client supports snippets as insert text.
     ///
@@ -466,7 +474,13 @@ type CompletionItemCapabilities =
     DeprecatedSupport: bool option
 
     /// Client supports the preselect property on a completion item.
-    PreselectSupport: bool option }
+    PreselectSupport: bool option
+
+    /// Client supports the tag property on a completion item. Clients
+    /// supporting tags have to handle unknown tags gracefully. Clients
+    /// especially need to preserve unknown tags when sending a completion item
+    /// back to the server in a resolve call.
+    TagSupport: CompletionItemTagSupport option }
 
 type CompletionItemKind =
   | Text = 1
@@ -1726,6 +1740,9 @@ type CompletionItem =
     /// an icon is chosen by the editor.
     Kind: CompletionItemKind option
 
+    /// Tags for this completion item.
+    Tags: CompletionItemTag [] option
+
     /// A human-readable string with additional information
     /// about this item, like type or symbol information.
     Detail: string option
@@ -1796,6 +1813,7 @@ type CompletionItem =
   static member Create(label: string) =
     { Label = label
       Kind = None
+      Tags = None
       Detail = None
       Documentation = None
       Deprecated = None
