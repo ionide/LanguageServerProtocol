@@ -1003,7 +1003,10 @@ type MarkdownClientCapabilities =
     Parser: string
 
     /// The version of the parser.
-    Version: string option }
+    Version: string option
+
+    /// A list of HTML tags that the client allows / supports in Markdown.
+    AllowedTags: string [] option }
 
 type GeneralClientCapabilities =
   { /// Client capabilities specific to regular expressions.
