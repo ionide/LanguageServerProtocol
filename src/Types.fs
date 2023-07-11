@@ -882,6 +882,13 @@ type RenameClientCapabilities =
     /// @since 3.16.0
     HonorsChangeAnnotations: bool option }
 
+type DocumentLinkCapabilities =
+  { /// Whether document link supports dynamic registration.
+    DynamicRegistration: bool option
+
+    /// Whether the client supports the `tooltip` property on `DocumentLink`.
+    TooltipSupport: bool option }
+
 /// Text document specific client capabilities.
 type TextDocumentClientCapabilities =
   { Synchronization: SynchronizationCapabilities option
@@ -920,7 +927,13 @@ type TextDocumentClientCapabilities =
     OnTypeFormatting: DynamicCapabilities option
 
     /// Capabilities specific to the `textDocument/definition`
-    Definition: DynamicCapabilities option
+    Definition: DynamicLinkSupportCapabilities option
+
+    /// Capabilities specific to the `textDocument/typeDefinition` request.
+    TypeDefinition: DynamicLinkSupportCapabilities option
+
+    /// Capabilities specific to the `textDocument/implementation` request.
+    Implementation: DynamicLinkSupportCapabilities option
 
     /// Capabilities specific to the `textDocument/codeAction`
     CodeAction: CodeActionClientCapabilities option
@@ -929,7 +942,10 @@ type TextDocumentClientCapabilities =
     CodeLens: DynamicCapabilities option
 
     /// Capabilities specific to the `textDocument/documentLink`
-    DocumentLink: DynamicCapabilities option
+    DocumentLink: DocumentLinkCapabilities option
+
+    /// Capabilities specific to the `textDocument/documentColor` and the `textDocument/colorPresentation` request.
+    ColorProvider: DynamicCapabilities option
 
     /// Capabilities specific to the `textDocument/rename`
     Rename: RenameClientCapabilities option
@@ -953,6 +969,9 @@ type TextDocumentClientCapabilities =
     ///
     /// @since 3.17.0
     TypeHierarchy: DynamicCapabilities option
+
+    /// Capabilities specific to the `textDocument/inlineValue` request.
+    InlineValue: DynamicCapabilities option
 
     /// Capabilities specific to the `textDocument/inlayHint` request.
     ///
@@ -1363,6 +1382,9 @@ type ServerCapabilities =
     /// The server provides document link support.
     DocumentLinkProvider: DocumentLinkOptions option
 
+    /// The server provides color provider support.
+    ColorProvider: bool option
+
     /// The server provides execute command support.
     ExecuteCommandProvider: ExecuteCommandOptions option
 
@@ -1373,16 +1395,21 @@ type ServerCapabilities =
     /// @since 3.10.0
     FoldingRangeProvider: bool option
 
+    /// The server provides selection range support.
     SelectionRangeProvider: bool option
 
+    /// The server provides call hierarchy support.
     CallHierarchyProvider: bool option
 
+    /// The server provides semantic tokens support.
     SemanticTokensProvider: SemanticTokensOptions option
 
     TypeHierarchyProvider: bool option
 
+    /// The server provides inlay hints.
     InlayHintProvider: InlayHintOptions option
 
+    /// The server provides inline values.
     InlineValueProvider: InlineValueOptions option
 
     /// Workspace specific server capabilities.
@@ -1410,6 +1437,7 @@ type ServerCapabilities =
       DocumentOnTypeFormattingProvider = None
       RenameProvider = None
       DocumentLinkProvider = None
+      ColorProvider = None
       ExecuteCommandProvider = None
       Experimental = None
       FoldingRangeProvider = None
@@ -1417,7 +1445,7 @@ type ServerCapabilities =
       CallHierarchyProvider = None
       SemanticTokensProvider = None
       TypeHierarchyProvider = None
-      InlayHintProvider = None 
+      InlayHintProvider = None
       InlineValueProvider = None
       Workspace = None }
 

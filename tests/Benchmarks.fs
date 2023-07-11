@@ -433,7 +433,18 @@ type MultipleTypesBenchmarks() =
                   Formatting = Some { DynamicRegistration = Some true }
                   RangeFormatting = Some { DynamicRegistration = Some true }
                   OnTypeFormatting = None
-                  Definition = Some { DynamicRegistration = Some false }
+                  Definition =
+                    Some
+                      { DynamicRegistration = Some false
+                        LinkSupport = Some false }
+                  TypeDefinition =
+                    Some
+                      { DynamicRegistration = Some false
+                        LinkSupport = Some false }
+                  Implementation =
+                    Some
+                      { DynamicRegistration = Some false
+                        LinkSupport = Some false }
                   CodeAction =
                     Some
                       { DynamicRegistration = Some true
@@ -447,7 +458,11 @@ type MultipleTypesBenchmarks() =
                         ResolveSupport = Some { Properties = [| "foo"; "bar"; "baz" |] }
                         HonorsChangeAnnotations = Some false }
                   CodeLens = Some { DynamicRegistration = Some true }
-                  DocumentLink = Some { DynamicRegistration = Some true }
+                  DocumentLink =
+                    Some
+                      { DynamicRegistration = Some true
+                        TooltipSupport = None }
+                  ColorProvider = Some { DynamicRegistration = Some true }
                   Rename = None
                   FoldingRange =
                     Some
@@ -470,6 +485,7 @@ type MultipleTypesBenchmarks() =
                         OverlappingTokenSupport = Some false
                         MultilineTokenSupport = Some true }
                   TypeHierarchy = Some { DynamicRegistration = None }
+                  InlineValue = Some { DynamicRegistration = None }
                   InlayHint =
                     Some
                       { DynamicRegistration = Some true
