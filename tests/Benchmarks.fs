@@ -423,7 +423,9 @@ type MultipleTypesBenchmarks() =
                     Some
                       { RelatedInformation = None
                         TagSupport = None
-                        VersionSupport = None }
+                        VersionSupport = None
+                        CodeDescriptionSupport = None
+                        DataSupport = None }
                   Completion = None
                   Hover =
                     Some

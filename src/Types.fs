@@ -851,7 +851,15 @@ type PublishDiagnosticsCapabilities =
 
     /// Whether the client interprets the version property of the
     /// `textDocument/publishDiagnostics` notification's parameter.
-    VersionSupport: bool option }
+    VersionSupport: bool option
+
+    /// Client supports a codeDescription property
+    CodeDescriptionSupport: bool option
+
+    /// Whether code action supports the `data` property which is preserved
+    /// between a `textDocument/publishDiagnostics` and `textDocument/codeAction`
+    /// request.
+    DataSupport: bool option }
 
 type FoldingRangeCapabilities =
   { /// Whether implementation supports dynamic registration for folding range providers. If this is set to `true`
