@@ -485,7 +485,9 @@ type MultipleTypesBenchmarks() =
                     Some
                       { DynamicRegistration = Some false
                         LineFoldingOnly = Some true
-                        RangeLimit = None }
+                        RangeLimit = None
+                        FoldingRangeKind = None
+                        FoldingRange = None }
                   SelectionRange = Some { DynamicRegistration = None }
                   LinkedEditingRange = Some { DynamicRegistration = None }
                   CallHierarchy = Some { DynamicRegistration = None }

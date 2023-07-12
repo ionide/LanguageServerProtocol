@@ -861,17 +861,36 @@ type PublishDiagnosticsCapabilities =
     /// request.
     DataSupport: bool option }
 
+type FoldingRangeKindCapabilities =
+  { /// The folding range kind values the client supports. When this property
+    /// exists the client also guarantees that it will handle values outside its
+    /// set gracefully and falls back to a default value when unknown.
+    ValueSet: string [] option }
+
+type FoldingRangeCapabilities' =
+  { /// If set, the client signals that it supports setting collapsedText on
+    /// folding ranges to display custom labels instead of the default text.
+    CollapsedText: bool option }
+
 type FoldingRangeCapabilities =
   { /// Whether implementation supports dynamic registration for folding range providers. If this is set to `true`
     /// the client supports the new `(FoldingRangeProviderOptions & TextDocumentRegistrationOptions & StaticRegistrationOptions)`
     /// return value for the corresponding server capability as well.
     DynamicRegistration: bool option
+
     /// The maximum number of folding ranges that the client prefers to receive per document. The value serves as a
     /// hint, servers are free to follow the limit.
     RangeLimit: int option
+
     /// If set, the client signals that it only supports folding complete lines. If set, client will
     /// ignore specified `startCharacter` and `endCharacter` properties in a FoldingRange.
-    LineFoldingOnly: bool option }
+    LineFoldingOnly: bool option
+
+    /// Specific options for the folding range kind.
+    FoldingRangeKind: FoldingRangeKindCapabilities option
+
+    /// Specific options for the folding range.
+    FoldingRange: FoldingRangeCapabilities' option }
 
 type SemanticTokenFullRequestType =
   { /// The client will send the `textDocument/semanticTokens/full/delta`
@@ -2635,7 +2654,12 @@ type FoldingRange =
     /// Describes the kind of the folding range such as 'comment' or 'region'. The kind
     /// is used to categorize folding ranges and used by commands like 'Fold all comments'. See
     /// [FoldingRangeKind](#FoldingRangeKind) for an enumeration of standardized kinds.
-    Kind: string option }
+    Kind: string option
+
+    /// The text that the client should show when the specified range is
+    /// collapsed. If not defined or not supported by the client, a default will
+    /// be chosen by the client.
+    CollapsedText: string option }
 
 type SelectionRangeParams =
   { /// The document to generate ranges for
