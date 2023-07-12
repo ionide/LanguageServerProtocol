@@ -431,7 +431,8 @@ type MultipleTypesBenchmarks() =
                         SignatureInformation =
                           Some
                             { DocumentationFormat = None
-                              ParameterInformation = None } }
+                              ParameterInformation = None
+                              ActiveParameterSupport = None } }
                   Declaration =
                     Some
                       { DynamicRegistration = Some false

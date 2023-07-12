@@ -684,7 +684,11 @@ type SignatureInformationCapabilities =
     DocumentationFormat: string [] option
 
     /// Client capabilities specific to parameter information.
-    ParameterInformation: ParameterInformationCapability option }
+    ParameterInformation: ParameterInformationCapability option
+
+    /// The client supports the `activeParameter` property on
+    /// `SignatureInformation` literal.
+    ActiveParameterSupport: bool option }
 
 type SignatureHelpCapabilities =
   { /// Whether signature help supports dynamic registration.
@@ -2524,7 +2528,11 @@ type SignatureInformation =
     Documentation: Documentation option
 
     /// The parameters of this signature.
-    Parameters: ParameterInformation [] option }
+    Parameters: ParameterInformation [] option
+
+    /// The index of the active parameter.
+    /// If provided, this is used in place of `SignatureHelp.activeParameter`.
+    ActiveParameter: uint }
 
 /// Signature help represents the signature of something
 /// callable. There can be multiple signature but only one
@@ -2549,7 +2557,7 @@ type SignatureHelp =
     /// In future version of the protocol this property might become
     /// mandatory to better express the active parameter if the
     /// active signature does have any.
-    ActiveParameter: int option }
+    ActiveParameter: uint option }
 
 type SignatureHelpTriggerKind =
   /// manually invoked via command
