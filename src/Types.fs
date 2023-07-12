@@ -442,6 +442,15 @@ type WorkspaceFileOperationsClientCapabilities =
     /// The client has support for sending willDeleteFiles requests.
     WillDelete: bool option }
 
+type DidChangeWatchedFilesClientCapabilities =
+  { /// Did change watched files notification supports dynamic registration.
+    /// Please note that the current protocol doesn't support static
+    /// configuration for file changes from the server side.
+    DynamicRegistration: bool option
+
+    /// Whether the client has support for relative patterns or not.
+    RelativePatternSupport: bool option }
+
 /// Workspace specific client capabilities.
 type WorkspaceClientCapabilities =
   { /// The client supports applying batch edits to the workspace by supporting
@@ -455,7 +464,7 @@ type WorkspaceClientCapabilities =
     DidChangeConfiguration: DynamicCapabilities option
 
     /// Capabilities specific to the `workspace/didChangeWatchedFiles` notification.
-    DidChangeWatchedFiles: DynamicCapabilities option
+    DidChangeWatchedFiles: DidChangeWatchedFilesClientCapabilities option
 
     /// Capabilities specific to the `workspace/symbol` request.
     Symbol: SymbolCapabilities option
@@ -1913,9 +1922,21 @@ type WatchKind =
   | Change = 2
   | Delete = 4
 
+type RelativePattern =
+  { /// A workspace folder or a base URI to which this pattern will be matched
+    /// against relatively.
+    BaseUri: U2<DocumentUri, WorkspaceFolder>
+
+    /// The actual glob pattern;
+    Pattern: string }
+
+type GlobPattern =
+  | RelativePattern of RelativePattern
+  | Pattern of string
+
 type FileSystemWatcher =
   { /// The  glob pattern to watch
-    GlobPattern: string
+    GlobPattern: GlobPattern
 
     /// The kind of events of interest. If omitted it defaults
     /// to WatchKind.Create | WatchKind.Change | WatchKind.Delete
