@@ -669,6 +669,13 @@ type CompletionItemKindCapabilities =
        CompletionItemKind.File
        CompletionItemKind.Reference |]
 
+type CompletionListCapabilities =
+  { /// The client supports the following itemDefaults on a completion list.
+    /// The value lists the supported property names of the
+    /// `CompletionList.itemDefaults` object. If omitted no properties are
+    /// supported.
+    ItemDefaults: string [] option }
+
 /// Capabilities specific to the `textDocument/completion`
 type CompletionCapabilities =
   { /// Whether completion supports dynamic registration.
@@ -686,7 +693,10 @@ type CompletionCapabilities =
 
     /// The client's default when the completion item doesn't provide a
     /// `insertTextMode` property.
-    InsertTextMode: InsertTextMode option }
+    InsertTextMode: InsertTextMode option
+
+    /// The client supports the following `CompletionList` specific capabilities.
+    CompletionList: CompletionListCapabilities option }
 
 type ParameterInformationCapability =
   { /// The client supports processing label offsets instead of a simple label
@@ -2225,10 +2235,38 @@ type CompletionItem =
       Command = None
       Data = None }
 
+type ReplaceEditRange = { Insert: Range; Replace: Range }
+
+type ItemDefaults =
+  { /// A default commit character set.
+    CommitCharacters: char [] option
+
+    /// A default edit range
+    EditRange: U2<Range, ReplaceEditRange> option
+
+    /// A default insert text format
+    InsertTextFormat: InsertTextFormat option
+
+    /// A default insert text mode
+    InsertTextMode: InsertTextMode option
+
+    /// A default data value.
+    Data: LSPAny option }
+
 type CompletionList =
   { /// This list it not complete. Further typing should result in recomputing
     /// this list.
     IsIncomplete: bool
+
+    /// In many cases the items of an actual completion result share the same
+    /// value for properties like `commitCharacters` or the range of a text
+    /// edit. A completion list can therefore define item defaults which will be
+    /// used if a completion item itself doesn't specify the value.
+    /// If a completion list specifies a default value and a completion item
+    /// also specifies a corresponding value the one from the item is used.
+    /// Servers are only allowed to return default values if the client signals
+    /// support for this via the `completionList.itemDefaults` capability.
+    ItemDefaults: ItemDefaults option
 
     /// The completion items.
     Items: CompletionItem [] }
