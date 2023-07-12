@@ -849,22 +849,15 @@ type SemanticTokensClientCapabilities =
     /// Whether the client supports tokens that can span multiple lines.
     MultilineTokenSupport: bool option }
 
-type InlayHintClientCapabilitiesResolveSupport =
-  { /// The properties that a client can resolve lazily.
-    Properties: string [] }
-
 /// Inlay hint client capabilities.
 type InlayHintClientCapabilities =
   { /// Whether inlay hints support dynamic registration.
     DynamicRegistration: bool option
     /// Indicates which properties a client can resolve lazily on a inlay
     /// hint.
-    ResolveSupport: InlayHintClientCapabilitiesResolveSupport option }
+    ResolveSupport: ResolveSupport option }
 
 
-type InlineValueClientCapabilitiesResolveSupport =
-  { /// The properties that a client can resolve lazily.
-    Properties: string [] }
 
 /// Inline value client capabilities.
 type InlineValueClientCapabilities =
@@ -872,7 +865,7 @@ type InlineValueClientCapabilities =
     DynamicRegistration: bool option
     /// Indicates which properties a client can resolve lazily on a inline
     /// value.
-    ResolveSupport: InlineValueClientCapabilitiesResolveSupport option }
+    ResolveSupport: ResolveSupport option }
 
 type RenameClientCapabilities =
   { /// Whether rename supports dynamic registration.
