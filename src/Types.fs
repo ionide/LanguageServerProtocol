@@ -682,7 +682,11 @@ type CompletionCapabilities =
 
     /// The client supports to send additional context information for a
     /// `textDocument/completion` request.
-    ContextSupport: bool option }
+    ContextSupport: bool option
+
+    /// The client's default when the completion item doesn't provide a
+    /// `insertTextMode` property.
+    InsertTextMode: InsertTextMode option }
 
 type ParameterInformationCapability =
   { /// The client supports processing label offsets instead of a simple label
