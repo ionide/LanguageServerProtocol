@@ -419,7 +419,11 @@ type MultipleTypesBenchmarks() =
                         WillSave = Some true
                         WillSaveWaitUntil = Some false
                         DidSave = Some true }
-                  PublishDiagnostics = Some { RelatedInformation = None; TagSupport = None }
+                  PublishDiagnostics =
+                    Some
+                      { RelatedInformation = None
+                        TagSupport = None
+                        VersionSupport = None }
                   Completion = None
                   Hover =
                     Some

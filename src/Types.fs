@@ -843,13 +843,15 @@ type DiagnosticTagSupport =
 
 /// Capabilities specific to `textDocument/publishDiagnostics`.
 type PublishDiagnosticsCapabilities =
-  {
-
-    /// Whether the clients accepts diagnostics with related information.
+  { /// Whether the clients accepts diagnostics with related information.
     RelatedInformation: bool option
 
     /// Client supports the tag property to provide meta data about a diagnostic.
-    TagSupport: DiagnosticTagSupport option }
+    TagSupport: DiagnosticTagSupport option
+
+    /// Whether the client interprets the version property of the
+    /// `textDocument/publishDiagnostics` notification's parameter.
+    VersionSupport: bool option }
 
 type FoldingRangeCapabilities =
   { /// Whether implementation supports dynamic registration for folding range providers. If this is set to `true`
@@ -2239,6 +2241,10 @@ type Diagnostic =
 type PublishDiagnosticsParams =
   { /// The URI for which diagnostic information is reported.
     Uri: DocumentUri
+
+    /// Optional the version number of the document the diagnostics are published
+    /// for.
+    Version: int option
 
     /// An array of diagnostic information items.
     Diagnostics: Diagnostic [] }
