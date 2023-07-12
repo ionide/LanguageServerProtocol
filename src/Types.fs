@@ -982,12 +982,24 @@ type InlineValueClientCapabilities =
     /// value.
     ResolveSupport: ResolveSupport option }
 
+type PrepareSupportDefaultBehavior =
+  /// The client's default behavior is to select the identifier according to the
+  /// language's syntax rule.
+  | Identifier = 1
+
 type RenameClientCapabilities =
   { /// Whether rename supports dynamic registration.
     DynamicRegistration: bool option
+
     /// Client supports testing for validity of rename operations before execution.
     /// @since version 3.12.0
     PrepareSupport: bool option
+
+    /// Client supports the default behavior result
+    /// (`{ defaultBehavior: boolean }`).
+    /// The value indicates the default behavior used by the client.
+    PrepareSupportDefaultBehavior: PrepareSupportDefaultBehavior option
+
     /// Whether the client honors the change annotations in text edits and resource operations
     /// returned via the rename request's workspace edit by for example presenting the workspace
     /// edit in the user interface and asking for confirmation.
