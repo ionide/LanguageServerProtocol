@@ -2929,36 +2929,54 @@ type InlayHint =
 
 /// InlineValue Context
 type InlineValueContext =
-    {
-        /// The stack frame (as a DAP Id) where the execution has stopped.
-        FrameId: int
+    { /// The stack frame (as a DAP Id) where the execution has stopped.
+      FrameId: int
 
-        /// The document range where execution has stopped.
-        /// Typically the end position of the range denotes the line where the inline values are shown.
-        StoppedLocation: Range }
+      /// The document range where execution has stopped.
+      /// Typically the end position of the range denotes the line where the inline values are shown.
+      StoppedLocation: Range }
 
 /// A parameter literal used in inline value requests.
 type InlineValueParams = (*WorkDoneProgressParams &*)
   { /// The text document.
     TextDocument: TextDocumentIdentifier
     /// The visible document range for which inline values should be computed.
-    Range: Range 
+    Range: Range
     /// Additional information about the context in which inline values were requested
     Context: InlineValueContext }
 
 /// Provide inline value as text.
-type InlineValueText = 
-    {
-        /// The document range for which the inline value applies.
-        Range: Range
-        /// The text of the inline value.
-        Text: String
-    }
+type InlineValueText =
+    { /// The document range for which the inline value applies.
+      Range: Range
+      /// The text of the inline value.
+      Text: String }
+
+type InlineValueVariableLookup =
+  { /// The document range for which the inline value applies. The range is used
+    /// to extract the variable name from the underlying document.
+    Range: Range
+
+    /// If specified the name of the variable to look up.
+    VariableName: string option
+
+    /// How to perform the lookup.
+    CaseSensitiveLookup: bool }
+
+type InlineValueEvaluatableExpression =
+  { /// The document range for which the inline value applies. The range is used
+    /// to extract the evaluatable expression from the underlying document.
+    Range: Range
+
+    /// If specified the expression overrides the extracted expression.
+    Expression: string option }
 
 [<ErasedUnion>]
-[<RequireQualifiedAccess>]  
+[<RequireQualifiedAccess>]
 type InlineValue =
   | InlineValueText of InlineValueText
+  | InlineValueVariableLookup of InlineValueVariableLookup
+  | InlineValueEvaluatableExpression of InlineValueEvaluatableExpression
 
 
 type Moniker =
