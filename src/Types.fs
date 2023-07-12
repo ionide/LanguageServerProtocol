@@ -672,11 +672,19 @@ type CompletionCapabilities =
     /// `textDocument/completion` request.
     ContextSupport: bool option }
 
+type ParameterInformationCapability =
+  { /// The client supports processing label offsets instead of a simple label
+    /// string.
+    LabelOffsetSupport: bool option }
+
 type SignatureInformationCapabilities =
   { /// Client supports the follow content formats for the documentation
     /// property. The order describes the preferred format of the client.
     /// See `MarkupKind` for common values
-    DocumentationFormat: string [] option }
+    DocumentationFormat: string [] option
+
+    /// Client capabilities specific to parameter information.
+    ParameterInformation: ParameterInformationCapability option }
 
 type SignatureHelpCapabilities =
   { /// Whether signature help supports dynamic registration.
@@ -2489,9 +2497,15 @@ type CodeLens =
 /// Represents a parameter of a callable-signature. A parameter can
 /// have a label and a doc-comment.
 type ParameterInformation =
-  { /// The label of this parameter. Will be shown in
-    /// the UI.
-    Label: string
+  { /// The label of this parameter information.
+    /// Either a string or an inclusive start and exclusive end offsets within
+    /// its containing signature label. (see SignatureInformation.label). The
+    /// offsets are based on a UTF-16 string representation as `Position` and
+    /// `Range` does.
+    /// *Note*: a label of type string should be a substring of its containing
+    /// signature label. Its intended use case is to highlight the parameter
+    /// label part in the `SignatureInformation.label`.
+    Label: U2<string, (uint * uint)>
 
     /// The human-readable doc-comment of this parameter. Will be shown
     /// in the UI but can be omitted.
