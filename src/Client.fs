@@ -118,6 +118,11 @@ type ILspClient =
   /// on the client side.
   abstract member TextDocumentPublishDiagnostics: PublishDiagnosticsParams -> Async<unit>
 
+  /// The workspace/diagnostic/refresh request is sent from the server to the client. Servers can use it to
+  /// ask clients to refresh all needed document and workspace diagnostics. This is useful if a server detects
+  /// a project wide configuration change which requires a re-calculation of all diagnostics.
+  abstract member WorkspaceDiagnosticRefresh: unit -> Async<unit>
+
   /// The window/workDoneProgress/create request is sent from the server to the client to ask the client to create a work done progress.
   abstract member WorkDoneProgressCreate: ProgressToken -> AsyncLspResult<unit>
 
@@ -255,6 +260,13 @@ type LspClient() =
 
   default __.TextDocumentPublishDiagnostics(_) = ignoreNotification
 
+  /// The workspace/diagnostic/refresh request is sent from the server to the client. Servers can use it to
+  /// ask clients to refresh all needed document and workspace diagnostics. This is useful if a server detects
+  /// a project wide configuration change which requires a re-calculation of all diagnostics.
+  abstract member WorkspaceDiagnosticRefresh: unit -> Async<unit>
+
+  default __.WorkspaceDiagnosticRefresh() = ignoreNotification
+
   abstract member Progress: ProgressToken * 'Progress -> Async<unit>
 
   default __.Progress(_, _) = ignoreNotification
@@ -278,5 +290,6 @@ type LspClient() =
     member this.WorkspaceCodeLensRefresh() = this.WorkspaceCodeLensRefresh()
     member this.WorkspaceInlineValueRefresh() = this.WorkspaceInlineValueRefresh()
     member this.TextDocumentPublishDiagnostics(p: PublishDiagnosticsParams) = this.TextDocumentPublishDiagnostics(p)
+    member this.WorkspaceDiagnosticRefresh() = this.WorkspaceDiagnosticRefresh()
     member this.WorkDoneProgressCreate(token: ProgressToken) = this.WorkDoneProgressCreate(token)
     member this.Progress(token, data) = this.Progress(token, data)

@@ -410,7 +410,8 @@ type MultipleTypesBenchmarks() =
                   ExecuteCommand = None
                   WorkspaceFolders = None
                   Configuration = None
-                  FileOperations = None }
+                  FileOperations = None
+                  Diagnostics = None }
             TextDocument =
               Some
                 { Synchronization =

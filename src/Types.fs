@@ -451,6 +451,15 @@ type DidChangeWatchedFilesClientCapabilities =
     /// Whether the client has support for relative patterns or not.
     RelativePatternSupport: bool option }
 
+type DiagnosticWorkspaceClientCapabilities =
+  { /// Whether the client implementation supports a refresh request sent from
+    /// the server to the client.
+    /// Note that this event is global and will force the client to refresh all
+    /// pulled diagnostics currently shown. It should be used with absolute care
+    /// and is useful for situation where a server for example detects a project
+    /// wide change that requires such a calculation.
+    RefreshSupport: bool option }
+
 /// Workspace specific client capabilities.
 type WorkspaceClientCapabilities =
   { /// The client supports applying batch edits to the workspace by supporting
@@ -501,7 +510,10 @@ type WorkspaceClientCapabilities =
     CodeLens: CodeLensWorkspaceClientCapabilities option
 
     /// The client has support for file requests/notifications.
-    FileOperations: WorkspaceFileOperationsClientCapabilities option }
+    FileOperations: WorkspaceFileOperationsClientCapabilities option
+
+    /// Client workspace capabilities specific to diagnostics.
+    Diagnostics: DiagnosticWorkspaceClientCapabilities option }
 
 type SynchronizationCapabilities =
   { /// Whether text document synchronization supports dynamic registration.
