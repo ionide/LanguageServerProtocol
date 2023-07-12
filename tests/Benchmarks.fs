@@ -406,7 +406,11 @@ type MultipleTypesBenchmarks() =
                   SemanticTokens = Some { RefreshSupport = Some true }
                   InlayHint = Some { RefreshSupport = Some false }
                   InlineValue = Some { RefreshSupport = Some false }
-                  CodeLens = Some { RefreshSupport = Some true } }
+                  CodeLens = Some { RefreshSupport = Some true }
+                  ExecuteCommand = None
+                  WorkspaceFolders = None
+                  Configuration = None
+                  FileOperations = None }
             TextDocument =
               Some
                 { Synchronization =

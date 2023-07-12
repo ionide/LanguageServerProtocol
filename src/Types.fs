@@ -419,6 +419,29 @@ type CodeLensWorkspaceClientCapabilities =
     /// change that requires such a calculation.
     RefreshSupport: bool option }
 
+type WorkspaceFileOperationsClientCapabilities =
+  { /// Whether the client supports dynamic registration for file
+    /// requests/notifications.
+    DynamicRegistration: bool option
+
+    /// The client has support for sending didCreateFiles notifications.
+    DidCreate: bool option
+
+    /// The client has support for sending willCreateFiles requests.
+    WillCreate: bool option
+
+    /// The client has support for sending didRenameFiles notifications.
+    DidRename: bool option
+
+    /// The client has support for sending willRenameFiles requests.
+    WillRename: bool option
+
+    /// The client has support for sending didDeleteFiles notifications.
+    DidDelete: bool option
+
+    /// The client has support for sending willDeleteFiles requests.
+    WillDelete: bool option }
+
 /// Workspace specific client capabilities.
 type WorkspaceClientCapabilities =
   { /// The client supports applying batch edits to the workspace by supporting
@@ -436,6 +459,15 @@ type WorkspaceClientCapabilities =
 
     /// Capabilities specific to the `workspace/symbol` request.
     Symbol: SymbolCapabilities option
+
+    /// Capabilities specific to the `workspace/executeCommand` request.
+    ExecuteCommand: DynamicCapabilities option
+
+    /// The client has support for workspace folders.
+    WorkspaceFolders: bool option
+
+    /// The client supports `workspace/configuration` requests.
+    Configuration: bool option
 
     /// Capabilities specific to the semantic token requests scoped to the
     /// workspace.
@@ -457,7 +489,10 @@ type WorkspaceClientCapabilities =
     /// Client workspace capabilities specific to code lenses.
     ///
     /// @since 3.16.0
-    CodeLens: CodeLensWorkspaceClientCapabilities option }
+    CodeLens: CodeLensWorkspaceClientCapabilities option
+
+    /// The client has support for file requests/notifications.
+    FileOperations: WorkspaceFileOperationsClientCapabilities option }
 
 type SynchronizationCapabilities =
   { /// Whether text document synchronization supports dynamic registration.
