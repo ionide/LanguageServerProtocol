@@ -1687,6 +1687,29 @@ type ShowMessageRequestParams =
     /// The message action items to present.
     Actions: MessageActionItem [] option }
 
+type ShowDocumentParams =
+  { /// The uri to show.
+    Uri: DocumentUri
+
+    /// Indicates to show the resource in an external program. To show, for
+    /// example, `https://code.visualstudio.com/` in the default WEB browser set
+    /// `external` to `true`.
+    External: bool option
+
+    /// An optional property to indicate whether the editor showing the document
+    /// should take focus or not.  Clients might ignore this property if an
+    /// external program is started.
+    TakeFocus: bool option
+
+    /// An optional selection range if the document is a text document. Clients
+    /// might ignore the property if an external program is started or the file
+    /// is not a text file.
+    Selection: Range option }
+
+type ShowDocumentResult =
+  { /// A boolean indicating if the show was successful.
+    Success: bool option }
+
 /// General parameters to register for a capability.
 type Registration =
   { /// The id used to register the request. The id can be used to deregister

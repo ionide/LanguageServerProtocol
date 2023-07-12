@@ -27,6 +27,10 @@ type ILspClient =
   ///a particular message.
   abstract member WindowLogMessage: LogMessageParams -> Async<unit>
 
+  /// The show document request is sent from a server to a client to ask the client to display a particular
+  /// resource referenced by a URI in the user interface.
+  abstract member WindowShowDocument: ShowDocumentParams -> AsyncLspResult<ShowDocumentResult>
+
   /// The telemetry notification is sent from the server to the client to ask the client to log
   /// a telemetry event.
   abstract member TelemetryEvent: Newtonsoft.Json.Linq.JToken -> Async<unit>
@@ -154,6 +158,12 @@ type LspClient() =
 
   default __.WindowLogMessage(_) = ignoreNotification
 
+  /// The show document request is sent from a server to a client to ask the client to display a particular
+  /// resource referenced by a URI in the user interface.
+  abstract member WindowShowDocument: ShowDocumentParams -> AsyncLspResult<ShowDocumentResult>
+
+  default __.WindowShowDocument(_) = notImplemented
+
   /// The telemetry notification is sent from the server to the client to ask the client to log
   /// a telemetry event.
   abstract member TelemetryEvent: Newtonsoft.Json.Linq.JToken -> Async<unit>
@@ -279,6 +289,7 @@ type LspClient() =
     member this.WindowShowMessage(p: ShowMessageParams) = this.WindowShowMessage(p)
     member this.WindowShowMessageRequest(p: ShowMessageRequestParams) = this.WindowShowMessageRequest(p)
     member this.WindowLogMessage(p: LogMessageParams) = this.WindowLogMessage(p)
+    member this.WindowShowDocument(p: ShowDocumentParams) = this.WindowShowDocument(p)
     member this.TelemetryEvent(p: Newtonsoft.Json.Linq.JToken) = this.TelemetryEvent(p)
     member this.ClientRegisterCapability(p: RegistrationParams) = this.ClientRegisterCapability(p)
     member this.ClientUnregisterCapability(p: UnregistrationParams) = this.ClientUnregisterCapability(p)
