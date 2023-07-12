@@ -486,7 +486,9 @@ type MultipleTypesBenchmarks() =
                           |> fun s -> s.Split(' ')
                         Formats = [| TokenFormat.Relative |]
                         OverlappingTokenSupport = Some false
-                        MultilineTokenSupport = Some true }
+                        MultilineTokenSupport = Some true
+                        ServerCancelSupport = None
+                        AugmentsSyntaxTokens = None }
                   TypeHierarchy = Some { DynamicRegistration = None }
                   Moniker = Some { DynamicRegistration = None }
                   InlineValue = Some { DynamicRegistration = None }
