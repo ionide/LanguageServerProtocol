@@ -432,7 +432,8 @@ type MultipleTypesBenchmarks() =
                           Some
                             { DocumentationFormat = None
                               ParameterInformation = None
-                              ActiveParameterSupport = None } }
+                              ActiveParameterSupport = None }
+                        ContextSupport = None }
                   Declaration =
                     Some
                       { DynamicRegistration = Some false

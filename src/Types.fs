@@ -696,7 +696,13 @@ type SignatureHelpCapabilities =
 
     /// The client supports the following `SignatureInformation`
     /// specific properties.
-    SignatureInformation: SignatureInformationCapabilities option }
+    SignatureInformation: SignatureInformationCapabilities option
+
+    /// The client supports to send additional context information for a
+    /// `textDocument/signatureHelp` request. A client that opts into
+    /// contextSupport will also support the `retriggerCharacters` on
+    /// `SignatureHelpOptions`.
+    ContextSupport: bool option }
 
 /// capabilities specific to the `textDocument/documentSymbol`
 type DocumentSymbolCapabilities =
