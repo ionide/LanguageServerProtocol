@@ -1434,8 +1434,7 @@ type WorkspaceFoldersServerCapabilities =
   { /// The server has support for workspace folders.
     Supported: bool option
     /// Whether the server wants to receive workspace folder change notifications.
-    /// NOTE: the spec allows a string value here too. Good opportunity for further modeling.
-    ChangeNotifications: bool option }
+    ChangeNotifications: U2<string, bool> option }
   static member Default = { Supported = None; ChangeNotifications = None }
 
 module FileOperationPatternKind =
