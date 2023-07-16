@@ -986,6 +986,14 @@ type InlayHintClientCapabilities =
     /// hint.
     ResolveSupport: ResolveSupport option }
 
+type DiagnosticCapabilities =
+  { /// Whether implementation supports dynamic registration. If this is set to `true` the client supports the new
+    /// `(TextDocumentRegistrationOptions & StaticRegistrationOptions)` return value for the corresponding server
+    /// capability as well.
+    DynamicRegistration: bool option
+
+    /// Whether the clients supports related documents for document diagnostic pulls.
+    RelatedDocumentSupport: bool option }
 
 
 /// Inline value client capabilities.
@@ -1121,7 +1129,10 @@ type TextDocumentClientCapabilities =
     /// Capabilities specific to the `textDocument/inlayHint` request.
     ///
     /// @since 3.17.0
-    InlayHint: InlayHintClientCapabilities option }
+    InlayHint: InlayHintClientCapabilities option
+
+    /// Capabilities specific to the diagnostic pull model.
+    Diagnostic: DiagnosticCapabilities option }
 
 /// Client capabilities for the showDocument request.
 ///
@@ -1407,6 +1418,18 @@ type InlineValueOptions =
   { /// The server provides support to resolve additional information for aniline lay hint item.
     ResolveProvider: bool option }
 
+type DiagnosticOptions =
+  { /// An optional identifier under which the diagnostics are managed by the client.
+    Identifier: string option
+
+    /// Whether the language has inter file dependencies meaning that editing code in one file can result in a different
+    /// diagnostic set in another file. Inter file dependencies are common for most programming languages and typically
+    /// uncommon for linters.
+    InterFileDependencies: bool
+
+    /// The server provides support for workspace diagnostics as well.
+    WorkspaceDiagnostics: bool }
+
 type WorkspaceFoldersServerCapabilities =
   { /// The server has support for workspace folders.
     Supported: bool option
@@ -1581,10 +1604,11 @@ type ServerCapabilities =
     /// The server provides inline values.
     InlineValueProvider: InlineValueOptions option
 
-    /// Workspace specific server capabilities.
-    Workspace: WorkspaceServerCapabilities option
+    /// The server has support for pull model diagnostics.
+    DiagnosticProvider: DiagnosticOptions option
 
-   }
+    /// Workspace specific server capabilities.
+    Workspace: WorkspaceServerCapabilities option }
   static member Default =
     { PositionEncoding = None
       TextDocumentSync = None
@@ -1618,6 +1642,7 @@ type ServerCapabilities =
       TypeHierarchyProvider = None
       InlayHintProvider = None
       InlineValueProvider = None
+      DiagnosticProvider = None
       Workspace = None }
 
 type ServerInfo =
@@ -2375,6 +2400,130 @@ type PublishDiagnosticsParams =
 
     /// An array of diagnostic information items.
     Diagnostics: Diagnostic [] }
+
+
+type DocumentDiagnosticParams =
+  { /// The text document.
+    TextDocument: TextDocumentIdentifier
+
+    /// The additional identifier provided during registration.
+    Identifier: string option
+
+    /// The result id of a previous response if provided.
+    PreviousResultId: string option }
+
+type FullDocumentDiagnosticReport =
+  { /// A full document diagnostic report.
+    Kind: string
+
+    /// An optional result id. If provided it will be sent on the next
+    /// diagnostic request for the same document.
+    ResultId: string option
+
+    /// The actual items.
+    Items: Diagnostic [] }
+
+type UnchangedDocumentDiagnosticReport =
+  { ///  A document diagnostic report indicating no changes to the last result.
+    /// A server can only return `unchanged` if result ids are provided.
+    Kind: string
+
+    /// A result id which will be sent on the next diagnostic request for the
+    /// same document.
+    ResultId: string }
+
+type RelatedFullDocumentDiagnosticReport =
+  { /// A full document diagnostic report.
+    Kind: string
+
+    /// An optional result id. If provided it will be sent on the next
+    /// diagnostic request for the same document.
+    ResultId: string option
+
+    /// The actual items.
+    Items: Diagnostic []
+
+    /// Diagnostics of related documents. This information is useful in
+    /// programming languages where code in a file A can generate diagnostics in
+    /// a file B which A depends on. An example of such a language is C/C++
+    /// where marco definitions in a file a.cpp and result in errors in a header
+    /// file b.hpp.
+    RelatedDocuments: Map<DocumentUri, U2<FullDocumentDiagnosticReport, UnchangedDocumentDiagnosticReport>> option }
+
+type RelatedUnchangedDocumentDiagnosticReport =
+  { ///  A document diagnostic report indicating no changes to the last result.
+    /// A server can only return `unchanged` if result ids are provided.
+    Kind: string
+
+    /// A result id which will be sent on the next diagnostic request for the
+    /// same document.
+    ResultId: string
+
+    /// Diagnostics of related documents. This information is useful in
+    /// programming languages where code in a file A can generate diagnostics in
+    /// a file B which A depends on. An example of such a language is C/C++
+    /// where marco definitions in a file a.cpp and result in errors in a header
+    /// file b.hpp.
+    RelatedDocuments: Map<DocumentUri, U2<FullDocumentDiagnosticReport, UnchangedDocumentDiagnosticReport>> option }
+
+type DocumentDiagnosticReport =
+  | RelatedFullDocumentDiagnosticReport of RelatedFullDocumentDiagnosticReport
+  | RelatedUnchangedDocumentDiagnosticReport of RelatedUnchangedDocumentDiagnosticReport
+
+type PreviousResultId =
+  { /// The URI for which the client knows a result id.
+    Uri: DocumentUri
+
+    /// The value of the previous result id.
+    Value: string }
+
+type WorkspaceDiagnosticParams =
+  { /// The additional identifier provided during registration.
+    Identifier: string option
+
+    /// The currently known diagnostic reports with their previous result ids.
+    PreviousResultIds: PreviousResultId [] }
+
+type WorkspaceFullDocumentDiagnosticReport =
+  { /// A full document diagnostic report.
+    Kind: string
+
+    /// An optional result id. If provided it will be sent on the next
+    /// diagnostic request for the same document.
+    ResultId: string option
+
+    /// The actual items.
+    Items: Diagnostic []
+
+    /// The URI for which diagnostic information is reported.
+    Uri: DocumentUri
+
+    /// The version number for which the diagnostics are reported. If the
+    /// document is not marked as open `null` can be provided.
+    Version: int option }
+
+type WorkspaceUnchangedDocumentDiagnosticReport =
+  { ///  A document diagnostic report indicating no changes to the last result.
+    /// A server can only return `unchanged` if result ids are provided.
+    Kind: string
+
+    /// A result id which will be sent on the next diagnostic request for the
+    /// same document.
+    ResultId: string
+
+    /// The URI for which diagnostic information is reported.
+    Uri: DocumentUri
+
+    /// The version number for which the diagnostics are reported. If the
+    /// document is not marked as open `null` can be provided.
+    Version: int option }
+
+type WorkspaceDocumentDiagnosticReport =
+  | WorkspaceFullDocumentDiagnosticReport of WorkspaceFullDocumentDiagnosticReport
+  | WorkspaceUnchangedDocumentDiagnosticReport of WorkspaceUnchangedDocumentDiagnosticReport
+
+type WorkspaceDiagnosticReport = { Items: WorkspaceDocumentDiagnosticReport [] }
+
 
 type CodeActionDisabled =
   { /// Human readable description of why the code action is currently

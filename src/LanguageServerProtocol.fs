@@ -246,6 +246,7 @@ module Server =
       "textDocument/inlayHint", requestHandling (fun s p -> s.TextDocumentInlayHint(p))
       "inlayHint/resolve", requestHandling (fun s p -> s.InlayHintResolve(p))
       "textDocument/inlineValue", requestHandling (fun s p -> s.TextDocumentInlineValue(p))
+      "textDocument/diagnostic", requestHandling (fun s p -> s.TextDocumentDiagnostic(p))
       "workspace/didChangeWatchedFiles",
       requestHandling (fun s p -> s.WorkspaceDidChangeWatchedFiles(p) |> notificationSuccess)
       "workspace/didChangeWorkspaceFolders",
@@ -264,6 +265,7 @@ module Server =
       "workspaceSymbol/resolve", requestHandling (fun s p -> s.WorkspaceSymbolResolve(p))
       "workspace/executeCommand", requestHandling (fun s p -> s.WorkspaceExecuteCommand(p))
       "window/workDoneProgress/cancel", requestHandling (fun s p -> s.WorkDoneProgessCancel(p) |> notificationSuccess)
+      "workspace/diagnostic", requestHandling (fun s p -> s.WorkspaceDiagnostic(p))
       "shutdown", requestHandling (fun s () -> s.Shutdown() |> notificationSuccess)
       "exit", requestHandling (fun s () -> s.Exit() |> notificationSuccess) ]
     |> Map.ofList

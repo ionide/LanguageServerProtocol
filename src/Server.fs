@@ -367,6 +367,19 @@ type ILspServer =
   /// `textDocument/prepareTypeHierarchy` request.
   abstract member TypeHierarchySubtypes: TypeHierarchySubtypesParams -> AsyncLspResult<TypeHierarchyItem [] option>
 
+  /// The text document diagnostic request is sent from the client to the server to ask the server to compute
+  /// the diagnostics for a given document. As with other pull requests the server is asked to compute the
+  /// diagnostics for the currently synced version of the document.
+  abstract member TextDocumentDiagnostic: DocumentDiagnosticParams -> AsyncLspResult<DocumentDiagnosticReport>
+
+  /// The workspace diagnostic request is sent from the client to the server to ask the server to compute
+  /// workspace wide diagnostics which previously where pushed from the server to the client. In contrast to
+  /// the document diagnostic request the workspace request can be long running and is not bound to a specific
+  /// workspace or document state. If the client supports streaming for the workspace diagnostic pull it is
+  /// legal to provide a document diagnostic report multiple times for the same document URI. The last one
+  /// reported will win over previous reports.
+  abstract member WorkspaceDiagnostic: WorkspaceDiagnosticParams -> AsyncLspResult<WorkspaceDiagnosticReport>
+
 [<AbstractClass>]
 type LspServer() =
   abstract member Dispose: unit -> unit
@@ -793,6 +806,23 @@ type LspServer() =
   abstract member TypeHierarchySubtypes: TypeHierarchySubtypesParams -> AsyncLspResult<TypeHierarchyItem [] option>
   default __.TypeHierarchySubtypes(_) = notImplemented
 
+  /// The text document diagnostic request is sent from the client to the server to ask the server to compute
+  /// the diagnostics for a given document. As with other pull requests the server is asked to compute the
+  /// diagnostics for the currently synced version of the document.
+  abstract member TextDocumentDiagnostic: DocumentDiagnosticParams -> AsyncLspResult<DocumentDiagnosticReport>
+
+  default __.TextDocumentDiagnostic(_) = notImplemented
+
+  /// The workspace diagnostic request is sent from the client to the server to ask the server to compute
+  /// workspace wide diagnostics which previously where pushed from the server to the client. In contrast to
+  /// the document diagnostic request the workspace request can be long running and is not bound to a specific
+  /// workspace or document state. If the client supports streaming for the workspace diagnostic pull it is
+  /// legal to provide a document diagnostic report multiple times for the same document URI. The last one
+  /// reported will win over previous reports.
+  abstract member WorkspaceDiagnostic: WorkspaceDiagnosticParams -> AsyncLspResult<WorkspaceDiagnosticReport>
+
+  default __.WorkspaceDiagnostic(_) = notImplemented
+
   interface ILspServer with
     member this.Dispose() = this.Dispose()
     member this.Initialize(p: InitializeParams) = this.Initialize(p)
@@ -868,3 +898,5 @@ type LspServer() =
     member this.TextDocumentPrepareTypeHierarchy(p: TypeHierarchyPrepareParams) = this.TextDocumentPrepareTypeHierarchy(p)
     member this.TypeHierarchySupertypes(p: TypeHierarchySupertypesParams) = this.TypeHierarchySupertypes(p)
     member this.TypeHierarchySubtypes(p: TypeHierarchySubtypesParams) = this.TypeHierarchySubtypes(p)
+    member this.TextDocumentDiagnostic(p: DocumentDiagnosticParams) = this.TextDocumentDiagnostic(p)
+    member this.WorkspaceDiagnostic(p: WorkspaceDiagnosticParams) = this.WorkspaceDiagnostic(p)

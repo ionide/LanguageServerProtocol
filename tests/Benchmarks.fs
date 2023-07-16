@@ -513,7 +513,11 @@ type MultipleTypesBenchmarks() =
                   InlayHint =
                     Some
                       { DynamicRegistration = Some true
-                        ResolveSupport = Some { Properties = [| "Tooltip"; "Position"; "TextEdits" |] } } }
+                        ResolveSupport = Some { Properties = [| "Tooltip"; "Position"; "TextEdits" |] } }
+                  Diagnostic =
+                    Some
+                      { DynamicRegistration = None
+                        RelatedDocumentSupport = None } }
             General = None
             Experimental = None
             Window = None }
