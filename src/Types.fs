@@ -744,7 +744,11 @@ type DocumentSymbolCapabilities =
     /// The client supports tags on `SymbolInformation`. Tags are supported on
     /// `DocumentSymbol` if `hierarchicalDocumentSymbolSupport` is set to true.
     /// Clients supporting tags have to handle unknown tags gracefully.
-    TagSupport: SymbolTagSupport option }
+    TagSupport: SymbolTagSupport option
+
+    /// The client supports an additional label presented in the UI when
+    /// registering a document symbol provider.
+    LabelSupport: bool option }
 
 module CodeActionKind =
   /// Empty kind.
@@ -1327,6 +1331,12 @@ type SignatureHelpOptions =
     /// All trigger characters are also counted as re-trigger characters.
     RetriggerCharacters: char [] option }
 
+  /// Document Symbol options
+type DocumentSymbolOptions =
+  { /// A human-readable string that is shown when multiple outlines trees are
+    /// shown for the same document.
+    Label: string option }
+
 /// Code action options.
 type CodeActionOptions =
   { /// CodeActionKinds that this server may return.
@@ -1540,7 +1550,7 @@ type ServerCapabilities =
     DocumentHighlightProvider: bool option
 
     /// The server provides document symbol support.
-    DocumentSymbolProvider: bool option
+    DocumentSymbolProvider: U2<bool, DocumentSymbolOptions> option
 
     /// The server provides workspace symbol support.
     WorkspaceSymbolProvider: U2<bool, WorkspaceSymbolOptions> option
