@@ -3242,6 +3242,27 @@ type InlineValue =
   | InlineValueEvaluatableExpression of InlineValueEvaluatableExpression
 
 
+module UniquenessLevel =
+  /// The moniker is only unique inside a document
+  let Document = "document"
+  /// The moniker is unique inside a project for which a dump got created
+  let Project = "project"
+  /// The moniker is unique inside the group to which a project belongs
+  let Group = "group"
+  /// The moniker is unique inside the moniker scheme.
+  let Scheme = "scheme"
+  /// The moniker is globally unique
+  let Global = "global"
+
+module MonikerKind =
+  /// The moniker represent a symbol that is imported into a project
+  let Import = "import"
+  /// The moniker represents a symbol that is exported from a project
+  let Export = "export"
+  /// The moniker represents a symbol that is local to a project (e.g. a local
+  /// variable of a function, a class not visible outside the project, ...)
+  let Local = "local"
+
 type Moniker =
   { /// The scheme of the moniker. For example tsc or .Net
     Scheme: string
