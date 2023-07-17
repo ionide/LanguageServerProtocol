@@ -199,7 +199,7 @@ type ILspServer =
   /// returned to describe valid contents. A rename to one of the ranges can be applied to all other ranges if the new
   /// content is valid. If no result-specific word pattern is provided, the word pattern from the client’s language
   /// configuration is used.
-  abstract member TextDocumentLinkedEditingRange: TextDocumentPositionParams -> AsyncLspResult<LinkedEditingRanges>
+  abstract member TextDocumentLinkedEditingRange: TextDocumentPositionParams -> AsyncLspResult<LinkedEditingRanges option>
 
 
   /// The watched files notification is sent from the client to the server when the client detects changes
@@ -603,7 +603,7 @@ type LspServer() =
   /// returned to describe valid contents. A rename to one of the ranges can be applied to all other ranges if the new
   /// content is valid. If no result-specific word pattern is provided, the word pattern from the client’s language
   /// configuration is used.
-  abstract member TextDocumentLinkedEditingRange: TextDocumentPositionParams -> AsyncLspResult<LinkedEditingRanges>
+  abstract member TextDocumentLinkedEditingRange: TextDocumentPositionParams -> AsyncLspResult<LinkedEditingRanges option>
 
   default __.TextDocumentLinkedEditingRange(_) = notImplemented
 
