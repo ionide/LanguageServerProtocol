@@ -2421,6 +2421,12 @@ type DocumentDiagnosticParams =
     /// The result id of a previous response if provided.
     PreviousResultId: string option }
 
+module DocumentDiagnosticReportKind =
+  /// A diagnostic report with a full set of problems.
+  let Full = "full"
+  /// A report indicating that the last returned report is still accurate.
+  let Unchanged = "unchanged"
+
 type FullDocumentDiagnosticReport =
   { /// A full document diagnostic report.
     Kind: string
