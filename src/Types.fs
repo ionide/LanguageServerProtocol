@@ -1742,7 +1742,7 @@ type ShowDocumentParams =
 
 type ShowDocumentResult =
   { /// A boolean indicating if the show was successful.
-    Success: bool option }
+    Success: bool }
 
 /// General parameters to register for a capability.
 type Registration =
