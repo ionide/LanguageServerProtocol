@@ -123,6 +123,17 @@ type VersionedTextDocumentIdentifier =
   { /// The text document's URI.
     Uri: DocumentUri
 
+    /// The version number of this document.
+    /// The version number of a document will increase after each change,
+    /// including undo/redo. The number doesn't need to be consecutive.
+    Version: int }
+  interface ITextDocumentIdentifier with
+    member this.Uri = this.Uri
+
+type OptionalVersionedTextDocumentIdentifier =
+  { /// The text document's URI.
+    Uri: DocumentUri
+
     /// The version number of this document. If a versioned text document identifier
     /// is sent from the server to the client and the file is not open in the editor
     /// (the server has not received an open notification before) the server can send
@@ -270,7 +281,7 @@ type TextEdit =
 /// kind of ordering. However the edits must be non overlapping.
 type TextDocumentEdit =
   { /// The text document to change.
-    TextDocument: VersionedTextDocumentIdentifier
+    TextDocument: OptionalVersionedTextDocumentIdentifier
 
     /// The edits to be applied.
     Edits: TextEdit [] }
