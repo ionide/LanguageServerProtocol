@@ -1570,8 +1570,10 @@ type ServerCapabilities =
     /// The server provides workspace symbol support.
     WorkspaceSymbolProvider: U2<bool, WorkspaceSymbolOptions> option
 
-    /// The server provides code actions.
-    CodeActionProvider: CodeActionOptions option
+    /// The server provides code actions. The `CodeActionOptions` return type is
+    /// only valid if the client signals code action literal support via the
+    /// property `textDocument.codeAction.codeActionLiteralSupport`.
+    CodeActionProvider: U2<bool, CodeActionOptions> option
 
     /// The server provides code lens.
     CodeLensProvider: CodeLensOptions option
