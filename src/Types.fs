@@ -1587,7 +1587,9 @@ type ServerCapabilities =
     /// The server provides document formatting on typing.
     DocumentOnTypeFormattingProvider: DocumentOnTypeFormattingOptions option
 
-    /// The server provides rename support.
+    /// The server provides rename support. RenameOptions may only be specified
+    /// if the client states that it supports `prepareSupport` in its initial
+    /// `initialize` request.
     RenameProvider: U2<bool, RenameOptions> option
 
     /// The server provides document link support.
@@ -1835,7 +1837,8 @@ type ConfigurationParams = { items: ConfigurationItem [] }
 
 /// The parameters of a Workspace Symbol Request.
 type WorkspaceSymbolParams =
-  { /// A non-empty query string
+  { /// A query string to filter symbols by. Clients may send an empty string
+    /// here to request all symbols.
     Query: string }
 
 type ExecuteCommandParams =
