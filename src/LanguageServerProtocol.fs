@@ -207,6 +207,7 @@ module Server =
       "completionItem/resolve", requestHandling (fun s p -> s.CompletionItemResolve(p))
       "textDocument/rename", requestHandling (fun s p -> s.TextDocumentRename(p))
       "textDocument/prepareRename", requestHandling (fun s p -> s.TextDocumentPrepareRename(p))
+      "textDocument/declaration", requestHandling (fun s p -> s.TextDocumentDeclaration(p))
       "textDocument/definition", requestHandling (fun s p -> s.TextDocumentDefinition(p))
       "textDocument/typeDefinition", requestHandling (fun s p -> s.TextDocumentTypeDefinition(p))
       "textDocument/implementation", requestHandling (fun s p -> s.TextDocumentImplementation(p))
@@ -229,6 +230,8 @@ module Server =
       "textDocument/didSave", requestHandling (fun s p -> s.TextDocumentDidSave(p) |> notificationSuccess)
       "textDocument/didClose", requestHandling (fun s p -> s.TextDocumentDidClose(p) |> notificationSuccess)
       "textDocument/documentSymbol", requestHandling (fun s p -> s.TextDocumentDocumentSymbol(p))
+      "textDocument/moniker", requestHandling (fun s p -> s.TextDocumentMoniker(p))
+      "textDocument/linkedEditingRange", requestHandling (fun s p -> s.TextDocumentLinkedEditingRange(p))
       "textDocument/foldingRange", requestHandling (fun s p -> s.TextDocumentFoldingRange(p))
       "textDocument/selectionRange", requestHandling (fun s p -> s.TextDocumentSelectionRange(p))
       "textDocument/prepareCallHierarchy", requestHandling(fun s p -> s.TextDocumentPrepareCallHierarchy(p))
@@ -243,6 +246,7 @@ module Server =
       "textDocument/inlayHint", requestHandling (fun s p -> s.TextDocumentInlayHint(p))
       "inlayHint/resolve", requestHandling (fun s p -> s.InlayHintResolve(p))
       "textDocument/inlineValue", requestHandling (fun s p -> s.TextDocumentInlineValue(p))
+      "textDocument/diagnostic", requestHandling (fun s p -> s.TextDocumentDiagnostic(p))
       "workspace/didChangeWatchedFiles",
       requestHandling (fun s p -> s.WorkspaceDidChangeWatchedFiles(p) |> notificationSuccess)
       "workspace/didChangeWorkspaceFolders",
@@ -258,8 +262,10 @@ module Server =
       "workspace/willDeleteFiles", requestHandling (fun s p -> s.WorkspaceWillDeleteFiles(p))
       "workspace/didDeleteFiles", requestHandling (fun s p -> s.WorkspaceDidDeleteFiles(p) |> notificationSuccess)
       "workspace/symbol", requestHandling (fun s p -> s.WorkspaceSymbol(p))
+      "workspaceSymbol/resolve", requestHandling (fun s p -> s.WorkspaceSymbolResolve(p))
       "workspace/executeCommand", requestHandling (fun s p -> s.WorkspaceExecuteCommand(p))
       "window/workDoneProgress/cancel", requestHandling (fun s p -> s.WorkDoneProgessCancel(p) |> notificationSuccess)
+      "workspace/diagnostic", requestHandling (fun s p -> s.WorkspaceDiagnostic(p))
       "shutdown", requestHandling (fun s () -> s.Shutdown() |> notificationSuccess)
       "exit", requestHandling (fun s () -> s.Exit() |> notificationSuccess) ]
     |> Map.ofList

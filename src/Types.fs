@@ -123,6 +123,17 @@ type VersionedTextDocumentIdentifier =
   { /// The text document's URI.
     Uri: DocumentUri
 
+    /// The version number of this document.
+    /// The version number of a document will increase after each change,
+    /// including undo/redo. The number doesn't need to be consecutive.
+    Version: int }
+  interface ITextDocumentIdentifier with
+    member this.Uri = this.Uri
+
+type OptionalVersionedTextDocumentIdentifier =
+  { /// The text document's URI.
+    Uri: DocumentUri
+
     /// The version number of this document. If a versioned text document identifier
     /// is sent from the server to the client and the file is not open in the editor
     /// (the server has not received an open notification before) the server can send
@@ -174,6 +185,13 @@ type SymbolInformation =
     /// The kind of this symbol.
     Kind: SymbolKind
 
+    /// Tags for this symbol.
+    Tags: SymbolTag [] option
+
+    /// Indicates if this symbol is deprecated.
+    /// @deprecated Use tags instead
+    Deprecated: bool option
+
     /// The location of this symbol. The location's range is used by a tool
     /// to reveal the location in the editor. If the symbol is selected in the
     /// tool the range's start information is used to position the cursor. So
@@ -204,6 +222,11 @@ type DocumentSymbol =
     Detail: string option
     /// The kind of this symbol.
     Kind: SymbolKind
+    /// tags for this document symbol.
+    Tags: SymbolTag [] option
+    /// Indicates if this symbol is deprecated.
+    /// @deprecated Use tags instead
+    Deprecated: bool option
     /// The range enclosing this symbol not including leading/trailing whitespace
     /// but everything else like comments. This information is typically used to
     /// determine if the clients cursor is inside the symbol to reveal in the
@@ -214,6 +237,32 @@ type DocumentSymbol =
     SelectionRange: Range
     /// Children of this symbol, e.g. properties of a class.
     Children: DocumentSymbol [] option }
+
+type WorkspaceSymbol =
+  { /// The name of this symbol.
+    Name: string
+
+    /// The kind of this symbol.
+    Kind: SymbolKind
+
+    /// Tags for this completion item.
+    Tags: SymbolTag [] option
+
+    /// The name of the symbol containing this symbol. This information is for
+    /// user interface purposes (e.g. to render a qualifier in the user
+    /// interface if necessary). It can't be used to re-infer a hierarchy for
+    /// the document symbols.
+    ContainerName: string option
+
+    /// The location of this symbol. Whether a server is allowed to return a
+    /// location without a range depends on the client capability
+    /// `workspace.symbol.resolveSupport`.
+    /// See also `SymbolInformation.location`.
+    Location: U2<Location, TextDocumentIdentifier>
+
+    /// A data entry field that is preserved on a workspace symbol between a
+    /// workspace symbol request and a workspace symbol resolve request.
+    Data: LSPAny option }
 
 /// A textual edit applicable to a text document.
 type TextEdit =
@@ -232,7 +281,7 @@ type TextEdit =
 /// kind of ordering. However the edits must be non overlapping.
 type TextDocumentEdit =
   { /// The text document to change.
-    TextDocument: VersionedTextDocumentIdentifier
+    TextDocument: OptionalVersionedTextDocumentIdentifier
 
     /// The edits to be applied.
     Edits: TextEdit [] }
@@ -246,6 +295,13 @@ type TraceSetting =
 type DynamicCapabilities =
   { /// Method supports dynamic registration.
     DynamicRegistration: bool option }
+
+type DynamicLinkSupportCapabilities =
+  { /// Whether implementation supports dynamic registration.
+    DynamicRegistration: bool option
+
+    /// The client supports additional metadata in the form of declaration links.
+    LinkSupport: bool option }
 
 type ResourceOperationKind =
   | Create
@@ -307,13 +363,30 @@ type SymbolKindCapabilities =
        SymbolKind.Boolean
        SymbolKind.Array |]
 
+type SymbolTagSupport =
+  { /// The tags supported by the client.
+    ValueSet: SymbolTag [] }
+
+type ResolveSupport =
+  { /// The properties that a client can resolve lazily.
+    Properties: string [] }
+
 /// Capabilities specific to the `workspace/symbol` request.
 type SymbolCapabilities =
   { /// Symbol request supports dynamic registration.
     DynamicRegistration: bool option
 
     /// Specific capabilities for the `SymbolKind` in the `workspace/symbol` request.
-    SymbolKind: SymbolKindCapabilities option }
+    SymbolKind: SymbolKindCapabilities option
+
+    /// The client supports tags on `SymbolInformation` and `WorkspaceSymbol`.
+    /// Clients supporting tags have to handle unknown tags gracefully.
+    TagSupport: SymbolTagSupport option
+
+    /// The client support partial workspace symbols. The client will send the
+    /// request `workspaceSymbol/resolve` to the server to resolve additional
+    /// properties.
+    ResolveSupport: ResolveSupport option }
 
 type SemanticTokensWorkspaceClientCapabilities =
   { /// Whether the client implementation supports a refresh request sent from
@@ -357,6 +430,47 @@ type CodeLensWorkspaceClientCapabilities =
     /// change that requires such a calculation.
     RefreshSupport: bool option }
 
+type WorkspaceFileOperationsClientCapabilities =
+  { /// Whether the client supports dynamic registration for file
+    /// requests/notifications.
+    DynamicRegistration: bool option
+
+    /// The client has support for sending didCreateFiles notifications.
+    DidCreate: bool option
+
+    /// The client has support for sending willCreateFiles requests.
+    WillCreate: bool option
+
+    /// The client has support for sending didRenameFiles notifications.
+    DidRename: bool option
+
+    /// The client has support for sending willRenameFiles requests.
+    WillRename: bool option
+
+    /// The client has support for sending didDeleteFiles notifications.
+    DidDelete: bool option
+
+    /// The client has support for sending willDeleteFiles requests.
+    WillDelete: bool option }
+
+type DidChangeWatchedFilesClientCapabilities =
+  { /// Did change watched files notification supports dynamic registration.
+    /// Please note that the current protocol doesn't support static
+    /// configuration for file changes from the server side.
+    DynamicRegistration: bool option
+
+    /// Whether the client has support for relative patterns or not.
+    RelativePatternSupport: bool option }
+
+type DiagnosticWorkspaceClientCapabilities =
+  { /// Whether the client implementation supports a refresh request sent from
+    /// the server to the client.
+    /// Note that this event is global and will force the client to refresh all
+    /// pulled diagnostics currently shown. It should be used with absolute care
+    /// and is useful for situation where a server for example detects a project
+    /// wide change that requires such a calculation.
+    RefreshSupport: bool option }
+
 /// Workspace specific client capabilities.
 type WorkspaceClientCapabilities =
   { /// The client supports applying batch edits to the workspace by supporting
@@ -370,10 +484,19 @@ type WorkspaceClientCapabilities =
     DidChangeConfiguration: DynamicCapabilities option
 
     /// Capabilities specific to the `workspace/didChangeWatchedFiles` notification.
-    DidChangeWatchedFiles: DynamicCapabilities option
+    DidChangeWatchedFiles: DidChangeWatchedFilesClientCapabilities option
 
     /// Capabilities specific to the `workspace/symbol` request.
     Symbol: SymbolCapabilities option
+
+    /// Capabilities specific to the `workspace/executeCommand` request.
+    ExecuteCommand: DynamicCapabilities option
+
+    /// The client has support for workspace folders.
+    WorkspaceFolders: bool option
+
+    /// The client supports `workspace/configuration` requests.
+    Configuration: bool option
 
     /// Capabilities specific to the semantic token requests scoped to the
     /// workspace.
@@ -395,7 +518,13 @@ type WorkspaceClientCapabilities =
     /// Client workspace capabilities specific to code lenses.
     ///
     /// @since 3.16.0
-    CodeLens: CodeLensWorkspaceClientCapabilities option }
+    CodeLens: CodeLensWorkspaceClientCapabilities option
+
+    /// The client has support for file requests/notifications.
+    FileOperations: WorkspaceFileOperationsClientCapabilities option
+
+    /// Client workspace capabilities specific to diagnostics.
+    Diagnostics: DiagnosticWorkspaceClientCapabilities option }
 
 type SynchronizationCapabilities =
   { /// Whether text document synchronization supports dynamic registration.
@@ -425,6 +554,30 @@ type HoverCapabilities =
     /// See `MarkupKind` for common values
     ContentFormat: string [] option }
 
+type CompletionItemTag =
+  /// Render a completion as obsolete, usually using a strike-out.
+  | Deprecated = 1
+
+type CompletionItemTagSupport =
+  { /// The tags supported by the client.
+    ValueSet: CompletionItemTag [] }
+
+type InsertTextMode =
+  /// The insertion or replace strings is taken as it is. If the value is multi
+  /// line the lines below the cursor will be inserted using the indentation
+  /// defined in the string value.  The client will not apply any kind of
+  /// adjustments to the string.
+  | AsIs = 1
+  /// The editor adjusts leading whitespace of new lines so that they match the
+  /// indentation up to the cursor of the line for which the item is accepted.
+  /// Consider a line like this: <2tabs><cursor><3tabs>foo. Accepting a multi
+  /// line completion item is indented using 2 tabs and all following lines
+  /// inserted will be indented using 2 tabs as well.
+  | AdjustIndentation = 2
+
+type InsertTextModeSupportCapability =
+  { ValueSet: InsertTextMode [] }
+
 type CompletionItemCapabilities =
   { /// Client supports snippets as insert text.
     ///
@@ -440,7 +593,35 @@ type CompletionItemCapabilities =
     /// Client supports the follow content formats for the documentation
     /// property. The order describes the preferred format of the client.
     /// See `MarkupKind` for common values
-    DocumentationFormat: string [] option }
+    DocumentationFormat: string [] option
+
+    /// Client supports the deprecated property on a completion item.
+    DeprecatedSupport: bool option
+
+    /// Client supports the preselect property on a completion item.
+    PreselectSupport: bool option
+
+    /// Client supports the tag property on a completion item. Clients
+    /// supporting tags have to handle unknown tags gracefully. Clients
+    /// especially need to preserve unknown tags when sending a completion item
+    /// back to the server in a resolve call.
+    TagSupport: CompletionItemTagSupport option
+
+    /// Client supports insert replace edit to control different behavior if a
+    /// completion item is inserted in the text or should replace text.
+    InsertReplaceSupport: bool option
+
+    /// Indicates which properties a client can resolve lazily on a completion
+    /// item. Before version 3.16.0 only the predefined properties
+    /// `documentation` and `detail` could be resolved lazily.
+    ResolveSupport: ResolveSupport option
+
+    /// The client supports the `insertTextMode` property on a completion item
+    /// to override the whitespace handling mode as defined by the client.
+    InsertTextModeSupport: InsertTextModeSupportCapability option
+
+    /// The client has support for completion item label details.
+    LabelDetailsSupport: bool option }
 
 type CompletionItemKind =
   | Text = 1
@@ -499,6 +680,13 @@ type CompletionItemKindCapabilities =
        CompletionItemKind.File
        CompletionItemKind.Reference |]
 
+type CompletionListCapabilities =
+  { /// The client supports the following itemDefaults on a completion list.
+    /// The value lists the supported property names of the
+    /// `CompletionList.itemDefaults` object. If omitted no properties are
+    /// supported.
+    ItemDefaults: string [] option }
+
 /// Capabilities specific to the `textDocument/completion`
 type CompletionCapabilities =
   { /// Whether completion supports dynamic registration.
@@ -512,13 +700,32 @@ type CompletionCapabilities =
 
     /// The client supports to send additional context information for a
     /// `textDocument/completion` request.
-    ContextSupport: bool option }
+    ContextSupport: bool option
+
+    /// The client's default when the completion item doesn't provide a
+    /// `insertTextMode` property.
+    InsertTextMode: InsertTextMode option
+
+    /// The client supports the following `CompletionList` specific capabilities.
+    CompletionList: CompletionListCapabilities option }
+
+type ParameterInformationCapability =
+  { /// The client supports processing label offsets instead of a simple label
+    /// string.
+    LabelOffsetSupport: bool option }
 
 type SignatureInformationCapabilities =
   { /// Client supports the follow content formats for the documentation
     /// property. The order describes the preferred format of the client.
     /// See `MarkupKind` for common values
-    DocumentationFormat: string [] option }
+    DocumentationFormat: string [] option
+
+    /// Client capabilities specific to parameter information.
+    ParameterInformation: ParameterInformationCapability option
+
+    /// The client supports the `activeParameter` property on
+    /// `SignatureInformation` literal.
+    ActiveParameterSupport: bool option }
 
 type SignatureHelpCapabilities =
   { /// Whether signature help supports dynamic registration.
@@ -526,7 +733,13 @@ type SignatureHelpCapabilities =
 
     /// The client supports the following `SignatureInformation`
     /// specific properties.
-    SignatureInformation: SignatureInformationCapabilities option }
+    SignatureInformation: SignatureInformationCapabilities option
+
+    /// The client supports to send additional context information for a
+    /// `textDocument/signatureHelp` request. A client that opts into
+    /// contextSupport will also support the `retriggerCharacters` on
+    /// `SignatureHelpOptions`.
+    ContextSupport: bool option }
 
 /// capabilities specific to the `textDocument/documentSymbol`
 type DocumentSymbolCapabilities =
@@ -537,7 +750,16 @@ type DocumentSymbolCapabilities =
     SymbolKind: SymbolKindCapabilities option
 
     /// The client supports hierarchical document symbols.
-    HierarchicalDocumentSymbolSupport: bool option }
+    HierarchicalDocumentSymbolSupport: bool option
+
+    /// The client supports tags on `SymbolInformation`. Tags are supported on
+    /// `DocumentSymbol` if `hierarchicalDocumentSymbolSupport` is set to true.
+    /// Clients supporting tags have to handle unknown tags gracefully.
+    TagSupport: SymbolTagSupport option
+
+    /// The client supports an additional label presented in the UI when
+    /// registering a document symbol provider.
+    LabelSupport: bool option }
 
 module CodeActionKind =
   /// Empty kind.
@@ -615,10 +837,6 @@ type CodeActionClientCapabilityLiteralSupport =
   { /// The code action kind is supported with the following value set.
     CodeActionKind: CodeActionClientCapabilityLiteralSupportCodeActionKind }
 
-type CodeActionClientCapabilityResolveSupport =
-  { /// The properties that a client can resolve lazily.
-    Properties: string [] }
-
 /// capabilities specific to the `textDocument/codeAction`
 type CodeActionClientCapabilities =
   { /// Whether document symbol supports dynamic registration.
@@ -641,7 +859,7 @@ type CodeActionClientCapabilities =
 
     /// Whether the client supports resolving additional code action
     /// properties via a separate `codeAction/resolve` request.
-    ResolveSupport: CodeActionClientCapabilityResolveSupport option
+    ResolveSupport: ResolveSupport option
 
     /// Whether the client honors the change annotations in
     /// text edits and resource operations returned via the
@@ -657,6 +875,10 @@ type DiagnosticTag =
   /// Clients are allowed to render diagnostics with this tag faded out instead of having
   /// an error squiggle.
   | Unnecessary = 1
+  /// Deprecated or obsolete code.
+  ///
+  /// Clients are allowed to rendered diagnostics with this tag strike through.
+  | Deprecated = 2
 
 type DiagnosticTagSupport =
   {
@@ -666,25 +888,54 @@ type DiagnosticTagSupport =
 
 /// Capabilities specific to `textDocument/publishDiagnostics`.
 type PublishDiagnosticsCapabilities =
-  {
-
-    /// Whether the clients accepts diagnostics with related information.
+  { /// Whether the clients accepts diagnostics with related information.
     RelatedInformation: bool option
 
     /// Client supports the tag property to provide meta data about a diagnostic.
-    TagSupport: DiagnosticTagSupport option }
+    TagSupport: DiagnosticTagSupport option
+
+    /// Whether the client interprets the version property of the
+    /// `textDocument/publishDiagnostics` notification's parameter.
+    VersionSupport: bool option
+
+    /// Client supports a codeDescription property
+    CodeDescriptionSupport: bool option
+
+    /// Whether code action supports the `data` property which is preserved
+    /// between a `textDocument/publishDiagnostics` and `textDocument/codeAction`
+    /// request.
+    DataSupport: bool option }
+
+type FoldingRangeKindCapabilities =
+  { /// The folding range kind values the client supports. When this property
+    /// exists the client also guarantees that it will handle values outside its
+    /// set gracefully and falls back to a default value when unknown.
+    ValueSet: string [] option }
+
+type FoldingRangeCapabilities' =
+  { /// If set, the client signals that it supports setting collapsedText on
+    /// folding ranges to display custom labels instead of the default text.
+    CollapsedText: bool option }
 
 type FoldingRangeCapabilities =
   { /// Whether implementation supports dynamic registration for folding range providers. If this is set to `true`
     /// the client supports the new `(FoldingRangeProviderOptions & TextDocumentRegistrationOptions & StaticRegistrationOptions)`
     /// return value for the corresponding server capability as well.
     DynamicRegistration: bool option
+
     /// The maximum number of folding ranges that the client prefers to receive per document. The value serves as a
     /// hint, servers are free to follow the limit.
     RangeLimit: int option
+
     /// If set, the client signals that it only supports folding complete lines. If set, client will
     /// ignore specified `startCharacter` and `endCharacter` properties in a FoldingRange.
-    LineFoldingOnly: bool option }
+    LineFoldingOnly: bool option
+
+    /// Specific options for the folding range kind.
+    FoldingRangeKind: FoldingRangeKindCapabilities option
+
+    /// Specific options for the folding range.
+    FoldingRange: FoldingRangeCapabilities' option }
 
 type SemanticTokenFullRequestType =
   { /// The client will send the `textDocument/semanticTokens/full/delta`
@@ -732,11 +983,19 @@ type SemanticTokensClientCapabilities =
     OverlappingTokenSupport: bool option
 
     /// Whether the client supports tokens that can span multiple lines.
-    MultilineTokenSupport: bool option }
+    MultilineTokenSupport: bool option
 
-type InlayHintClientCapabilitiesResolveSupport =
-  { /// The properties that a client can resolve lazily.
-    Properties: string [] }
+    /// Whether the client allows the server to actively cancel a semantic token
+    /// request, e.g. supports returning ErrorCodes.ServerCancelled. If a server
+    /// does the client needs to retrigger the request.
+    ServerCancelSupport: bool option
+
+    /// Whether the client uses semantic tokens to augment existing syntax
+    /// tokens. If set to `true` client side created syntax tokens and semantic
+    /// tokens are both used for colorization. If set to `false` the client only
+    /// uses the returned semantic tokens for colorization.
+    /// If the value is `undefined` then the client behavior is not specified.
+    AugmentsSyntaxTokens: bool option }
 
 /// Inlay hint client capabilities.
 type InlayHintClientCapabilities =
@@ -744,12 +1003,17 @@ type InlayHintClientCapabilities =
     DynamicRegistration: bool option
     /// Indicates which properties a client can resolve lazily on a inlay
     /// hint.
-    ResolveSupport: InlayHintClientCapabilitiesResolveSupport option }
+    ResolveSupport: ResolveSupport option }
 
+type DiagnosticCapabilities =
+  { /// Whether implementation supports dynamic registration. If this is set to `true` the client supports the new
+    /// `(TextDocumentRegistrationOptions & StaticRegistrationOptions)` return value for the corresponding server
+    /// capability as well.
+    DynamicRegistration: bool option
 
-type InlineValueClientCapabilitiesResolveSupport =
-  { /// The properties that a client can resolve lazily.
-    Properties: string [] }
+    /// Whether the clients supports related documents for document diagnostic pulls.
+    RelatedDocumentSupport: bool option }
+
 
 /// Inline value client capabilities.
 type InlineValueClientCapabilities =
@@ -757,20 +1021,39 @@ type InlineValueClientCapabilities =
     DynamicRegistration: bool option
     /// Indicates which properties a client can resolve lazily on a inline
     /// value.
-    ResolveSupport: InlineValueClientCapabilitiesResolveSupport option }
+    ResolveSupport: ResolveSupport option }
+
+type PrepareSupportDefaultBehavior =
+  /// The client's default behavior is to select the identifier according to the
+  /// language's syntax rule.
+  | Identifier = 1
 
 type RenameClientCapabilities =
   { /// Whether rename supports dynamic registration.
     DynamicRegistration: bool option
+
     /// Client supports testing for validity of rename operations before execution.
     /// @since version 3.12.0
     PrepareSupport: bool option
+
+    /// Client supports the default behavior result
+    /// (`{ defaultBehavior: boolean }`).
+    /// The value indicates the default behavior used by the client.
+    PrepareSupportDefaultBehavior: PrepareSupportDefaultBehavior option
+
     /// Whether the client honors the change annotations in text edits and resource operations
     /// returned via the rename request's workspace edit by for example presenting the workspace
     /// edit in the user interface and asking for confirmation.
     ///
     /// @since 3.16.0
     HonorsChangeAnnotations: bool option }
+
+type DocumentLinkCapabilities =
+  { /// Whether document link supports dynamic registration.
+    DynamicRegistration: bool option
+
+    /// Whether the client supports the `tooltip` property on `DocumentLink`.
+    TooltipSupport: bool option }
 
 /// Text document specific client capabilities.
 type TextDocumentClientCapabilities =
@@ -787,6 +1070,9 @@ type TextDocumentClientCapabilities =
 
     /// Capabilities specific to the `textDocument/signatureHelp`
     SignatureHelp: SignatureHelpCapabilities option
+
+    /// Capabilities specific to the `textDocument/declaration` request.
+    Declaration: DynamicLinkSupportCapabilities option
 
     /// Capabilities specific to the `textDocument/references`
     References: DynamicCapabilities option
@@ -807,7 +1093,13 @@ type TextDocumentClientCapabilities =
     OnTypeFormatting: DynamicCapabilities option
 
     /// Capabilities specific to the `textDocument/definition`
-    Definition: DynamicCapabilities option
+    Definition: DynamicLinkSupportCapabilities option
+
+    /// Capabilities specific to the `textDocument/typeDefinition` request.
+    TypeDefinition: DynamicLinkSupportCapabilities option
+
+    /// Capabilities specific to the `textDocument/implementation` request.
+    Implementation: DynamicLinkSupportCapabilities option
 
     /// Capabilities specific to the `textDocument/codeAction`
     CodeAction: CodeActionClientCapabilities option
@@ -816,7 +1108,10 @@ type TextDocumentClientCapabilities =
     CodeLens: DynamicCapabilities option
 
     /// Capabilities specific to the `textDocument/documentLink`
-    DocumentLink: DynamicCapabilities option
+    DocumentLink: DocumentLinkCapabilities option
+
+    /// Capabilities specific to the `textDocument/documentColor` and the `textDocument/colorPresentation` request.
+    ColorProvider: DynamicCapabilities option
 
     /// Capabilities specific to the `textDocument/rename`
     Rename: RenameClientCapabilities option
@@ -827,6 +1122,9 @@ type TextDocumentClientCapabilities =
     /// Capabilities for the `textDocument/selectionRange`
     SelectionRange: DynamicCapabilities option
 
+    /// Capabilities specific to the `textDocument/linkedEditingRange` request.
+    LinkedEditingRange: DynamicCapabilities option
+
     /// Capabilities specific to the various call hierarchy requests.
     ///
     /// @since 3.16.0
@@ -836,15 +1134,24 @@ type TextDocumentClientCapabilities =
     /// @since 3.16.0
     SemanticTokens: SemanticTokensClientCapabilities option
 
+    /// Capabilities specific to the `textDocument/moniker` request.
+    Moniker: DynamicCapabilities option
+
     /// Capabilities specific to the various type hierarchy requests.
     ///
     /// @since 3.17.0
     TypeHierarchy: DynamicCapabilities option
 
+    /// Capabilities specific to the `textDocument/inlineValue` request.
+    InlineValue: DynamicCapabilities option
+
     /// Capabilities specific to the `textDocument/inlayHint` request.
     ///
     /// @since 3.17.0
-    InlayHint: InlayHintClientCapabilities option }
+    InlayHint: InlayHintClientCapabilities option
+
+    /// Capabilities specific to the diagnostic pull model.
+    Diagnostic: DiagnosticCapabilities option }
 
 /// Client capabilities for the showDocument request.
 ///
@@ -888,12 +1195,65 @@ type WindowClientCapabilities =
     ///  @since 3.16.0
     showDocument: ShowDocumentClientCapabilities option }
 
+type StaleRequestSupportClientCapabilities =
+  { /// The client will actively cancel the request.
+    Cancel: bool
+
+    /// The list of requests for which the client will retry the request if it
+    /// receives a response with error code `ContentModified``
+    RetryOnContentModified: string [] }
+
+type RegularExpressionsClientCapabilities =
+  { /// The engine's name.
+    Engine: string
+
+    /// The engine's version.
+    Version: string option }
+
+type MarkdownClientCapabilities =
+  { /// The name of the parser.
+    Parser: string
+
+    /// The version of the parser.
+    Version: string option
+
+    /// A list of HTML tags that the client allows / supports in Markdown.
+    AllowedTags: string [] option }
+
+type GeneralClientCapabilities =
+  { /// Client capability that signals how the client handles stale requests
+    /// (e.g. a request for which the client will not process the response
+    /// anymore since the information is outdated).
+    StaleRequestSupport: StaleRequestSupportClientCapabilities option
+
+    /// Client capabilities specific to regular expressions.
+    RegularExpressions: RegularExpressionsClientCapabilities option
+
+    /// Client capabilities specific to the client's markdown parser.
+    Markdown: MarkdownClientCapabilities option
+
+    /// The position encodings supported by the client. Client and server have
+    /// to agree on the same position encoding to ensure that offsets (e.g.
+    /// character position in a line) are interpreted the same on both side.
+    /// To keep the protocol backwards compatible the following applies: if the
+    /// value 'utf-16' is missing from the array of position encodings servers
+    /// can assume that the client supports UTF-16. UTF-16 is therefore a
+    /// mandatory encoding.
+    /// If omitted it defaults to ['utf-16'].
+    /// Implementation considerations: since the conversion from one encoding
+    /// into another requires the content of the file / line the conversion is
+    /// best done where the file is read which is usually on the server side.
+    PositionEncodings: string [] option }
+
 type ClientCapabilities =
   { /// Workspace specific client capabilities.
     Workspace: WorkspaceClientCapabilities option
 
     /// Text document specific client capabilities.
     TextDocument: TextDocumentClientCapabilities option
+
+    /// General client capabilities.
+    General: GeneralClientCapabilities option
 
     /// Experimental client capabilities.
     Experimental: JToken option
@@ -912,14 +1272,31 @@ type WorkspaceFolder =
 type ClientInfo = { Name: string; Version: string option }
 
 type InitializeParams =
-  { ProcessId: int option
+  { /// The process Id of the parent process that started the server. Is null if
+    /// the process has not been started by another process. If the parent
+    /// process is not alive then the server should exit (see exit notification)
+    /// its process.
+    ProcessId: int option
     /// Information about the client.
     /// @since 3.15.0
     ClientInfo: ClientInfo option
+    /// The locale the client is currently showing the user interface in. This
+    /// must not necessarily be the locale of the operating system.
+    /// Uses IETF language tags as the value's syntax (See
+    /// https://en.wikipedia.org/wiki/IETF_language_tag)
+    Locale: string option
+    /// The rootPath of the workspace. Is null if no folder is open.
+    /// @deprecated in favour of `rootUri`.
     RootPath: string option
+    /// The rootUri of the workspace. Is null if no folder is open. If both
+    /// `rootPath` and `rootUri` are set `rootUri` wins.
+    /// @deprecated in favour of `workspaceFolders`
     RootUri: string option
+    /// User provided initialization options.
     InitializationOptions: JToken option
+    /// The capabilities provided by the client (editor or tool)
     Capabilities: ClientCapabilities option
+    /// The initial trace setting. If omitted trace is disabled ('off').
     trace: string option
     /// The workspace folders configured in the client when the server starts.
     /// This property is only available if the client supports workspace folders.
@@ -932,6 +1309,11 @@ type InitializedParams() =
   override _.GetHashCode() = 0
   override _.ToString() = "{}"
 
+
+type CompletionItemOptions =
+  { /// The server has support for completion item label details (see also
+    /// `CompletionItemLabelDetails`) when receiving a completion item in a resolve call.
+    LabelDetailsSupport: bool option }
 
 /// Completion options.
 type CompletionOptions =
@@ -949,7 +1331,10 @@ type CompletionOptions =
     ///
     /// If a server provides both `allCommitCharacters` and commit characters
     /// on an individual completion item, the ones on the completion item win.
-    AllCommitCharacters: char [] option }
+    AllCommitCharacters: char [] option
+
+    /// The server supports the following `CompletionItem` specific capabilities.
+    CompletionItem: CompletionItemOptions option }
 
 /// Signature help options.
 type SignatureHelpOptions =
@@ -960,6 +1345,12 @@ type SignatureHelpOptions =
     /// These trigger characters are only active when signature help is already showing.
     /// All trigger characters are also counted as re-trigger characters.
     RetriggerCharacters: char [] option }
+
+  /// Document Symbol options
+type DocumentSymbolOptions =
+  { /// A human-readable string that is shown when multiple outlines trees are
+    /// shown for the same document.
+    Label: string option }
 
 /// Code action options.
 type CodeActionOptions =
@@ -1052,12 +1443,23 @@ type InlineValueOptions =
   { /// The server provides support to resolve additional information for aniline lay hint item.
     ResolveProvider: bool option }
 
+type DiagnosticOptions =
+  { /// An optional identifier under which the diagnostics are managed by the client.
+    Identifier: string option
+
+    /// Whether the language has inter file dependencies meaning that editing code in one file can result in a different
+    /// diagnostic set in another file. Inter file dependencies are common for most programming languages and typically
+    /// uncommon for linters.
+    InterFileDependencies: bool
+
+    /// The server provides support for workspace diagnostics as well.
+    WorkspaceDiagnostics: bool }
+
 type WorkspaceFoldersServerCapabilities =
   { /// The server has support for workspace folders.
     Supported: bool option
     /// Whether the server wants to receive workspace folder change notifications.
-    /// NOTE: the spec allows a string value here too. Good opportunity for further modeling.
-    ChangeNotifications: bool option }
+    ChangeNotifications: U2<string, bool> option }
   static member Default = { Supported = None; ChangeNotifications = None }
 
 module FileOperationPatternKind =
@@ -1118,8 +1520,20 @@ type RenameOptions =
   { /// Renames should be checked and tested before being executed.
     PrepareProvider: bool option }
 
+type WorkspaceSymbolOptions =
+  { /// The server provides support to resolve additional information for a
+    /// workspace symbol.
+    ResolveProvider: bool option }
+
 type ServerCapabilities =
-  { /// Defines how text documents are synced. Is either a detailed structure defining each notification or
+  { /// The position encoding the server picked from the encodings offered by
+    /// the client via the client capability `general.positionEncodings`.
+    /// If the client didn't provide any position encodings the only valid value
+    /// that a server can return is 'utf-16'.
+    /// If omitted it defaults to 'utf-16'.
+    PositionEncoding: string option
+
+    /// Defines how text documents are synced. Is either a detailed structure defining each notification or
     /// for backwards compatibility the TextDocumentSyncKind number.
     TextDocumentSync: TextDocumentSyncOptions option
 
@@ -1131,6 +1545,9 @@ type ServerCapabilities =
 
     /// The server provides signature help support.
     SignatureHelpProvider: SignatureHelpOptions option
+
+    /// The server provides go to declaration support.
+    DeclarationProvider: bool option
 
     /// The server provides goto definition support.
     DefinitionProvider: bool option
@@ -1148,13 +1565,15 @@ type ServerCapabilities =
     DocumentHighlightProvider: bool option
 
     /// The server provides document symbol support.
-    DocumentSymbolProvider: bool option
+    DocumentSymbolProvider: U2<bool, DocumentSymbolOptions> option
 
     /// The server provides workspace symbol support.
-    WorkspaceSymbolProvider: bool option
+    WorkspaceSymbolProvider: U2<bool, WorkspaceSymbolOptions> option
 
-    /// The server provides code actions.
-    CodeActionProvider: CodeActionOptions option
+    /// The server provides code actions. The `CodeActionOptions` return type is
+    /// only valid if the client signals code action literal support via the
+    /// property `textDocument.codeAction.codeActionLiteralSupport`.
+    CodeActionProvider: U2<bool, CodeActionOptions> option
 
     /// The server provides code lens.
     CodeLensProvider: CodeLensOptions option
@@ -1168,11 +1587,16 @@ type ServerCapabilities =
     /// The server provides document formatting on typing.
     DocumentOnTypeFormattingProvider: DocumentOnTypeFormattingOptions option
 
-    /// The server provides rename support.
+    /// The server provides rename support. RenameOptions may only be specified
+    /// if the client states that it supports `prepareSupport` in its initial
+    /// `initialize` request.
     RenameProvider: U2<bool, RenameOptions> option
 
     /// The server provides document link support.
     DocumentLinkProvider: DocumentLinkOptions option
+
+    /// The server provides color provider support.
+    ColorProvider: bool option
 
     /// The server provides execute command support.
     ExecuteCommandProvider: ExecuteCommandOptions option
@@ -1184,27 +1608,42 @@ type ServerCapabilities =
     /// @since 3.10.0
     FoldingRangeProvider: bool option
 
+    /// The server provides selection range support.
     SelectionRangeProvider: bool option
 
+    /// The server provides linked editing range support.
+    LinkedEditingRangeProvider: bool option
+
+    /// The server provides call hierarchy support.
     CallHierarchyProvider: bool option
 
+    /// The server provides semantic tokens support.
     SemanticTokensProvider: SemanticTokensOptions option
 
+    /// Whether server provides moniker support.
+    MonikerProvider: bool option
+
+    /// The server provides type hierarchy support.
     TypeHierarchyProvider: bool option
 
+    /// The server provides inlay hints.
     InlayHintProvider: InlayHintOptions option
 
+    /// The server provides inline values.
     InlineValueProvider: InlineValueOptions option
 
-    /// Workspace specific server capabilities.
-    Workspace: WorkspaceServerCapabilities option
+    /// The server has support for pull model diagnostics.
+    DiagnosticProvider: DiagnosticOptions option
 
-   }
+    /// Workspace specific server capabilities.
+    Workspace: WorkspaceServerCapabilities option }
   static member Default =
-    { HoverProvider = None
+    { PositionEncoding = None
       TextDocumentSync = None
+      HoverProvider = None
       CompletionProvider = None
       SignatureHelpProvider = None
+      DeclarationProvider = None
       DefinitionProvider = None
       TypeDefinitionProvider = None
       ImplementationProvider = None
@@ -1219,20 +1658,34 @@ type ServerCapabilities =
       DocumentOnTypeFormattingProvider = None
       RenameProvider = None
       DocumentLinkProvider = None
+      ColorProvider = None
       ExecuteCommandProvider = None
       Experimental = None
       FoldingRangeProvider = None
       SelectionRangeProvider = None
+      LinkedEditingRangeProvider = None
       CallHierarchyProvider = None
       SemanticTokensProvider = None
+      MonikerProvider = None
       TypeHierarchyProvider = None
-      InlayHintProvider = None 
+      InlayHintProvider = None
       InlineValueProvider = None
+      DiagnosticProvider = None
       Workspace = None }
 
+type ServerInfo =
+  { /// The name of the server as defined by the server.
+    Name: string
+    /// The server's version as defined by the server.
+    Version: string option }
+
 type InitializeResult =
-  { Capabilities: ServerCapabilities }
-  static member Default = { Capabilities = ServerCapabilities.Default }
+  { /// The capabilities the language server provides.
+    Capabilities: ServerCapabilities
+
+    /// Information about the server.
+    ServerInfo: ServerInfo option }
+  static member Default = { Capabilities = ServerCapabilities.Default; ServerInfo = None }
 
 /// A workspace edit represents changes to many resources managed in the workspace.
 /// The edit should either provide `changes` or `documentChanges`. If the client can handle versioned document
@@ -1286,6 +1739,29 @@ type ShowMessageRequestParams =
 
     /// The message action items to present.
     Actions: MessageActionItem [] option }
+
+type ShowDocumentParams =
+  { /// The uri to show.
+    Uri: DocumentUri
+
+    /// Indicates to show the resource in an external program. To show, for
+    /// example, `https://code.visualstudio.com/` in the default WEB browser set
+    /// `external` to `true`.
+    External: bool option
+
+    /// An optional property to indicate whether the editor showing the document
+    /// should take focus or not.  Clients might ignore this property if an
+    /// external program is started.
+    TakeFocus: bool option
+
+    /// An optional selection range if the document is a text document. Clients
+    /// might ignore the property if an external program is started or the file
+    /// is not a text file.
+    Selection: Range option }
+
+type ShowDocumentResult =
+  { /// A boolean indicating if the show was successful.
+    Success: bool }
 
 /// General parameters to register for a capability.
 type Registration =
@@ -1361,7 +1837,8 @@ type ConfigurationParams = { items: ConfigurationItem [] }
 
 /// The parameters of a Workspace Symbol Request.
 type WorkspaceSymbolParams =
-  { /// A non-empty query string
+  { /// A query string to filter symbols by. Clients may send an empty string
+    /// here to request all symbols.
     Query: string }
 
 type ExecuteCommandParams =
@@ -1381,7 +1858,18 @@ type ApplyWorkspaceEditParams =
 
 type ApplyWorkspaceEditResponse =
   { /// Indicates whether the edit was applied or not.
-    Applied: bool }
+    Applied: bool
+
+    /// An optional textual description for why the edit was not applied. This
+    /// may be used by the server for diagnostic logging or to provide a
+    /// suitable error for a request that triggered the edit.
+    FailureReason: string option
+
+    /// Depending on the client's failure handling strategy `failedChange` might
+    /// contain the index of the change that failed. This property is only
+    /// available if the client signals a `failureHandling` strategy in its
+    /// client capabilities.
+    FailedChange: uint }
 
 /// Represents reasons why a text document is saved.
 type TextDocumentSaveReason =
@@ -1607,9 +2095,21 @@ type WatchKind =
   | Change = 2
   | Delete = 4
 
+type RelativePattern =
+  { /// A workspace folder or a base URI to which this pattern will be matched
+    /// against relatively.
+    BaseUri: U2<DocumentUri, WorkspaceFolder>
+
+    /// The actual glob pattern;
+    Pattern: string }
+
+type GlobPattern =
+  | RelativePattern of RelativePattern
+  | Pattern of string
+
 type FileSystemWatcher =
   { /// The  glob pattern to watch
-    GlobPattern: string
+    GlobPattern: GlobPattern
 
     /// The kind of events of interest. If omitted it defaults
     /// to WatchKind.Create | WatchKind.Change | WatchKind.Delete
@@ -1666,6 +2166,27 @@ type Command =
     /// invoked with.
     Arguments: JToken [] option }
 
+type CompletionItemLabelDetails =
+  { /// An optional string which is rendered less prominently directly after
+    /// {@link CompletionItem.label label}, without any spacing. Should be used
+    /// for function signatures or type annotations.
+    Detail: string option
+
+    /// An optional string which is rendered less prominently after
+    /// {@link CompletionItemLabelDetails.detail}. Should be used for fully
+    /// qualified names or file path.
+    Description: string option }
+
+type InsertReplaceEdit =
+  { /// The string to be inserted.
+    NewText: string
+
+    /// The range if the insert is requested
+    Insert: Range
+
+    /// The range if the replace is requested.
+    Replace: Range }
+
 /// Defines whether the insert text in a completion item should be interpreted as
 /// plain text or a snippet.
 type InsertTextFormat =
@@ -1691,9 +2212,15 @@ type CompletionItem =
     /// this completion.
     Label: string
 
+    /// Additional details for the label
+    LabelDetails: CompletionItemLabelDetails option
+
     /// The kind of this completion item. Based of the kind
     /// an icon is chosen by the editor.
     Kind: CompletionItemKind option
+
+    /// Tags for this completion item.
+    Tags: CompletionItemTag [] option
 
     /// A human-readable string with additional information
     /// about this item, like type or symbol information.
@@ -1701,6 +2228,16 @@ type CompletionItem =
 
     /// A human-readable string that represents a doc-comment.
     Documentation: Documentation option
+
+    /// Indicates if this item is deprecated.
+    /// @deprecated Use `tags` instead if supported.
+    Deprecated: bool option
+
+    /// Select this item when showing.
+    /// *Note* that only one completion item can be selected and that the
+    /// tool / client decides which item that is. The rule is that the *first*
+    /// item of those that match best is selected.
+    Preselect: bool option
 
     /// A string that should be used when comparing this item
     /// with other items. When `falsy` the label is used.
@@ -1727,12 +2264,25 @@ type CompletionItem =
     /// and the `newText` property of a provided `textEdit`.
     InsertTextFormat: InsertTextFormat option
 
+    /// How whitespace and indentation is handled during completion item
+    /// insertion. If not provided the client's default value depends on the
+    /// `textDocument.completion.insertTextMode` client capability.
+    InsertTextMode: InsertTextMode option
+
     /// An edit which is applied to a document when selecting this completion. When an edit is provided the value of
     /// `insertText` is ignored.
     ///
     /// *Note:* The range of the edit must be a single line range and it must contain the position at which completion
     /// has been requested.
-    TextEdit: TextEdit option
+    TextEdit: U2<TextEdit, InsertReplaceEdit> option
+
+    // The edit text used if the completion item is part of a CompletionList and
+    /// CompletionList defines an item default for the text edit range.
+    /// Clients will only honor this property if they opt into completion list
+    /// item defaults using the capability `completionList.itemDefaults`.
+    /// If not provided and a list's default range is provided the label
+    /// property is used as a text.
+    TextEditText: string option
 
     /// An optional array of additional text edits that are applied when
     /// selecting this completion. Edits must not overlap with the main edit
@@ -1754,23 +2304,57 @@ type CompletionItem =
     Data: JToken option }
   static member Create(label: string) =
     { Label = label
+      LabelDetails = None
       Kind = None
+      Tags = None
       Detail = None
       Documentation = None
+      Deprecated = None
+      Preselect = None
       SortText = None
       FilterText = None
       InsertText = None
       InsertTextFormat = None
+      InsertTextMode = None
       TextEdit = None
+      TextEditText = None
       AdditionalTextEdits = None
       CommitCharacters = None
       Command = None
       Data = None }
 
+type ReplaceEditRange = { Insert: Range; Replace: Range }
+
+type ItemDefaults =
+  { /// A default commit character set.
+    CommitCharacters: char [] option
+
+    /// A default edit range
+    EditRange: U2<Range, ReplaceEditRange> option
+
+    /// A default insert text format
+    InsertTextFormat: InsertTextFormat option
+
+    /// A default insert text mode
+    InsertTextMode: InsertTextMode option
+
+    /// A default data value.
+    Data: LSPAny option }
+
 type CompletionList =
   { /// This list it not complete. Further typing should result in recomputing
     /// this list.
     IsIncomplete: bool
+
+    /// In many cases the items of an actual completion result share the same
+    /// value for properties like `commitCharacters` or the range of a text
+    /// edit. A completion list can therefore define item defaults which will be
+    /// used if a completion item itself doesn't specify the value.
+    /// If a completion list specifies a default value and a completion item
+    /// also specifies a corresponding value the one from the item is used.
+    /// Servers are only allowed to return default values if the client signals
+    /// support for this via the `completionList.itemDefaults` capability.
+    ItemDefaults: ItemDefaults option
 
     /// The completion items.
     Items: CompletionItem [] }
@@ -1839,8 +2423,142 @@ type PublishDiagnosticsParams =
   { /// The URI for which diagnostic information is reported.
     Uri: DocumentUri
 
+    /// Optional the version number of the document the diagnostics are published
+    /// for.
+    Version: int option
+
     /// An array of diagnostic information items.
     Diagnostics: Diagnostic [] }
+
+
+type DocumentDiagnosticParams =
+  { /// The text document.
+    TextDocument: TextDocumentIdentifier
+
+    /// The additional identifier provided during registration.
+    Identifier: string option
+
+    /// The result id of a previous response if provided.
+    PreviousResultId: string option }
+
+module DocumentDiagnosticReportKind =
+  /// A diagnostic report with a full set of problems.
+  let Full = "full"
+  /// A report indicating that the last returned report is still accurate.
+  let Unchanged = "unchanged"
+
+type FullDocumentDiagnosticReport =
+  { /// A full document diagnostic report.
+    Kind: string
+
+    /// An optional result id. If provided it will be sent on the next
+    /// diagnostic request for the same document.
+    ResultId: string option
+
+    /// The actual items.
+    Items: Diagnostic [] }
+
+type UnchangedDocumentDiagnosticReport =
+  { ///  A document diagnostic report indicating no changes to the last result.
+    /// A server can only return `unchanged` if result ids are provided.
+    Kind: string
+
+    /// A result id which will be sent on the next diagnostic request for the
+    /// same document.
+    ResultId: string }
+
+type RelatedFullDocumentDiagnosticReport =
+  { /// A full document diagnostic report.
+    Kind: string
+
+    /// An optional result id. If provided it will be sent on the next
+    /// diagnostic request for the same document.
+    ResultId: string option
+
+    /// The actual items.
+    Items: Diagnostic []
+
+    /// Diagnostics of related documents. This information is useful in
+    /// programming languages where code in a file A can generate diagnostics in
+    /// a file B which A depends on. An example of such a language is C/C++
+    /// where marco definitions in a file a.cpp and result in errors in a header
+    /// file b.hpp.
+    RelatedDocuments: Map<DocumentUri, U2<FullDocumentDiagnosticReport, UnchangedDocumentDiagnosticReport>> option }
+
+type RelatedUnchangedDocumentDiagnosticReport =
+  { ///  A document diagnostic report indicating no changes to the last result.
+    /// A server can only return `unchanged` if result ids are provided.
+    Kind: string
+
+    /// A result id which will be sent on the next diagnostic request for the
+    /// same document.
+    ResultId: string
+
+    /// Diagnostics of related documents. This information is useful in
+    /// programming languages where code in a file A can generate diagnostics in
+    /// a file B which A depends on. An example of such a language is C/C++
+    /// where marco definitions in a file a.cpp and result in errors in a header
+    /// file b.hpp.
+    RelatedDocuments: Map<DocumentUri, U2<FullDocumentDiagnosticReport, UnchangedDocumentDiagnosticReport>> option }
+
+type DocumentDiagnosticReport =
+  | RelatedFullDocumentDiagnosticReport of RelatedFullDocumentDiagnosticReport
+  | RelatedUnchangedDocumentDiagnosticReport of RelatedUnchangedDocumentDiagnosticReport
+
+type PreviousResultId =
+  { /// The URI for which the client knows a result id.
+    Uri: DocumentUri
+
+    /// The value of the previous result id.
+    Value: string }
+
+type WorkspaceDiagnosticParams =
+  { /// The additional identifier provided during registration.
+    Identifier: string option
+
+    /// The currently known diagnostic reports with their previous result ids.
+    PreviousResultIds: PreviousResultId [] }
+
+type WorkspaceFullDocumentDiagnosticReport =
+  { /// A full document diagnostic report.
+    Kind: string
+
+    /// An optional result id. If provided it will be sent on the next
+    /// diagnostic request for the same document.
+    ResultId: string option
+
+    /// The actual items.
+    Items: Diagnostic []
+
+    /// The URI for which diagnostic information is reported.
+    Uri: DocumentUri
+
+    /// The version number for which the diagnostics are reported. If the
+    /// document is not marked as open `null` can be provided.
+    Version: int option }
+
+type WorkspaceUnchangedDocumentDiagnosticReport =
+  { ///  A document diagnostic report indicating no changes to the last result.
+    /// A server can only return `unchanged` if result ids are provided.
+    Kind: string
+
+    /// A result id which will be sent on the next diagnostic request for the
+    /// same document.
+    ResultId: string
+
+    /// The URI for which diagnostic information is reported.
+    Uri: DocumentUri
+
+    /// The version number for which the diagnostics are reported. If the
+    /// document is not marked as open `null` can be provided.
+    Version: int option }
+
+type WorkspaceDocumentDiagnosticReport =
+  | WorkspaceFullDocumentDiagnosticReport of WorkspaceFullDocumentDiagnosticReport
+  | WorkspaceUnchangedDocumentDiagnosticReport of WorkspaceUnchangedDocumentDiagnosticReport
+
+type WorkspaceDiagnosticReport = { Items: WorkspaceDocumentDiagnosticReport [] }
+
 
 type CodeActionDisabled =
   { /// Human readable description of why the code action is currently
@@ -1948,6 +2666,17 @@ type PrepareRenameResult =
   /// The rename position is valid and the client should use its default behavior to compute the rename range.
   | Default of DefaultBehavior
 
+type LinkedEditingRanges =
+  { /// A list of ranges that can be renamed together. The ranges must have
+    /// identical length and contain identical text content. The ranges cannot
+    /// overlap.
+    Ranges: Range []
+
+    /// An optional word pattern (regular expression) that describes valid
+    /// contents for the given ranges. If no pattern is provided, the client
+    /// configuration's word pattern will be used.
+    WordPattern: string option }
+
 [<ErasedUnion>]
 [<RequireQualifiedAccess>]
 type GotoResult =
@@ -1987,7 +2716,18 @@ type DocumentLink =
     Range: Range
 
     /// The uri this link points to. If missing a resolve request is sent later.
-    Target: DocumentUri option }
+    Target: DocumentUri option
+
+    /// The tooltip text when you hover over this link.
+    /// If a tooltip is provided, is will be displayed in a string that includes
+    /// instructions on how to trigger the link, such as `{0} (ctrl + click)`.
+    /// The specific instructions vary depending on OS, user settings, and
+    /// localization.
+    Tooltip: string option
+
+    /// A data entry field that is preserved on a document link between a
+    /// DocumentLinkRequest and a DocumentLinkResolveRequest.
+    Data: JToken option }
 
 type DocumentColorParams =
   { /// The text document.
@@ -2095,9 +2835,15 @@ type CodeLens =
 /// Represents a parameter of a callable-signature. A parameter can
 /// have a label and a doc-comment.
 type ParameterInformation =
-  { /// The label of this parameter. Will be shown in
-    /// the UI.
-    Label: string
+  { /// The label of this parameter information.
+    /// Either a string or an inclusive start and exclusive end offsets within
+    /// its containing signature label. (see SignatureInformation.label). The
+    /// offsets are based on a UTF-16 string representation as `Position` and
+    /// `Range` does.
+    /// *Note*: a label of type string should be a substring of its containing
+    /// signature label. Its intended use case is to highlight the parameter
+    /// label part in the `SignatureInformation.label`.
+    Label: U2<string, (uint * uint)>
 
     /// The human-readable doc-comment of this parameter. Will be shown
     /// in the UI but can be omitted.
@@ -2116,7 +2862,11 @@ type SignatureInformation =
     Documentation: Documentation option
 
     /// The parameters of this signature.
-    Parameters: ParameterInformation [] option }
+    Parameters: ParameterInformation [] option
+
+    /// The index of the active parameter.
+    /// If provided, this is used in place of `SignatureHelp.activeParameter`.
+    ActiveParameter: uint }
 
 /// Signature help represents the signature of something
 /// callable. There can be multiple signature but only one
@@ -2141,7 +2891,7 @@ type SignatureHelp =
     /// In future version of the protocol this property might become
     /// mandatory to better express the active parameter if the
     /// active signature does have any.
-    ActiveParameter: int option }
+    ActiveParameter: uint option }
 
 type SignatureHelpTriggerKind =
   /// manually invoked via command
@@ -2199,7 +2949,12 @@ type FoldingRange =
     /// Describes the kind of the folding range such as 'comment' or 'region'. The kind
     /// is used to categorize folding ranges and used by commands like 'Fold all comments'. See
     /// [FoldingRangeKind](#FoldingRangeKind) for an enumeration of standardized kinds.
-    Kind: string option }
+    Kind: string option
+
+    /// The text that the client should show when the specified range is
+    /// collapsed. If not defined or not supported by the client, a default will
+    /// be chosen by the client.
+    CollapsedText: string option }
 
 type SelectionRangeParams =
   { /// The document to generate ranges for
@@ -2457,36 +3212,90 @@ type InlayHint =
 
 /// InlineValue Context
 type InlineValueContext =
-    {
-        /// The stack frame (as a DAP Id) where the execution has stopped.
-        FrameId: int
+    { /// The stack frame (as a DAP Id) where the execution has stopped.
+      FrameId: int
 
-        /// The document range where execution has stopped.
-        /// Typically the end position of the range denotes the line where the inline values are shown.
-        StoppedLocation: Range }
+      /// The document range where execution has stopped.
+      /// Typically the end position of the range denotes the line where the inline values are shown.
+      StoppedLocation: Range }
 
 /// A parameter literal used in inline value requests.
 type InlineValueParams = (*WorkDoneProgressParams &*)
   { /// The text document.
     TextDocument: TextDocumentIdentifier
     /// The visible document range for which inline values should be computed.
-    Range: Range 
+    Range: Range
     /// Additional information about the context in which inline values were requested
     Context: InlineValueContext }
 
 /// Provide inline value as text.
-type InlineValueText = 
-    {
-        /// The document range for which the inline value applies.
-        Range: Range
-        /// The text of the inline value.
-        Text: String
-    }
+type InlineValueText =
+    { /// The document range for which the inline value applies.
+      Range: Range
+      /// The text of the inline value.
+      Text: String }
+
+type InlineValueVariableLookup =
+  { /// The document range for which the inline value applies. The range is used
+    /// to extract the variable name from the underlying document.
+    Range: Range
+
+    /// If specified the name of the variable to look up.
+    VariableName: string option
+
+    /// How to perform the lookup.
+    CaseSensitiveLookup: bool }
+
+type InlineValueEvaluatableExpression =
+  { /// The document range for which the inline value applies. The range is used
+    /// to extract the evaluatable expression from the underlying document.
+    Range: Range
+
+    /// If specified the expression overrides the extracted expression.
+    Expression: string option }
 
 [<ErasedUnion>]
-[<RequireQualifiedAccess>]  
+[<RequireQualifiedAccess>]
 type InlineValue =
   | InlineValueText of InlineValueText
+  | InlineValueVariableLookup of InlineValueVariableLookup
+  | InlineValueEvaluatableExpression of InlineValueEvaluatableExpression
+
+
+module UniquenessLevel =
+  /// The moniker is only unique inside a document
+  let Document = "document"
+  /// The moniker is unique inside a project for which a dump got created
+  let Project = "project"
+  /// The moniker is unique inside the group to which a project belongs
+  let Group = "group"
+  /// The moniker is unique inside the moniker scheme.
+  let Scheme = "scheme"
+  /// The moniker is globally unique
+  let Global = "global"
+
+module MonikerKind =
+  /// The moniker represent a symbol that is imported into a project
+  let Import = "import"
+  /// The moniker represents a symbol that is exported from a project
+  let Export = "export"
+  /// The moniker represents a symbol that is local to a project (e.g. a local
+  /// variable of a function, a class not visible outside the project, ...)
+  let Local = "local"
+
+type Moniker =
+  { /// The scheme of the moniker. For example tsc or .Net
+    Scheme: string
+
+    /// The identifier of the moniker. The value is opaque in LSIF however schema owners are allowed
+    /// to define the structure if they want.
+    Identifier: string
+
+    /// The scope in which the moniker is unique
+    Unique: string
+
+    /// The moniker kind if known.
+    Kind: string option }
 
 
 type ProgressToken = U2<int, string>

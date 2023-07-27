@@ -657,9 +657,9 @@ let private serializationTests =
 
       testList
         "JsonProperty"
-        [ testCase "keep null when serializing VersionedTextDocumentIdentifier"
+        [ testCase "keep null when serializing OptionalVersionedTextDocumentIdentifier"
           <| fun _ ->
-               let textDoc = { VersionedTextDocumentIdentifier.Uri = "..."; Version = None }
+               let textDoc = { OptionalVersionedTextDocumentIdentifier.Uri = "..."; Version = None }
                let json = textDoc |> serialize :?> JObject
                let prop = json.Property("version")
                let value = prop.Value
@@ -671,9 +671,9 @@ let private serializationTests =
                  |> Flip.Expect.wantSome "Property Version should exist"
 
                Expect.equal prop.Value.Type (JTokenType.Null) "Version should be null"
-          testCase "can deserialize null Version in VersionedTextDocumentIdentifier"
+          testCase "can deserialize null Version in OptioanlVersionedTextDocumentIdentifier"
           <| fun _ ->
-               let textDoc = { VersionedTextDocumentIdentifier.Uri = "..."; Version = None }
+               let textDoc = { OptionalVersionedTextDocumentIdentifier.Uri = "..."; Version = None }
                testThereAndBackAgain textDoc
 
           testCase "serialize to name specified in JsonProperty in Response"

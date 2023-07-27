@@ -376,6 +376,7 @@ type MultipleTypesBenchmarks() =
   let initializeParams: InitializeParams =
     { ProcessId = Some 42
       ClientInfo = Some { Name = "foo"; Version = None }
+      Locale = None
       RootPath = Some "/"
       RootUri = Some "file://..."
       InitializationOptions = None
@@ -399,11 +400,18 @@ type MultipleTypesBenchmarks() =
                   Symbol =
                     Some
                       { DynamicRegistration = Some false
-                        SymbolKind = Some { ValueSet = Some SymbolKindCapabilities.DefaultValueSet } }
+                        SymbolKind = Some { ValueSet = Some SymbolKindCapabilities.DefaultValueSet }
+                        TagSupport = None
+                        ResolveSupport = None }
                   SemanticTokens = Some { RefreshSupport = Some true }
                   InlayHint = Some { RefreshSupport = Some false }
                   InlineValue = Some { RefreshSupport = Some false }
-                  CodeLens = Some { RefreshSupport = Some true } }
+                  CodeLens = Some { RefreshSupport = Some true }
+                  ExecuteCommand = None
+                  WorkspaceFolders = None
+                  Configuration = None
+                  FileOperations = None
+                  Diagnostics = None }
             TextDocument =
               Some
                 { Synchronization =
@@ -412,7 +420,13 @@ type MultipleTypesBenchmarks() =
                         WillSave = Some true
                         WillSaveWaitUntil = Some false
                         DidSave = Some true }
-                  PublishDiagnostics = Some { RelatedInformation = None; TagSupport = None }
+                  PublishDiagnostics =
+                    Some
+                      { RelatedInformation = None
+                        TagSupport = None
+                        VersionSupport = None
+                        CodeDescriptionSupport = None
+                        DataSupport = None }
                   Completion = None
                   Hover =
                     Some
@@ -421,14 +435,34 @@ type MultipleTypesBenchmarks() =
                   SignatureHelp =
                     Some
                       { DynamicRegistration = Some true
-                        SignatureInformation = Some { DocumentationFormat = None } }
+                        SignatureInformation =
+                          Some
+                            { DocumentationFormat = None
+                              ParameterInformation = None
+                              ActiveParameterSupport = None }
+                        ContextSupport = None }
+                  Declaration =
+                    Some
+                      { DynamicRegistration = Some false
+                        LinkSupport = Some false }
                   References = Some { DynamicRegistration = Some false }
                   DocumentHighlight = Some { DynamicRegistration = None }
                   DocumentSymbol = None
                   Formatting = Some { DynamicRegistration = Some true }
                   RangeFormatting = Some { DynamicRegistration = Some true }
                   OnTypeFormatting = None
-                  Definition = Some { DynamicRegistration = Some false }
+                  Definition =
+                    Some
+                      { DynamicRegistration = Some false
+                        LinkSupport = Some false }
+                  TypeDefinition =
+                    Some
+                      { DynamicRegistration = Some false
+                        LinkSupport = Some false }
+                  Implementation =
+                    Some
+                      { DynamicRegistration = Some false
+                        LinkSupport = Some false }
                   CodeAction =
                     Some
                       { DynamicRegistration = Some true
@@ -442,14 +476,21 @@ type MultipleTypesBenchmarks() =
                         ResolveSupport = Some { Properties = [| "foo"; "bar"; "baz" |] }
                         HonorsChangeAnnotations = Some false }
                   CodeLens = Some { DynamicRegistration = Some true }
-                  DocumentLink = Some { DynamicRegistration = Some true }
+                  DocumentLink =
+                    Some
+                      { DynamicRegistration = Some true
+                        TooltipSupport = None }
+                  ColorProvider = Some { DynamicRegistration = Some true }
                   Rename = None
                   FoldingRange =
                     Some
                       { DynamicRegistration = Some false
                         LineFoldingOnly = Some true
-                        RangeLimit = None }
+                        RangeLimit = None
+                        FoldingRangeKind = None
+                        FoldingRange = None }
                   SelectionRange = Some { DynamicRegistration = None }
+                  LinkedEditingRange = Some { DynamicRegistration = None }
                   CallHierarchy = Some { DynamicRegistration = None }
                   SemanticTokens =
                     Some
@@ -463,12 +504,21 @@ type MultipleTypesBenchmarks() =
                           |> fun s -> s.Split(' ')
                         Formats = [| TokenFormat.Relative |]
                         OverlappingTokenSupport = Some false
-                        MultilineTokenSupport = Some true }
+                        MultilineTokenSupport = Some true
+                        ServerCancelSupport = None
+                        AugmentsSyntaxTokens = None }
                   TypeHierarchy = Some { DynamicRegistration = None }
+                  Moniker = Some { DynamicRegistration = None }
+                  InlineValue = Some { DynamicRegistration = None }
                   InlayHint =
                     Some
                       { DynamicRegistration = Some true
-                        ResolveSupport = Some { Properties = [| "Tooltip"; "Position"; "TextEdits" |] } } }
+                        ResolveSupport = Some { Properties = [| "Tooltip"; "Position"; "TextEdits" |] } }
+                  Diagnostic =
+                    Some
+                      { DynamicRegistration = None
+                        RelatedDocumentSupport = None } }
+            General = None
             Experimental = None
             Window = None }
       trace = None

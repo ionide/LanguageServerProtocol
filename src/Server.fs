@@ -82,6 +82,9 @@ type ILspServer =
   abstract member TextDocumentPrepareRename: PrepareRenameParams -> AsyncLspResult<PrepareRenameResult option>
 
 
+  /// The go to declaration request is sent from the client to the server to resolve the declaration location
+  /// of a synbol at a given text document position
+  abstract member TextDocumentDeclaration: TextDocumentPositionParams -> AsyncLspResult<GotoResult option>
 
   /// The goto definition request is sent from the client to the server to resolve the definition location of
   /// a symbol at a given text document position.
@@ -184,6 +187,21 @@ type ILspServer =
     DocumentSymbolParams -> AsyncLspResult<U2<SymbolInformation [], DocumentSymbol []> option>
 
 
+  /// The textDocument/moniker request is sent from the client to the server to get the symbol monikers for a
+  /// given text document position. An array of Moniker types is returned as response to indicate possible
+  /// monikers at the given location. If no monikers can be calculated, an empty array or null should be
+  /// returned.
+  abstract member TextDocumentMoniker: TextDocumentPositionParams -> AsyncLspResult<Moniker [] option>
+
+
+  /// The linked editing request is sent from the client to the server to return for a given position in a document the
+  /// range of the symbol at the position and all ranges that have the same content. Optionally a word pattern can be
+  /// returned to describe valid contents. A rename to one of the ranges can be applied to all other ranges if the new
+  /// content is valid. If no result-specific word pattern is provided, the word pattern from the client’s language
+  /// configuration is used.
+  abstract member TextDocumentLinkedEditingRange: TextDocumentPositionParams -> AsyncLspResult<LinkedEditingRanges option>
+
+
   /// The watched files notification is sent from the client to the server when the client detects changes
   /// to files watched by the language client. It is recommended that servers register for these file
   /// events using the registration mechanism. In former implementations clients pushed file events without
@@ -236,8 +254,11 @@ type ILspServer =
 
   /// The workspace symbol request is sent from the client to the server to list project-wide symbols matching
   /// the query string.
-  abstract member WorkspaceSymbol: WorkspaceSymbolParams -> AsyncLspResult<SymbolInformation [] option>
+  abstract member WorkspaceSymbol: WorkspaceSymbolParams -> AsyncLspResult<U2<SymbolInformation [], WorkspaceSymbol []> option>
 
+
+  /// The request is sent from the client to the server to resolve additional information for a given workspace symbol.
+  abstract member WorkspaceSymbolResolve: WorkspaceSymbol -> AsyncLspResult<WorkspaceSymbol>
 
 
   /// The `workspace/executeCommand` request is sent from the client to the server to trigger command execution
@@ -346,6 +367,19 @@ type ILspServer =
   /// `textDocument/prepareTypeHierarchy` request.
   abstract member TypeHierarchySubtypes: TypeHierarchySubtypesParams -> AsyncLspResult<TypeHierarchyItem [] option>
 
+  /// The text document diagnostic request is sent from the client to the server to ask the server to compute
+  /// the diagnostics for a given document. As with other pull requests the server is asked to compute the
+  /// diagnostics for the currently synced version of the document.
+  abstract member TextDocumentDiagnostic: DocumentDiagnosticParams -> AsyncLspResult<DocumentDiagnosticReport>
+
+  /// The workspace diagnostic request is sent from the client to the server to ask the server to compute
+  /// workspace wide diagnostics which previously where pushed from the server to the client. In contrast to
+  /// the document diagnostic request the workspace request can be long running and is not bound to a specific
+  /// workspace or document state. If the client supports streaming for the workspace diagnostic pull it is
+  /// legal to provide a document diagnostic report multiple times for the same document URI. The last one
+  /// reported will win over previous reports.
+  abstract member WorkspaceDiagnostic: WorkspaceDiagnosticParams -> AsyncLspResult<WorkspaceDiagnosticReport>
+
 [<AbstractClass>]
 type LspServer() =
   abstract member Dispose: unit -> unit
@@ -430,6 +464,11 @@ type LspServer() =
 
   default __.TextDocumentPrepareRename(_) =
     AsyncLspResult.success (Some(PrepareRenameResult.Default { DefaultBehavior = true }))
+
+  /// The go to declaration request is sent from the client to the server to resolve the declaration location
+  /// of a symbol at a given text document position.
+  abstract member TextDocumentDeclaration: TextDocumentPositionParams -> AsyncLspResult<GotoResult option>
+  default __.TextDocumentDeclaration(_) = notImplemented
 
   /// The goto definition request is sent from the client to the server to resolve the definition location of
   /// a symbol at a given text document position.
@@ -551,6 +590,23 @@ type LspServer() =
 
   default __.TextDocumentDocumentSymbol(_) = notImplemented
 
+  /// The textDocument/moniker request is sent from the client to the server to get the symbol monikers for a
+  /// given text document position. An array of Moniker types is returned as response to indicate possible
+  /// monikers at the given location. If no monikers can be calculated, an empty array or null should be
+  /// returned.
+  abstract member TextDocumentMoniker: TextDocumentPositionParams -> AsyncLspResult<Moniker [] option>
+
+  default __.TextDocumentMoniker(_) = notImplemented
+
+  /// The linked editing request is sent from the client to the server to return for a given position in a document the
+  /// range of the symbol at the position and all ranges that have the same content. Optionally a word pattern can be
+  /// returned to describe valid contents. A rename to one of the ranges can be applied to all other ranges if the new
+  /// content is valid. If no result-specific word pattern is provided, the word pattern from the client’s language
+  /// configuration is used.
+  abstract member TextDocumentLinkedEditingRange: TextDocumentPositionParams -> AsyncLspResult<LinkedEditingRanges option>
+
+  default __.TextDocumentLinkedEditingRange(_) = notImplemented
+
   /// The watched files notification is sent from the client to the server when the client detects changes
   /// to files watched by the language client. It is recommended that servers register for these file
   /// events using the registration mechanism. In former implementations clients pushed file events without
@@ -612,9 +668,12 @@ type LspServer() =
 
   /// The workspace symbol request is sent from the client to the server to list project-wide symbols matching
   /// the query string.
-  abstract member WorkspaceSymbol: WorkspaceSymbolParams -> AsyncLspResult<SymbolInformation [] option>
+  abstract member WorkspaceSymbol: WorkspaceSymbolParams -> AsyncLspResult<U2<SymbolInformation [], WorkspaceSymbol []> option>
 
   default __.WorkspaceSymbol(_) = notImplemented
+
+  /// The request is sent from the client to the server to resolve additional information for a given workspace symbol.
+  abstract member WorkspaceSymbolResolve: WorkspaceSymbol -> AsyncLspResult<WorkspaceSymbol>
 
   /// The `workspace/executeCommand` request is sent from the client to the server to trigger command execution
   /// on the server. In most cases the server creates a `WorkspaceEdit` structure and applies the changes to the
@@ -747,6 +806,23 @@ type LspServer() =
   abstract member TypeHierarchySubtypes: TypeHierarchySubtypesParams -> AsyncLspResult<TypeHierarchyItem [] option>
   default __.TypeHierarchySubtypes(_) = notImplemented
 
+  /// The text document diagnostic request is sent from the client to the server to ask the server to compute
+  /// the diagnostics for a given document. As with other pull requests the server is asked to compute the
+  /// diagnostics for the currently synced version of the document.
+  abstract member TextDocumentDiagnostic: DocumentDiagnosticParams -> AsyncLspResult<DocumentDiagnosticReport>
+
+  default __.TextDocumentDiagnostic(_) = notImplemented
+
+  /// The workspace diagnostic request is sent from the client to the server to ask the server to compute
+  /// workspace wide diagnostics which previously where pushed from the server to the client. In contrast to
+  /// the document diagnostic request the workspace request can be long running and is not bound to a specific
+  /// workspace or document state. If the client supports streaming for the workspace diagnostic pull it is
+  /// legal to provide a document diagnostic report multiple times for the same document URI. The last one
+  /// reported will win over previous reports.
+  abstract member WorkspaceDiagnostic: WorkspaceDiagnosticParams -> AsyncLspResult<WorkspaceDiagnosticReport>
+
+  default __.WorkspaceDiagnostic(_) = notImplemented
+
   interface ILspServer with
     member this.Dispose() = this.Dispose()
     member this.Initialize(p: InitializeParams) = this.Initialize(p)
@@ -760,6 +836,7 @@ type LspServer() =
     member this.CompletionItemResolve(p: CompletionItem) = this.CompletionItemResolve(p)
     member this.TextDocumentRename(p: RenameParams) = this.TextDocumentRename(p)
     member this.TextDocumentPrepareRename(p: PrepareRenameParams) = this.TextDocumentPrepareRename(p)
+    member this.TextDocumentDeclaration(p: TextDocumentPositionParams) = this.TextDocumentDeclaration(p)
     member this.TextDocumentDefinition(p: TextDocumentPositionParams) = this.TextDocumentDefinition(p)
     member this.TextDocumentReferences(p: ReferenceParams) = this.TextDocumentReferences(p)
     member this.TextDocumentDocumentHighlight(p: TextDocumentPositionParams) = this.TextDocumentDocumentHighlight(p)
@@ -778,6 +855,8 @@ type LspServer() =
     member this.TextDocumentRangeFormatting(p: DocumentRangeFormattingParams) = this.TextDocumentRangeFormatting(p)
     member this.TextDocumentOnTypeFormatting(p: DocumentOnTypeFormattingParams) = this.TextDocumentOnTypeFormatting(p)
     member this.TextDocumentDocumentSymbol(p: DocumentSymbolParams) = this.TextDocumentDocumentSymbol(p)
+    member this.TextDocumentMoniker(p: TextDocumentPositionParams) = this.TextDocumentMoniker(p)
+    member this.TextDocumentLinkedEditingRange(p: TextDocumentPositionParams) = this.TextDocumentLinkedEditingRange(p)
     member this.WorkspaceDidChangeWatchedFiles(p: DidChangeWatchedFilesParams) = this.WorkspaceDidChangeWatchedFiles(p)
 
     member this.WorkspaceDidChangeWorkspaceFolders(p: DidChangeWorkspaceFoldersParams) =
@@ -793,6 +872,7 @@ type LspServer() =
     member this.WorkspaceWillDeleteFiles(p: DeleteFilesParams) = this.WorkspaceWillDeleteFiles(p)
     member this.WorkspaceDidDeleteFiles(p: DeleteFilesParams) = this.WorkspaceDidDeleteFiles(p)
     member this.WorkspaceSymbol(p: WorkspaceSymbolParams) = this.WorkspaceSymbol(p)
+    member this.WorkspaceSymbolResolve(p: WorkspaceSymbol) = this.WorkspaceSymbolResolve(p)
     member this.WorkspaceExecuteCommand(p: ExecuteCommandParams) = this.WorkspaceExecuteCommand(p)
     member this.TextDocumentWillSave(p: WillSaveTextDocumentParams) = this.TextDocumentWillSave(p)
     member this.TextDocumentWillSaveWaitUntil(p: WillSaveTextDocumentParams) = this.TextDocumentWillSaveWaitUntil(p)
@@ -818,3 +898,5 @@ type LspServer() =
     member this.TextDocumentPrepareTypeHierarchy(p: TypeHierarchyPrepareParams) = this.TextDocumentPrepareTypeHierarchy(p)
     member this.TypeHierarchySupertypes(p: TypeHierarchySupertypesParams) = this.TypeHierarchySupertypes(p)
     member this.TypeHierarchySubtypes(p: TypeHierarchySubtypesParams) = this.TypeHierarchySubtypes(p)
+    member this.TextDocumentDiagnostic(p: DocumentDiagnosticParams) = this.TextDocumentDiagnostic(p)
+    member this.WorkspaceDiagnostic(p: WorkspaceDiagnosticParams) = this.WorkspaceDiagnostic(p)
