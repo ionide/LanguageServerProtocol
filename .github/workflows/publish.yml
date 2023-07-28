@@ -37,6 +37,7 @@ jobs:
         with:
           version: ${{ steps.get_version.outputs.VERSION }}
           path: ./CHANGELOG.md
+          validation_level: warn
 
       - name: Push the package to NuGet
         run: dotnet nuget push release/Ionide.LanguageServerProtocol.${{ steps.get_version.outputs.VERSION }}.nupkg --source "$env:NUGET_SOURCE" --api-key "$env:NUGET_KEY"
