@@ -2866,7 +2866,7 @@ type SignatureInformation =
 
     /// The index of the active parameter.
     /// If provided, this is used in place of `SignatureHelp.activeParameter`.
-    ActiveParameter: uint }
+    ActiveParameter: uint option }
 
 /// Signature help represents the signature of something
 /// callable. There can be multiple signature but only one
