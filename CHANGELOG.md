@@ -6,10 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.4.17] - 27.07.2023
 
+### Added
+
 * Update a type signature on the SignatureInformation structure
 
-
 ## [0.4.16] - 27.07.2023
+
+### Added
 
 * [Add missing features for LSP Specification 3.17](https://github.com/ionide/LanguageServerProtocol/pull/52) (thanks @tcx4c70!)
 
