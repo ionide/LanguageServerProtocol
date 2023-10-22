@@ -16,7 +16,7 @@ module Server =
 
   let logger = LogProvider.getLoggerByName "LSP Server"
 
-  let defaultJsonRpcFormatter() =
+  let defaultJsonRpcFormatter () =
     let jsonRpcFormatter = new JsonMessageFormatter()
     jsonRpcFormatter.JsonSerializer.NullValueHandling <- NullValueHandling.Ignore
     jsonRpcFormatter.JsonSerializer.ConstructorHandling <- ConstructorHandling.AllowNonPublicDefaultConstructor
@@ -30,7 +30,7 @@ module Server =
     jsonRpcFormatter.JsonSerializer.ContractResolver <- OptionAndCamelCasePropertyNamesContractResolver()
     jsonRpcFormatter
 
-  let jsonRpcFormatter = defaultJsonRpcFormatter()
+  let jsonRpcFormatter = defaultJsonRpcFormatter ()
 
   let deserialize<'t> (token: JToken) = token.ToObject<'t>(jsonRpcFormatter.JsonSerializer)
   let serialize<'t> (o: 't) = JToken.FromObject(o, jsonRpcFormatter.JsonSerializer)
@@ -99,7 +99,7 @@ module Server =
     (customizeRpc: IJsonRpcMessageHandler -> JsonRpc)
     =
 
-    use jsonRpcHandler = new HeaderDelimitedMessageHandler(output, input, defaultJsonRpcFormatter())
+    use jsonRpcHandler = new HeaderDelimitedMessageHandler(output, input, defaultJsonRpcFormatter ())
     // Without overriding isFatalException, JsonRpc serializes exceptions and sends them to the client.
     // This is particularly bad for notifications such as textDocument/didChange which don't require a response,
     // and thus any exception that happens during e.g. text sync gets swallowed.
@@ -234,12 +234,12 @@ module Server =
       "textDocument/linkedEditingRange", requestHandling (fun s p -> s.TextDocumentLinkedEditingRange(p))
       "textDocument/foldingRange", requestHandling (fun s p -> s.TextDocumentFoldingRange(p))
       "textDocument/selectionRange", requestHandling (fun s p -> s.TextDocumentSelectionRange(p))
-      "textDocument/prepareCallHierarchy", requestHandling(fun s p -> s.TextDocumentPrepareCallHierarchy(p))
-      "callHierarchy/incomingCalls", requestHandling(fun s p -> s.CallHierarchyIncomingCalls(p))
-      "callHierarchy/outgoingCalls", requestHandling(fun s p -> s.CallHierarchyOutgoingCalls(p))
-      "textDocument/prepareTypeHierarchy", requestHandling(fun s p -> s.TextDocumentPrepareTypeHierarchy(p))
-      "typeHierarchy/supertypes", requestHandling(fun s p -> s.TypeHierarchySupertypes(p))
-      "typeHierarchy/subtypes", requestHandling(fun s p -> s.TypeHierarchySubtypes(p))
+      "textDocument/prepareCallHierarchy", requestHandling (fun s p -> s.TextDocumentPrepareCallHierarchy(p))
+      "callHierarchy/incomingCalls", requestHandling (fun s p -> s.CallHierarchyIncomingCalls(p))
+      "callHierarchy/outgoingCalls", requestHandling (fun s p -> s.CallHierarchyOutgoingCalls(p))
+      "textDocument/prepareTypeHierarchy", requestHandling (fun s p -> s.TextDocumentPrepareTypeHierarchy(p))
+      "typeHierarchy/supertypes", requestHandling (fun s p -> s.TypeHierarchySupertypes(p))
+      "typeHierarchy/subtypes", requestHandling (fun s p -> s.TypeHierarchySubtypes(p))
       "textDocument/semanticTokens/full", requestHandling (fun s p -> s.TextDocumentSemanticTokensFull(p))
       "textDocument/semanticTokens/full/delta", requestHandling (fun s p -> s.TextDocumentSemanticTokensFullDelta(p))
       "textDocument/semanticTokens/range", requestHandling (fun s p -> s.TextDocumentSemanticTokensRange(p))
@@ -264,7 +264,7 @@ module Server =
       "workspace/symbol", requestHandling (fun s p -> s.WorkspaceSymbol(p))
       "workspaceSymbol/resolve", requestHandling (fun s p -> s.WorkspaceSymbolResolve(p))
       "workspace/executeCommand", requestHandling (fun s p -> s.WorkspaceExecuteCommand(p))
-      "window/workDoneProgress/cancel", requestHandling (fun s p -> s.WorkDoneProgessCancel(p) |> notificationSuccess)
+      "window/workDoneProgress/cancel", requestHandling (fun s p -> s.WorkDoneProgressCancel(p) |> notificationSuccess)
       "workspace/diagnostic", requestHandling (fun s p -> s.WorkspaceDiagnostic(p))
       "shutdown", requestHandling (fun s () -> s.Shutdown() |> notificationSuccess)
       "exit", requestHandling (fun s () -> s.Exit() |> notificationSuccess) ]
