@@ -13,6 +13,8 @@ module Server =
   open Ionide.LanguageServerProtocol.JsonUtils
   open Newtonsoft.Json.Linq
   open StreamJsonRpc
+  open StreamJsonRpc.Protocol
+  open JsonRpc
 
   let logger = LogProvider.getLoggerByName "LSP Server"
 
@@ -82,14 +84,34 @@ module Server =
     | ErrorExitWithoutShutdown = 1
     | ErrorStreamClosed = 2
 
+  let (|Flatten|) (ex: Exception) : Exception =
+    match ex with
+    | :? AggregateException as aex ->
+      let aex = aex.Flatten()
+
+      if aex.InnerExceptions.Count = 1 then
+        aex.InnerException
+      else
+        aex
+    | _ -> ex
+
 
   /// The default RPC logic shipped with this library. All this does is mark LocalRpcExceptions as non-fatal
   let defaultRpc (handler: IJsonRpcMessageHandler) =
     { new JsonRpc(handler) with
         member this.IsFatalException(ex: Exception) =
           match ex with
-          | :? LocalRpcException -> false
-          | _ -> true }
+          | Flatten(:? LocalRpcException | :? JsonSerializationException) -> false
+          | _ -> true
+
+        member this.CreateErrorDetails(request: JsonRpcRequest, ex: Exception) =
+          let isSerializable = this.ExceptionStrategy = ExceptionProcessing.ISerializable
+
+          match ex with
+          | Flatten(:? JsonSerializationException as ex) ->
+            let data: obj = if isSerializable then ex else CommonErrorData(ex)
+            JsonRpcError.ErrorDetail(Code = JsonRpcErrorCode.ParseError, Message = ex.Message, Data = data)
+          | _ -> ``base``.CreateErrorDetails(request, ex) }
 
   let startWithSetup<'client when 'client :> Ionide.LanguageServerProtocol.ILspClient>
     (setupRequestHandlings: 'client -> Map<string, Delegate>)
@@ -270,7 +292,8 @@ module Server =
       "exit", requestHandling (fun s () -> s.Exit() |> notificationSuccess) ]
     |> Map.ofList
 
-  let start<'client, 'server when 'client :> Ionide.LanguageServerProtocol.ILspClient and 'server :> Ionide.LanguageServerProtocol.ILspServer>
+  let start<'client, 'server
+    when 'client :> Ionide.LanguageServerProtocol.ILspClient and 'server :> Ionide.LanguageServerProtocol.ILspServer>
     (requestHandlings: Map<string, ServerRequestHandling<'server>>)
     (input: Stream)
     (output: Stream)
@@ -325,8 +348,8 @@ module Client =
           return
             res
             |> Option.map (fun n -> JToken.FromObject(n, jsonSerializer))
-        with
-        | _ -> return None
+        with _ ->
+          return None
       }
 
     { Run = run }
@@ -424,22 +447,21 @@ module Client =
     let mutable inputStream: StreamWriter option = None
 
     let sender =
-      MailboxProcessor<string>.Start
-        (fun inbox ->
-          let rec loop () =
-            async {
-              let! str = inbox.Receive()
+      MailboxProcessor<string>.Start(fun inbox ->
+        let rec loop () =
+          async {
+            let! str = inbox.Receive()
 
-              inputStream
-              |> Option.iter (fun input ->
-                // fprintfn stderr "[CLIENT] Writing: %s" str
-                LowLevel.write input.BaseStream str
-                input.BaseStream.Flush())
-              // do! Async.Sleep 1000
-              return! loop ()
-            }
+            inputStream
+            |> Option.iter (fun input ->
+              // fprintfn stderr "[CLIENT] Writing: %s" str
+              LowLevel.write input.BaseStream str
+              input.BaseStream.Flush())
+            // do! Async.Sleep 1000
+            return! loop ()
+          }
 
-          loop ())
+        loop ())
 
     let handleRequest (request: JsonRpc.Request) =
       async {
@@ -453,8 +475,8 @@ module Client =
             | Some prms ->
               let! result = handling.Run prms
               methodCallResult <- result
-          with
-          | ex -> methodCallResult <- None
+          with ex ->
+            methodCallResult <- None
         | None -> ()
 
         match methodCallResult with
@@ -472,8 +494,8 @@ module Client =
             | Some prms ->
               let! result = handling.Run prms
               return Result.Ok()
-          with
-          | ex -> return Result.Error(JsonRpc.Error.Create(JsonRpc.ErrorCodes.internalError, ex.ToString()))
+          with ex ->
+            return Result.Error(JsonRpc.Error.Create(JsonRpc.ErrorCodes.internalError, ex.ToString()))
         | None -> return Result.Error(JsonRpc.Error.MethodNotFound)
       }
 
@@ -557,8 +579,7 @@ module Client =
         let proc =
           try
             Process.Start(si)
-          with
-          | ex ->
+          with ex ->
             let newEx = System.Exception(sprintf "%s on %s" ex.Message exec, ex)
             raise newEx
 
