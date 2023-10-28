@@ -8,8 +8,8 @@
         "paket"
       ]
     },
-    "fantomas-tool": {
-      "version": "4.7.8",
+    "fantomas": {
+      "version": "6.2.2",
       "commands": [
         "fantomas"
       ]
