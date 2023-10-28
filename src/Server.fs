@@ -684,6 +684,8 @@ type LspServer() =
   /// The request is sent from the client to the server to resolve additional information for a given workspace symbol.
   abstract member WorkspaceSymbolResolve: WorkspaceSymbol -> AsyncLspResult<WorkspaceSymbol>
 
+  default __.WorkspaceSymbolResolve _ = notImplemented
+
   /// The `workspace/executeCommand` request is sent from the client to the server to trigger command execution
   /// on the server. In most cases the server creates a `WorkspaceEdit` structure and applies the changes to the
   /// workspace using the request `workspace/applyEdit` which is sent from the server to the client.
