@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.19] - 28.10.2023
+
+### Fixed
+* [Add default for WorkspaceSymbolResolve](https://github.com/ionide/LanguageServerProtocol/pull/56) (thanks @nojaf)
+* [Fix crashing on json serialization](https://github.com/ionide/LanguageServerProtocol/pull/55) (thanks @TheAngryByrd)
+
 ## [0.4.18] - 22.10.2023
 
 ### Changed
