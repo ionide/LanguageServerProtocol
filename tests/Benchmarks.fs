@@ -95,7 +95,8 @@ type TypeCheckBenchmarks() =
     let mutable count = 0
 
     for ty in types do
-      if ty = typeof<bool> then count <- count + 1
+      if ty = typeof<bool> then
+        count <- count + 1
 
     count
 
@@ -104,7 +105,8 @@ type TypeCheckBenchmarks() =
     let mutable count = 0
 
     for ty in types do
-      if ty.GetHashCode() = Type.boolHash then count <- count + 1
+      if ty.GetHashCode() = Type.boolHash then
+        count <- count + 1
 
     count
 
@@ -113,7 +115,8 @@ type TypeCheckBenchmarks() =
     let mutable count = 0
 
     for ty in types do
-      if ty = typeof<string> then count <- count + 1
+      if ty = typeof<string> then
+        count <- count + 1
 
     count
 
@@ -132,7 +135,8 @@ type TypeCheckBenchmarks() =
     let mutable count = 0
 
     for ty in types do
-      if isOptionType ty then count <- count + 1
+      if isOptionType ty then
+        count <- count + 1
 
     count
 
@@ -141,7 +145,8 @@ type TypeCheckBenchmarks() =
     let mutable count = 0
 
     for ty in types do
-      if memorisedIsOptionType ty then count <- count + 1
+      if memorisedIsOptionType ty then
+        count <- count + 1
 
     count
 
@@ -150,7 +155,8 @@ type TypeCheckBenchmarks() =
     let mutable count = 0
 
     for ty in types do
-      if memorisedHashIsOptionType ty then count <- count + 1
+      if memorisedHashIsOptionType ty then
+        count <- count + 1
 
     count
 
@@ -158,6 +164,7 @@ module Example =
   open System.Text.Json.Serialization
 
   type private Random with
+
     member rand.NextBool() =
       // 2nd is exclusive!
       rand.Next(0, 2) = 0
@@ -271,7 +278,7 @@ module Example =
     | Y = 2
     | Z = 3
 
-  type MyEnumHolder = { EnumValue: MyEnum; EnumArray: MyEnum [] }
+  type MyEnumHolder = { EnumValue: MyEnum; EnumArray: MyEnum[] }
 
   module MyEnumHolder =
     let gen (rand: Random) (depth: int) =
@@ -298,7 +305,7 @@ module Example =
       StringData: string
       CharData: char
       StringOptionData: string option
-      IntArrayOptionData: int [] option }
+      IntArrayOptionData: int[] option }
 
   module BasicData =
     let gen (rand: Random) (depth: int) =
@@ -322,7 +329,7 @@ module Example =
     | Enum of MyEnumHolder
     | Map of MapHolder
     | BasicData of BasicData
-    | More of Data []
+    | More of Data[]
 
   module Data =
     let rec gen (rand: Random) (depth: int) =
@@ -389,9 +396,10 @@ type MultipleTypesBenchmarks() =
                     Some
                       { DocumentChanges = Some true
                         ResourceOperations =
-                          Some [| ResourceOperationKind.Create
-                                  ResourceOperationKind.Rename
-                                  ResourceOperationKind.Delete |]
+                          Some
+                            [| ResourceOperationKind.Create
+                               ResourceOperationKind.Rename
+                               ResourceOperationKind.Delete |]
                         FailureHandling = Some FailureHandlingKind.Abort
                         NormalizesLineEndings = None
                         ChangeAnnotationSupport = Some { GroupsOnLabel = Some false } }
@@ -441,28 +449,16 @@ type MultipleTypesBenchmarks() =
                               ParameterInformation = None
                               ActiveParameterSupport = None }
                         ContextSupport = None }
-                  Declaration =
-                    Some
-                      { DynamicRegistration = Some false
-                        LinkSupport = Some false }
+                  Declaration = Some { DynamicRegistration = Some false; LinkSupport = Some false }
                   References = Some { DynamicRegistration = Some false }
                   DocumentHighlight = Some { DynamicRegistration = None }
                   DocumentSymbol = None
                   Formatting = Some { DynamicRegistration = Some true }
                   RangeFormatting = Some { DynamicRegistration = Some true }
                   OnTypeFormatting = None
-                  Definition =
-                    Some
-                      { DynamicRegistration = Some false
-                        LinkSupport = Some false }
-                  TypeDefinition =
-                    Some
-                      { DynamicRegistration = Some false
-                        LinkSupport = Some false }
-                  Implementation =
-                    Some
-                      { DynamicRegistration = Some false
-                        LinkSupport = Some false }
+                  Definition = Some { DynamicRegistration = Some false; LinkSupport = Some false }
+                  TypeDefinition = Some { DynamicRegistration = Some false; LinkSupport = Some false }
+                  Implementation = Some { DynamicRegistration = Some false; LinkSupport = Some false }
                   CodeAction =
                     Some
                       { DynamicRegistration = Some true
@@ -476,10 +472,7 @@ type MultipleTypesBenchmarks() =
                         ResolveSupport = Some { Properties = [| "foo"; "bar"; "baz" |] }
                         HonorsChangeAnnotations = Some false }
                   CodeLens = Some { DynamicRegistration = Some true }
-                  DocumentLink =
-                    Some
-                      { DynamicRegistration = Some true
-                        TooltipSupport = None }
+                  DocumentLink = Some { DynamicRegistration = Some true; TooltipSupport = None }
                   ColorProvider = Some { DynamicRegistration = Some true }
                   Rename = None
                   FoldingRange =
@@ -514,56 +507,56 @@ type MultipleTypesBenchmarks() =
                     Some
                       { DynamicRegistration = Some true
                         ResolveSupport = Some { Properties = [| "Tooltip"; "Position"; "TextEdits" |] } }
-                  Diagnostic =
-                    Some
-                      { DynamicRegistration = None
-                        RelatedDocumentSupport = None } }
+                  Diagnostic = Some { DynamicRegistration = None; RelatedDocumentSupport = None } }
             General = None
             Experimental = None
             Window = None }
       trace = None
       WorkspaceFolders =
-        Some [| { Uri = "..."; Name = "foo" }
-                { Uri = "/"; Name = "bar" }
-                { Uri = "something long stuff and even longer and longer and longer"
-                  Name = "bar" } |] }
+        Some
+          [| { Uri = "..."; Name = "foo" }
+             { Uri = "/"; Name = "bar" }
+             { Uri = "something long stuff and even longer and longer and longer"
+               Name = "bar" } |] }
 
   let inlayHint: InlayHint =
     { Label =
-        InlayHintLabel.Parts [| { InlayHintLabelPart.Value = "1st label"
-                                  Tooltip = Some(InlayHintTooltip.String "1st label tooltip")
-                                  Location = Some { Uri = "1st"; Range = mkRange' (1, 2) (3, 4) }
-                                  Command = None }
-                                { Value = "2nd label"
-                                  Tooltip = Some(InlayHintTooltip.String "1st label tooltip")
-                                  Location = Some { Uri = "2nd"; Range = mkRange' (5, 8) (10, 9) }
-                                  Command = Some { Title = "2nd command"; Command = "foo"; Arguments = None } }
-                                { InlayHintLabelPart.Value = "3rd label"
-                                  Tooltip =
-                                    Some(
-                                      InlayHintTooltip.Markup
-                                        { Kind = MarkupKind.Markdown
-                                          Value =
-                                            """
+        InlayHintLabel.Parts
+          [| { InlayHintLabelPart.Value = "1st label"
+               Tooltip = Some(InlayHintTooltip.String "1st label tooltip")
+               Location = Some { Uri = "1st"; Range = mkRange' (1, 2) (3, 4) }
+               Command = None }
+             { Value = "2nd label"
+               Tooltip = Some(InlayHintTooltip.String "1st label tooltip")
+               Location = Some { Uri = "2nd"; Range = mkRange' (5, 8) (10, 9) }
+               Command = Some { Title = "2nd command"; Command = "foo"; Arguments = None } }
+             { InlayHintLabelPart.Value = "3rd label"
+               Tooltip =
+                 Some(
+                   InlayHintTooltip.Markup
+                     { Kind = MarkupKind.Markdown
+                       Value =
+                         """
                                             # Header
                                             Description
                                             * List 1
                                             * List 2
                                             """ }
-                                    )
-                                  Location = Some { Uri = "3rd"; Range = mkRange' (1, 2) (3, 4) }
-                                  Command = None } |]
+                 )
+               Location = Some { Uri = "3rd"; Range = mkRange' (1, 2) (3, 4) }
+               Command = None } |]
       Position = { Line = 5; Character = 10 }
       Kind = Some InlayHintKind.Type
       TextEdits =
-        Some [| { Range = mkRange' (5, 10) (6, 5); NewText = "foo bar" }
-                { Range = mkRange' (5, 0) (5, 2); NewText = "baz" } |]
+        Some
+          [| { Range = mkRange' (5, 10) (6, 5); NewText = "foo bar" }
+             { Range = mkRange' (5, 0) (5, 2); NewText = "baz" } |]
       Tooltip = Some(InlayHintTooltip.Markup { Kind = MarkupKind.PlainText; Value = "some tooltip" })
       PaddingLeft = Some true
       PaddingRight = Some false
       Data = Some(JToken.FromObject "some data") }
 
-  let allLsp: obj [] = [| initializeParams; inlayHint |]
+  let allLsp: obj[] = [| initializeParams; inlayHint |]
 
   /// Some complex data which covers all converters
   let example = Example.createData (1234, 9, 5)
@@ -640,7 +633,7 @@ type MultipleTypesBenchmarks() =
       ()
 
 
-let run (args: string []) =
+let run (args: string[]) =
   let switcher = BenchmarkSwitcher.FromTypes([| typeof<MultipleTypesBenchmarks>; typeof<TypeCheckBenchmarks> |])
   switcher.Run(args) |> ignore
   0

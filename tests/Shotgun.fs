@@ -59,10 +59,7 @@ type Gens =
       let size = min size maxDepth
 
       if size <= 0 then
-        genDocSymbol (
-          Gen.oneof [ Gen.constant (None)
-                      Gen.constant (Some [||]) ]
-        )
+        genDocSymbol (Gen.oneof [ Gen.constant (None); Gen.constant (Some [||]) ])
       else
         let children = gen (size - 1) |> Gen.arrayOf |> Gen.optionOf
         genDocSymbol children
@@ -126,8 +123,8 @@ let tests =
         |> Array.sortBy fst
 
       let propTester =
-        typeof<Roundtripper>.GetMethod
-          (nameof (Roundtripper.TestProperty), BindingFlags.Static ||| BindingFlags.NonPublic)
+        typeof<Roundtripper>
+          .GetMethod(nameof (Roundtripper.TestProperty), BindingFlags.Static ||| BindingFlags.NonPublic)
 
       for (name, ty) in tys do
         let m = propTester.MakeGenericMethod([| ty |])

@@ -57,7 +57,7 @@ type ILspClient =
   /// The workspace/workspaceFolders request is sent from the server to the client to fetch the current open
   /// list of workspace folders. Returns null in the response if only a single file is open in the tool.
   /// Returns an empty array if a workspace is open but no folders are configured.
-  abstract member WorkspaceWorkspaceFolders: unit -> AsyncLspResult<WorkspaceFolder [] option>
+  abstract member WorkspaceWorkspaceFolders: unit -> AsyncLspResult<WorkspaceFolder[] option>
 
   /// The workspace/configuration request is sent from the server to the client to fetch configuration
   /// settings from the client.
@@ -65,7 +65,7 @@ type ILspClient =
   /// The request can fetch n configuration settings in one roundtrip. The order of the returned configuration
   /// settings correspond to the order of the passed ConfigurationItems (e.g. the first item in the response
   /// is the result for the first configuration item in the params).
-  abstract member WorkspaceConfiguration: ConfigurationParams -> AsyncLspResult<Newtonsoft.Json.Linq.JToken []>
+  abstract member WorkspaceConfiguration: ConfigurationParams -> AsyncLspResult<Newtonsoft.Json.Linq.JToken[]>
 
 
   abstract member WorkspaceApplyEdit: ApplyWorkspaceEditParams -> AsyncLspResult<ApplyWorkspaceEditResponse>
@@ -195,7 +195,7 @@ type LspClient() =
   /// The workspace/workspaceFolders request is sent from the server to the client to fetch the current open
   /// list of workspace folders. Returns null in the response if only a single file is open in the tool.
   /// Returns an empty array if a workspace is open but no folders are configured.
-  abstract member WorkspaceWorkspaceFolders: unit -> AsyncLspResult<WorkspaceFolder [] option>
+  abstract member WorkspaceWorkspaceFolders: unit -> AsyncLspResult<WorkspaceFolder[] option>
 
   default __.WorkspaceWorkspaceFolders() = notImplemented
 
@@ -205,7 +205,7 @@ type LspClient() =
   /// The request can fetch n configuration settings in one roundtrip. The order of the returned configuration
   /// settings correspond to the order of the passed ConfigurationItems (e.g. the first item in the response
   /// is the result for the first configuration item in the params).
-  abstract member WorkspaceConfiguration: ConfigurationParams -> AsyncLspResult<Newtonsoft.Json.Linq.JToken []>
+  abstract member WorkspaceConfiguration: ConfigurationParams -> AsyncLspResult<Newtonsoft.Json.Linq.JToken[]>
 
   default __.WorkspaceConfiguration(_) = notImplemented
 

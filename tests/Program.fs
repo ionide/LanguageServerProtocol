@@ -4,7 +4,7 @@ open Expecto.Tests
 
 [<EntryPoint>]
 let main args =
-  let (|ShouldRunBenchmarks|_|) (args: string []) =
+  let (|ShouldRunBenchmarks|_|) (args: string[]) =
     let nArgs = args.Length
     let markers = [| "--benchmark"; "--benchmarks"; "-b" |]
 

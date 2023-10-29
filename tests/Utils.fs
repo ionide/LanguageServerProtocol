@@ -129,8 +129,7 @@ let rec convertExtensionDataDictionariesToMap (o: obj) =
         try
           let v = prop.GetValue o
           (prop, v) |> Some
-        with
-        | ex ->
+        with ex ->
           failwithf "Couldn't get value of %s in %A: %s" prop.Name ty ex.Message
           None)
 
@@ -169,8 +168,8 @@ module TestData =
   type MyContainer =
     | Fin
     | Datum of WithExtensionData * MyContainer
-    | Data of WithExtensionData [] * MyContainer
-    | Big of MyContainer []
+    | Data of WithExtensionData[] * MyContainer
+    | Big of MyContainer[]
     | Text of string * MyContainer
 
 let tests =
@@ -180,76 +179,75 @@ let tests =
         (nameof isLspType)
         [ testCase "string isn't lsp type"
           <| fun _ ->
-               let isLsp = typeof<string> |> isLspType []
-               Expect.isFalse isLsp "string isn't lsp"
+            let isLsp = typeof<string> |> isLspType []
+            Expect.isFalse isLsp "string isn't lsp"
           testCase "DocumentLink is lsp type"
           <| fun _ ->
-               let isLsp =
-                 typeof<Ionide.LanguageServerProtocol.Types.DocumentLink>
-                 |> isLspType []
+            let isLsp =
+              typeof<Ionide.LanguageServerProtocol.Types.DocumentLink>
+              |> isLspType []
 
-               Expect.isTrue isLsp "DocumentLink is lsp"
+            Expect.isTrue isLsp "DocumentLink is lsp"
           testCase "DocumentLink is direct, non-generic lsp type"
           <| fun _ ->
-               let isLsp =
-                 typeof<Ionide.LanguageServerProtocol.Types.DocumentLink>
-                 |> isLspType [ not << Lsp.Is.Nested
-                                not << Lsp.Is.Generic ]
+            let isLsp =
+              typeof<Ionide.LanguageServerProtocol.Types.DocumentLink>
+              |> isLspType [ not << Lsp.Is.Nested; not << Lsp.Is.Generic ]
 
-               Expect.isTrue isLsp "DocumentLink is lsp"
+            Expect.isTrue isLsp "DocumentLink is lsp"
 
           testCase "U2 is lsp type"
           <| fun _ ->
-               let isLsp = typeof<U2<int, string>> |> isLspType []
-               Expect.isTrue isLsp "U2 is lsp"
+            let isLsp = typeof<U2<int, string>> |> isLspType []
+            Expect.isTrue isLsp "U2 is lsp"
           testCase "U2<int, string> is not non-generic lsp type"
           <| fun _ ->
-               let isLsp =
-                 typeof<U2<int, string>>
-                 |> isLspType [ not << Lsp.Is.Generic ]
+            let isLsp =
+              typeof<U2<int, string>>
+              |> isLspType [ not << Lsp.Is.Generic ]
 
-               Expect.isFalse isLsp "U2 is generic lsp"
+            Expect.isFalse isLsp "U2 is generic lsp"
           testCase "U2<int, string> is non-generic-type-def lsp type"
           <| fun _ ->
-               let isLsp =
-                 typeof<U2<int, string>>
-                 |> isLspType [ not << Lsp.Is.GenericTypeDef ]
+            let isLsp =
+              typeof<U2<int, string>>
+              |> isLspType [ not << Lsp.Is.GenericTypeDef ]
 
-               Expect.isTrue isLsp "U2 is not generic type def lsp"
+            Expect.isTrue isLsp "U2 is not generic type def lsp"
           testCase "U2<_,_> is not non-generic lsp type"
           <| fun _ ->
-               let isLsp = typedefof<U2<_, _>> |> isLspType [ not << Lsp.Is.Generic ]
-               Expect.isFalse isLsp "U2 is generic lsp"
+            let isLsp = typedefof<U2<_, _>> |> isLspType [ not << Lsp.Is.Generic ]
+            Expect.isFalse isLsp "U2 is generic lsp"
           testCase "U2<_,_> is not non-generic-type-def lsp type"
           <| fun _ ->
-               let isLsp =
-                 typedefof<U2<_, _>>
-                 |> isLspType [ not << Lsp.Is.GenericTypeDef ]
+            let isLsp =
+              typedefof<U2<_, _>>
+              |> isLspType [ not << Lsp.Is.GenericTypeDef ]
 
-               Expect.isFalse isLsp "U2 is generic type def lsp"
+            Expect.isFalse isLsp "U2 is generic type def lsp"
           testCase "U2<_,_> is not non-abstract lsp type"
           <| fun _ ->
-               let isLsp = typedefof<U2<_, _>> |> isLspType [ not << Lsp.Is.Abstract ]
-               Expect.isFalse isLsp "U2 is abstract lsp"
+            let isLsp = typedefof<U2<_, _>> |> isLspType [ not << Lsp.Is.Abstract ]
+            Expect.isFalse isLsp "U2 is abstract lsp"
 
           testCase "MarkedString.String is lsp"
           <| fun _ ->
-               let o = MarkedString.String "foo"
-               let isLsp = o.GetType() |> isLspType []
-               Expect.isTrue isLsp "MarkedString.String is lsp"
+            let o = MarkedString.String "foo"
+            let isLsp = o.GetType() |> isLspType []
+            Expect.isTrue isLsp "MarkedString.String is lsp"
           testCase "MarkedString.String isn't direct lsp"
           <| fun _ ->
-               let o = MarkedString.String "foo"
-               let isLsp = o.GetType() |> isLspType [ not << Lsp.Is.Nested ]
-               Expect.isFalse isLsp "MarkedString.String is not direct lsp"
+            let o = MarkedString.String "foo"
+            let isLsp = o.GetType() |> isLspType [ not << Lsp.Is.Nested ]
+            Expect.isFalse isLsp "MarkedString.String is not direct lsp"
 
           testCase "Client isn't lsp"
           <| fun _ ->
-               let isLsp =
-                 typeof<Ionide.LanguageServerProtocol.Client.Client>
-                 |> isLspType []
+            let isLsp =
+              typeof<Ionide.LanguageServerProtocol.Client.Client>
+              |> isLspType []
 
-               Expect.isFalse isLsp "Client isn't lsp" ]
+            Expect.isFalse isLsp "Client isn't lsp" ]
 
       testList
         (nameof convertExtensionDataDictionariesToMap)
@@ -270,117 +268,117 @@ let tests =
 
           testCase "can convert direct dictionary field"
           <| fun _ ->
-               let actual = createWithExtensionData ()
-               let expected = { actual with AdditionalData = dict }
-               testConvert actual expected
+            let actual = createWithExtensionData ()
+            let expected = { actual with AdditionalData = dict }
+            testConvert actual expected
 
           testCase "can convert inside union in case with single value"
           <| fun _ ->
-               let extData = createWithExtensionData ()
-               let actual = TestData.MyUnion.Case2 extData
-               let expected = TestData.MyUnion.Case2 { extData with AdditionalData = dict }
-               testConvert actual expected
+            let extData = createWithExtensionData ()
+            let actual = TestData.MyUnion.Case2 extData
+            let expected = TestData.MyUnion.Case2 { extData with AdditionalData = dict }
+            testConvert actual expected
 
           testCase "can convert inside union in case with multiple values"
           <| fun _ ->
-               let extData = createWithExtensionData ()
-               let actual = TestData.MyUnion.Case3("foo", extData, 42)
-               let expected = TestData.MyUnion.Case3("foo", { extData with AdditionalData = dict }, 42)
-               testConvert actual expected
+            let extData = createWithExtensionData ()
+            let actual = TestData.MyUnion.Case3("foo", extData, 42)
+            let expected = TestData.MyUnion.Case3("foo", { extData with AdditionalData = dict }, 42)
+            testConvert actual expected
 
           testCase "can convert in U2"
           <| fun _ ->
-               let extData = createWithExtensionData ()
-               let actual: U2<int, _> = U2.Second extData
-               let expected: U2<int, _> = U2.Second { extData with AdditionalData = dict }
-               testConvert actual expected
+            let extData = createWithExtensionData ()
+            let actual: U2<int, _> = U2.Second extData
+            let expected: U2<int, _> = U2.Second { extData with AdditionalData = dict }
+            testConvert actual expected
 
           testCase "can convert in tuple"
           <| fun _ ->
-               let extData = createWithExtensionData ()
-               let actual = ("foo", extData, 42)
-               let expected = ("foo", { extData with AdditionalData = dict }, 42)
-               testConvert actual expected
+            let extData = createWithExtensionData ()
+            let actual = ("foo", extData, 42)
+            let expected = ("foo", { extData with AdditionalData = dict }, 42)
+            testConvert actual expected
 
           testCase "can convert in array"
           <| fun _ ->
-               let extData = createWithExtensionData ()
-               let actual: obj [] = [| "foo"; extData; 42 |]
-               let expected: obj [] = [| "foo"; { extData with AdditionalData = dict }; 42 |]
-               testConvert actual expected
+            let extData = createWithExtensionData ()
+            let actual: obj[] = [| "foo"; extData; 42 |]
+            let expected: obj[] = [| "foo"; { extData with AdditionalData = dict }; 42 |]
+            testConvert actual expected
 
           testCase "can convert in list"
           <| fun _ ->
-               let extData = createWithExtensionData ()
-               let actual: obj list = [ "foo"; extData; 42 ]
-               let expected: obj list = [ "foo"; { extData with AdditionalData = dict }; 42 ]
-               testConvert actual expected
+            let extData = createWithExtensionData ()
+            let actual: obj list = [ "foo"; extData; 42 ]
+            let expected: obj list = [ "foo"; { extData with AdditionalData = dict }; 42 ]
+            testConvert actual expected
 
           testCase "can convert option"
           <| fun _ ->
-               let extData = createWithExtensionData ()
-               let actual = Some extData
-               let expected = Some { extData with AdditionalData = dict }
-               testConvert actual expected
+            let extData = createWithExtensionData ()
+            let actual = Some extData
+            let expected = Some { extData with AdditionalData = dict }
+            testConvert actual expected
 
           testCase "replaces all dictionaries"
           <| fun _ ->
-               let extDataMap =
-                 Array.init 5 (fun i ->
-                   let m =
-                     Array.init (i + 3) (fun j -> ($"Dict{i}Element{j}", JToken.FromObject(i + j)))
-                     |> Map.ofArray
+            let extDataMap =
+              Array.init 5 (fun i ->
+                let m =
+                  Array.init (i + 3) (fun j -> ($"Dict{i}Element{j}", JToken.FromObject(i + j)))
+                  |> Map.ofArray
 
-                   { TestData.WithExtensionData.Value = $"Hello {i}"
-                     TestData.WithExtensionData.AdditionalData = m })
+                { TestData.WithExtensionData.Value = $"Hello {i}"
+                  TestData.WithExtensionData.AdditionalData = m })
 
-               let extDataDict =
-                 extDataMap
-                 |> Array.map (fun extData -> { extData with AdditionalData = Dictionary extData.AdditionalData })
+            let extDataDict =
+              extDataMap
+              |> Array.map (fun extData -> { extData with AdditionalData = Dictionary extData.AdditionalData })
 
-               let actual = TestData.MyContainer.Data(extDataDict, TestData.MyContainer.Fin)
-               let expected = TestData.MyContainer.Data(extDataMap, TestData.MyContainer.Fin)
-               testConvert actual expected
+            let actual = TestData.MyContainer.Data(extDataDict, TestData.MyContainer.Fin)
+            let expected = TestData.MyContainer.Data(extDataMap, TestData.MyContainer.Fin)
+            testConvert actual expected
 
           testCase "can replace deeply nested"
           <| fun _ ->
-               let createExtensionData mkDict seed : TestData.WithExtensionData =
-                 { Value = $"Seed {seed}"
-                   AdditionalData =
-                     let count = seed % 4 + 3
+            let createExtensionData mkDict seed : TestData.WithExtensionData =
+              { Value = $"Seed {seed}"
+                AdditionalData =
+                  let count = seed % 4 + 3
 
-                     List.init (seed % 4 + 3) (fun i -> ($"Seed{seed}Element{i}Of{count}", JToken.FromObject(count + i)))
-                     |> Map.ofList
-                     |> mkDict }
+                  List.init (seed % 4 + 3) (fun i -> ($"Seed{seed}Element{i}Of{count}", JToken.FromObject(count + i)))
+                  |> Map.ofList
+                  |> mkDict }
 
-               /// builds always same object for same depth
-               let rec buildObject mkDict (depth: int) =
-                 match depth % 4 with
-                 | _ when depth <= 0 -> TestData.MyContainer.Fin
-                 | 0 ->
-                   [| 1 .. (max 3 (depth / 2)) |]
-                   |> Array.map (fun i -> buildObject mkDict (depth - 1 - (i % 2)))
-                   |> TestData.MyContainer.Big
-                 | 1 ->
-                   let o = buildObject mkDict (depth - 1)
-                   let d = createExtensionData mkDict depth
-                   TestData.MyContainer.Datum(d, o)
-                 | 2 ->
-                   let o = buildObject mkDict (depth - 1)
+            /// builds always same object for same depth
+            let rec buildObject mkDict (depth: int) =
+              match depth % 4 with
+              | _ when depth <= 0 -> TestData.MyContainer.Fin
+              | 0 ->
+                [| 1 .. (max 3 (depth / 2)) |]
+                |> Array.map (fun i -> buildObject mkDict (depth - 1 - (i % 2)))
+                |> TestData.MyContainer.Big
+              | 1 ->
+                let o = buildObject mkDict (depth - 1)
+                let d = createExtensionData mkDict depth
+                TestData.MyContainer.Datum(d, o)
+              | 2 ->
+                let o = buildObject mkDict (depth - 1)
 
-                   let ds =
-                     [| 1 .. max 3 (depth / 2) |]
-                     |> Array.map (fun i -> createExtensionData mkDict (depth * i))
+                let ds =
+                  [| 1 .. max 3 (depth / 2) |]
+                  |> Array.map (fun i -> createExtensionData mkDict (depth * i))
 
-                   TestData.MyContainer.Data(ds, o)
-                 | 3 ->
-                   let o = buildObject mkDict (depth - 1)
-                   let d = $"Depth={depth}"
-                   TestData.MyContainer.Text(d, o)
+                TestData.MyContainer.Data(ds, o)
+              | 3 ->
+                let o = buildObject mkDict (depth - 1)
+                let d = $"Depth={depth}"
+                TestData.MyContainer.Text(d, o)
 
-                 | _ -> failwith "unreachable"
+              | _ -> failwith "unreachable"
 
-               let depth = 7
-               let expected = buildObject id depth
-               let actual = buildObject Dictionary depth
-               testConvert actual expected ] ]
+            let depth = 7
+            let expected = buildObject id depth
+            let actual = buildObject Dictionary depth
+            testConvert actual expected ] ]
