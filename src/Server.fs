@@ -327,7 +327,7 @@ type ILspServer =
   /// progress initiated on the server side using the `window/workDoneProgress/create`. The progress need
   /// not be marked as cancellable to be cancelled and a client may cancel a progress for any number of
   /// reasons: in case of error, reloading a workspace etc.
-  abstract member WorkDoneProgressCancel: ProgressToken -> Async<unit>
+  abstract member WorkDoneProgressCancel: WorkDoneProgressCancelParams -> Async<unit>
 
   /// The inline value request is sent from the client to the server to compute inline values for a given text document
   /// that may be rendered in the editor at the end of lines.
@@ -766,7 +766,7 @@ type LspServer() =
   /// progress initiated on the server side using the `window/workDoneProgress/create`. The progress need
   /// not be marked as cancellable to be cancelled and a client may cancel a progress for any number of
   /// reasons: in case of error, reloading a workspace etc.
-  abstract member WorkDoneProgressCancel: ProgressToken -> Async<unit>
+  abstract member WorkDoneProgressCancel: WorkDoneProgressCancelParams -> Async<unit>
 
   default __.WorkDoneProgressCancel(_) = ignoreNotification
 
@@ -910,7 +910,7 @@ type LspServer() =
     member this.TextDocumentSemanticTokensRange(p: SemanticTokensRangeParams) = this.TextDocumentSemanticTokensRange(p)
     member this.TextDocumentInlayHint(p: InlayHintParams) = this.TextDocumentInlayHint(p)
     member this.InlayHintResolve(p: InlayHint) = this.InlayHintResolve(p)
-    member this.WorkDoneProgressCancel(token) = this.WorkDoneProgressCancel(token)
+    member this.WorkDoneProgressCancel(p: WorkDoneProgressCancelParams) = this.WorkDoneProgressCancel(p)
     member this.TextDocumentInlineValue(p: InlineValueParams) = this.TextDocumentInlineValue(p)
 
     member this.TextDocumentPrepareCallHierarchy(p: CallHierarchyPrepareParams) =
