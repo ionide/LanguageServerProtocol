@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.22] - 15.01.2024
+
+### Added
+* [New Error Code members to match spec-provided error codes in 3.17.0](https://github.com/ionide/LanguageServerProtocol/pull/59)
+
+### Changed
+* [Added obsoletion messages to members marked deprecated in the spec](https://github.com/ionide/LanguageServerProtocol/pull/59)
+
 ## [0.4.21] - 29.10.2023
 
 ### Fixed
