@@ -207,7 +207,7 @@ type SymbolInformation =
     Tags: SymbolTag[] option
 
     /// Indicates if this symbol is deprecated.
-    /// @deprecated Use tags instead
+    [<Obsolete("Use Tags instead")>]
     Deprecated: bool option
 
     /// The location of this symbol. The location's range is used by a tool
@@ -245,7 +245,7 @@ type DocumentSymbol =
     /// tags for this document symbol.
     Tags: SymbolTag[] option
     /// Indicates if this symbol is deprecated.
-    /// @deprecated Use tags instead
+    [<Obsolete("Use Tags instead")>]
     Deprecated: bool option
     /// The range enclosing this symbol not including leading/trailing whitespace
     /// but everything else like comments. This information is typically used to
@@ -1141,7 +1141,7 @@ type RenameClientCapabilities =
     DynamicRegistration: bool option
 
     /// Client supports testing for validity of rename operations before execution.
-    /// @since version 3.12.0
+    /// @since 3.12.0
     PrepareSupport: bool option
 
     /// Client supports the default behavior result
@@ -1420,11 +1420,11 @@ type InitializeParams =
     /// https://en.wikipedia.org/wiki/IETF_language_tag)
     Locale: string option
     /// The rootPath of the workspace. Is null if no folder is open.
-    /// @deprecated in favour of `rootUri`.
+    [<Obsolete("Use RootUri instead")>]
     RootPath: string option
     /// The rootUri of the workspace. Is null if no folder is open. If both
     /// `rootPath` and `rootUri` are set `rootUri` wins.
-    /// @deprecated in favour of `workspaceFolders`
+    [<Obsolete("Use WorkspaceFolders instead")>]
     RootUri: string option
     /// User provided initialization options.
     InitializationOptions: JToken option
@@ -2107,10 +2107,8 @@ type TextDocumentSaveReason =
   /// Manually triggered, e.g. by the user pressing save, by starting debugging,
   /// or by an API call.
   | Manual = 1
-
   /// Automatic after a delay.
   | AfterDelay = 2
-
   /// When the editor lost focus.
   | FocusOut = 3
 
@@ -2449,14 +2447,14 @@ type Command =
 
 type CompletionItemLabelDetails =
   {
-    /// An optional string which is rendered less prominently directly after
-    /// {@link CompletionItem.label label}, without any spacing. Should be used
-    /// for function signatures or type annotations.
+    /// <summary>An optional string which is rendered less prominently directly after
+    ///  <see cref="CompletionItem.Label">label</see>, without any spacing. Should be used
+    /// for function signatures or type annotations.</summary>
     Detail: string option
 
-    /// An optional string which is rendered less prominently after
-    /// {@link CompletionItemLabelDetails.detail}. Should be used for fully
-    /// qualified names or file path.
+    /// <summary>An optional string which is rendered less prominently after
+    /// <see cref="CompletionItemLabelDetails.Detail" />. Should be used for fully
+    /// qualified names or file path.</summary>
     Description: string option
   }
 
@@ -2516,7 +2514,7 @@ type CompletionItem =
     Documentation: Documentation option
 
     /// Indicates if this item is deprecated.
-    /// @deprecated Use `tags` instead if supported.
+    [<Obsolete("Use Tags instead if supported")>]
     Deprecated: bool option
 
     /// Select this item when showing.
@@ -2542,8 +2540,8 @@ type CompletionItem =
     /// and a completion item with an `insertText` of `console` is provided it
     /// will only insert `sole`. Therefore it is recommended to use `textEdit` instead
     /// since it avoids additional client side interpretation.
-    ///
-    /// @deprecated Use textEdit instead.
+
+    [<Obsolete("Use TextEdit instead")>]
     InsertText: string option
 
     /// The format of the insert text. The format applies to both the `insertText` property
@@ -3014,10 +3012,8 @@ type GotoResult =
 type DocumentHighlightKind =
   /// A textual occurrence.
   | Text = 1
-
   /// Read-access of a symbol, like reading a variable.
   | Read = 2
-
   /// Write-access of a symbol, like writing to a variable.
   | Write = 3
 
@@ -3693,6 +3689,7 @@ module MonikerKind =
   let Import = "import"
   /// The moniker represents a symbol that is exported from a project
   let Export = "export"
+
   /// The moniker represents a symbol that is local to a project (e.g. a local
   /// variable of a function, a class not visible outside the project, ...)
   let Local = "local"
