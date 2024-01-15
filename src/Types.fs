@@ -69,6 +69,7 @@ type DocumentSelector = DocumentFilter[]
 
 /// Position in a text document expressed as zero-based line and zero-based character offset.
 /// A position is between two characters like an ‘insert’ cursor in a editor.
+/// Special values like for example -1 to denote the end of a line are not supported.
 [<DebuggerDisplay("{DebuggerDisplay}")>]
 type Position =
   {
@@ -195,6 +196,7 @@ type SymbolTag =
 
 /// Represents information about programming constructs like variables, classes,
 /// interfaces etc.
+[<Obsolete("Use DocumentSymbol or WorkspaceSymbol instead.")>]
 type SymbolInformation =
   {
     /// The name of this symbol.
@@ -1255,6 +1257,7 @@ type TextDocumentClientCapabilities =
     TypeHierarchy: DynamicCapabilities option
 
     /// Capabilities specific to the `textDocument/inlineValue` request.
+    /// @since 3.17.0
     InlineValue: DynamicCapabilities option
 
     /// Capabilities specific to the `textDocument/inlayHint` request.
@@ -1263,6 +1266,7 @@ type TextDocumentClientCapabilities =
     InlayHint: InlayHintClientCapabilities option
 
     /// Capabilities specific to the diagnostic pull model.
+    /// @since 3.17.0
     Diagnostic: DiagnosticCapabilities option
   }
 
@@ -1316,6 +1320,10 @@ type WindowClientCapabilities =
     showDocument: ShowDocumentClientCapabilities option
   }
 
+/// Client capability that signals how the client
+/// handles stale requests (e.g. a request
+/// for which the client will not process the response
+/// anymore since the information is outdated).
 type StaleRequestSupportClientCapabilities =
   {
     /// The client will actively cancel the request.
@@ -1335,6 +1343,8 @@ type RegularExpressionsClientCapabilities =
     Version: string option
   }
 
+/// Client capabilities specific to the used markdown parser.
+/// @since 3.16.0
 type MarkdownClientCapabilities =
   {
     /// The name of the parser.
@@ -1344,20 +1354,30 @@ type MarkdownClientCapabilities =
     Version: string option
 
     /// A list of HTML tags that the client allows / supports in Markdown.
+    /// @since 3.17.0
     AllowedTags: string[] option
   }
+
+/// A type indicating how positions are encoded,
+/// specifically what column offsets mean.
+///
+/// @since 3.17.0
+type PositionEncodingKind = string
 
 type GeneralClientCapabilities =
   {
     /// Client capability that signals how the client handles stale requests
     /// (e.g. a request for which the client will not process the response
     /// anymore since the information is outdated).
+    /// @since 3.17.0
     StaleRequestSupport: StaleRequestSupportClientCapabilities option
 
     /// Client capabilities specific to regular expressions.
+    /// @since 3.16.0
     RegularExpressions: RegularExpressionsClientCapabilities option
 
     /// Client capabilities specific to the client's markdown parser.
+    /// @since 3.16.0
     Markdown: MarkdownClientCapabilities option
 
     /// The position encodings supported by the client. Client and server have
@@ -1371,7 +1391,7 @@ type GeneralClientCapabilities =
     /// Implementation considerations: since the conversion from one encoding
     /// into another requires the content of the file / line the conversion is
     /// best done where the file is read which is usually on the server side.
-    PositionEncodings: string[] option
+    PositionEncodings: PositionEncodingKind[] option
   }
 
 type ClientCapabilities =
@@ -1386,7 +1406,7 @@ type ClientCapabilities =
     General: GeneralClientCapabilities option
 
     /// Experimental client capabilities.
-    Experimental: JToken option
+    Experimental: LSPAny option
 
     /// Window specific client capabilities.
     Window: WindowClientCapabilities option
@@ -1713,6 +1733,20 @@ type WorkspaceSymbolOptions =
     ResolveProvider: bool option
   }
 
+/// A set of predefined position encoding kinds.
+/// @since 3.17.0
+module PositionEncodingKind =
+  /// Character offsets count UTF-8 code units (e.g bytes).
+  let UTF8 = "utf-8"
+  /// Character offsets count UTF-16 code units. This is the default and must always be supported by servers.
+  let UTF16 = "utf-16"
+  /// Character offsets count UTF-32 code units.
+  ///
+  /// Implementation note: these are the same as Unicode code points,
+  /// so this `PositionEncodingKind` may also be used for an
+  /// encoding-agnostic representation of character offsets.
+  let UTF32 = "utf-32"
+
 type ServerCapabilities =
   {
     /// The position encoding the server picked from the encodings offered by
@@ -1720,7 +1754,7 @@ type ServerCapabilities =
     /// If the client didn't provide any position encodings the only valid value
     /// that a server can return is 'utf-16'.
     /// If omitted it defaults to 'utf-16'.
-    PositionEncoding: string option
+    PositionEncoding: PositionEncodingKind option
 
     /// Defines how text documents are synced. Is either a detailed structure defining each notification or
     /// for backwards compatibility the TextDocumentSyncKind number.
@@ -2279,8 +2313,25 @@ type MarkupContent =
 
 type MarkedStringData = { Language: string; Value: string }
 
+/// <summary>
+/// MarkedString can be used to render human readable text. It is either a
+/// markdown string or a code-block that provides a language and a code snippet.
+/// The language identifier is semantically equal to the optional language
+/// identifier in fenced code blocks in GitHub issues.
+///
+/// The pair of a language and a value is an equivalent to markdown:
+/// <code>
+/// ```${language}
+/// ${value}
+/// ```
+/// </code>
+///
+/// Note that markdown strings will be sanitized - that means html will be
+/// escaped.
+/// </summary>
 [<ErasedUnion>]
 [<RequireQualifiedAccess>]
+[<Obsolete("Use MarkupContent instead")>]
 type MarkedString =
   | String of string
   | WithLanguage of MarkedStringData
@@ -2336,6 +2387,7 @@ type TextDocumentContentChangeEvent =
     Range: Range option
 
     /// The length of the range that got replaced.
+    [<Obsolete("Use Range instead")>]
     RangeLength: int option
 
     /// The new text of the range/document.
