@@ -12,17 +12,17 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v3
-      - name: Setup .NET Core
-        uses: actions/setup-dotnet@v2
+      - uses: actions/checkout@v4
         with:
-          global-json-file: global.json
+            show-progress: false
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v4
       - name: Run build
         run: dotnet build -c Release src
       - name: Run tests
         run: dotnet test --logger GitHubActions
       - name: Run publish
-        run: dotnet pack -c Release -o release src
+        run: dotnet pack -o release src
       - name: Upload NuGet packages
         uses: actions/upload-artifact@v2
         with:
