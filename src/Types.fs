@@ -2423,9 +2423,7 @@ type RelativePattern =
     Pattern: string
   }
 
-type GlobPattern =
-  | RelativePattern of RelativePattern
-  | Pattern of string
+type GlobPattern = U2<string, RelativePattern>
 
 type FileSystemWatcher =
   {
