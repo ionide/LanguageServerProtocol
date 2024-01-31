@@ -2457,11 +2457,11 @@ type CompletionTriggerKind =
 type CompletionContext =
   {
     ///  How the completion was triggered.
-    triggerKind: CompletionTriggerKind
+    TriggerKind: CompletionTriggerKind
 
     /// The trigger character (a single character) that has trigger code complete.
     /// Is undefined if `triggerKind !== CompletionTriggerKind.TriggerCharacter`
-    triggerCharacter: char option
+    TriggerCharacter: char option
   }
 
 type CompletionParams =
