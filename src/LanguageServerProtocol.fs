@@ -113,15 +113,12 @@ module Server =
             JsonRpcError.ErrorDetail(Code = JsonRpcErrorCode.ParseError, Message = ex.Message, Data = data)
           | _ -> ``base``.CreateErrorDetails(request, ex) }
 
-  let startWithSetup<'client when 'client :> Ionide.LanguageServerProtocol.ILspClient>
+  let private startWithSetupCore<'client when 'client :> Ionide.LanguageServerProtocol.ILspClient>
     (setupRequestHandlings: 'client -> Map<string, Delegate>)
-    (input: Stream)
-    (output: Stream)
+    (jsonRpcHandler: IJsonRpcMessageHandler)
     (clientCreator: (ClientNotificationSender * ClientRequestSender) -> 'client)
     (customizeRpc: IJsonRpcMessageHandler -> JsonRpc)
     =
-
-    use jsonRpcHandler = new HeaderDelimitedMessageHandler(output, input, defaultJsonRpcFormatter ())
     // Without overriding isFatalException, JsonRpc serializes exceptions and sends them to the client.
     // This is particularly bad for notifications such as textDocument/didChange which don't require a response,
     // and thus any exception that happens during e.g. text sync gets swallowed.
@@ -209,6 +206,25 @@ module Server =
     | false, true -> LspCloseReason.ErrorExitWithoutShutdown
     | _ -> LspCloseReason.ErrorStreamClosed
 
+  let startWithSetup<'client when 'client :> Ionide.LanguageServerProtocol.ILspClient>
+    (setupRequestHandlings: 'client -> Map<string, Delegate>)
+    (input: Stream)
+    (output: Stream)
+    (clientCreator: (ClientNotificationSender * ClientRequestSender) -> 'client)
+    (customizeRpc: IJsonRpcMessageHandler -> JsonRpc)
+    =
+    use jsonRpcHandler = new HeaderDelimitedMessageHandler(output, input, defaultJsonRpcFormatter ())
+    startWithSetupCore setupRequestHandlings jsonRpcHandler clientCreator customizeRpc
+
+  let startWithSetupWs<'client when 'client :> Ionide.LanguageServerProtocol.ILspClient>
+    (setupRequestHandlings: 'client -> Map<string, Delegate>)
+    (socket: System.Net.WebSockets.WebSocket)
+    (clientCreator: (ClientNotificationSender * ClientRequestSender) -> 'client)
+    (customizeRpc: IJsonRpcMessageHandler -> JsonRpc)
+    =
+    use jsonRpcHandler = new WebSocketMessageHandler(socket, defaultJsonRpcFormatter ())
+    startWithSetupCore setupRequestHandlings jsonRpcHandler clientCreator customizeRpc
+
   type ServerRequestHandling<'server when 'server :> Ionide.LanguageServerProtocol.ILspServer> =
     { Run: 'server -> Delegate }
 
@@ -292,6 +308,17 @@ module Server =
       "exit", requestHandling (fun s () -> s.Exit() |> notificationSuccess) ]
     |> Map.ofList
 
+  let private requestHandlingSetupFunc<'client, 'server
+    when 'client :> Ionide.LanguageServerProtocol.ILspClient and 'server :> Ionide.LanguageServerProtocol.ILspServer>
+    (requestHandlings: Map<string, ServerRequestHandling<'server>>)
+    (serverCreator: 'client -> 'server)
+    =
+    fun client ->
+      let server = serverCreator client
+
+      requestHandlings
+      |> Map.map (fun _ requestHandling -> requestHandling.Run server)
+
   let start<'client, 'server
     when 'client :> Ionide.LanguageServerProtocol.ILspClient and 'server :> Ionide.LanguageServerProtocol.ILspServer>
     (requestHandlings: Map<string, ServerRequestHandling<'server>>)
@@ -300,13 +327,18 @@ module Server =
     (clientCreator: (ClientNotificationSender * ClientRequestSender) -> 'client)
     (serverCreator: 'client -> 'server)
     =
-    let requestHandlingSetup client =
-      let server = serverCreator client
-
-      requestHandlings
-      |> Map.map (fun _ requestHandling -> requestHandling.Run server)
-
+    let requestHandlingSetup = requestHandlingSetupFunc requestHandlings serverCreator
     startWithSetup requestHandlingSetup input output clientCreator
+
+  let startWs<'client, 'server
+    when 'client :> Ionide.LanguageServerProtocol.ILspClient and 'server :> Ionide.LanguageServerProtocol.ILspServer>
+    (requestHandlings: Map<string, ServerRequestHandling<'server>>)
+    (socket: Net.WebSockets.WebSocket)
+    (clientCreator: (ClientNotificationSender * ClientRequestSender) -> 'client)
+    (serverCreator: 'client -> 'server)
+    =
+    let requestHandlingSetup = requestHandlingSetupFunc requestHandlings serverCreator
+    startWithSetupWs requestHandlingSetup socket clientCreator
 
 module Client =
   open System
