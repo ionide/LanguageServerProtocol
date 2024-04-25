@@ -113,7 +113,7 @@ module Server =
             JsonRpcError.ErrorDetail(Code = JsonRpcErrorCode.ParseError, Message = ex.Message, Data = data)
           | _ -> ``base``.CreateErrorDetails(request, ex) }
 
-  let private startWithSetupCore<'client when 'client :> Ionide.LanguageServerProtocol.ILspClient>
+  let startWithSetupCore<'client when 'client :> Ionide.LanguageServerProtocol.ILspClient>
     (setupRequestHandlings: 'client -> Map<string, Delegate>)
     (jsonRpcHandler: IJsonRpcMessageHandler)
     (clientCreator: (ClientNotificationSender * ClientRequestSender) -> 'client)
