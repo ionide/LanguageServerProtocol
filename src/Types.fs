@@ -1500,6 +1500,15 @@ type CompletionOptions =
     CompletionItem: CompletionItemOptions option
   }
 
+type CompletionRegistrationOptions =
+  {
+    TriggerCharacters: char [] option
+    AllCommitCharacters: char [] option
+    CompletionItem: CompletionItemOptions option
+    ResolveProvider: bool option
+    DocumentSelector: DocumentSelector option
+  }
+
 /// Signature help options.
 type SignatureHelpOptions =
   {
@@ -1512,12 +1521,25 @@ type SignatureHelpOptions =
     RetriggerCharacters: char[] option
   }
 
+type SignatureHelpRegistrationOptions =
+  {
+    TriggerCharacters: char [] option
+    RetriggerCharacters: char [] option
+    DocumentSelector: DocumentSelector option
+  }
+
 /// Document Symbol options
 type DocumentSymbolOptions =
   {
     /// A human-readable string that is shown when multiple outlines trees are
     /// shown for the same document.
     Label: string option
+  }
+
+type DocumentSymbolRegistrationOptions =
+  {
+    Label: string option
+    DocumentSelector: DocumentSelector option
   }
 
 /// Code action options.
@@ -1541,6 +1563,12 @@ type CodeLensOptions =
     ResolveProvider: bool option
   }
 
+type CodeLensRegistrationOptions =
+  {
+    ResolveProvider: bool option
+    DocumentSelector: DocumentSelector option
+  }
+
 /// Format document on type options
 type DocumentOnTypeFormattingOptions =
   {
@@ -1549,6 +1577,13 @@ type DocumentOnTypeFormattingOptions =
 
     /// More trigger characters.
     MoreTriggerCharacter: char[] option
+  }
+
+type DocumentOnTypeFormattingRegistrationOptions =
+  {
+    FirstTriggerCharacter: char
+    MoreTriggerCharacter: char [] option
+    DocumentSelector: DocumentSelector option
   }
 
 /// Document link options
@@ -1624,10 +1659,24 @@ type SemanticTokensOptions =
     Full: U2<bool, SemanticTokenFullOptions> option
   }
 
+type SemanticTokensRegistrationOptions =
+  {
+    Legend: SemanticTokensLegend
+    Range: bool option
+    Full: U2<bool, SemanticTokenFullOptions> option
+    DocumentSelector: DocumentSelector option
+  }
+
 type InlayHintOptions =
   {
     /// The server provides support to resolve additional information for an inlay hint item.
     ResolveProvider: bool option
+  }
+
+type InlayHintRegistrationOptions =
+  {
+    ResolveProvider: bool option
+    DocumentSelector: DocumentSelector option
   }
 
 type InlineValueOptions =
@@ -1729,6 +1778,12 @@ type RenameOptions =
   {
     /// Renames should be checked and tested before being executed.
     PrepareProvider: bool option
+  }
+
+type RenameRegistrationOptions =
+  {
+    PrepareProvider: bool option
+    DocumentSelector: DocumentSelector option
   }
 
 type WorkspaceSymbolOptions =
@@ -3212,6 +3267,13 @@ type CodeActionParams =
 
     /// Context carrying additional information.
     Context: CodeActionContext
+  }
+
+type CodeActionRegistrationOptions =
+  {
+    CodeActionKinds: CodeActionKind [] option
+    ResolveProvider: bool option
+    DocumentSelector: DocumentSelector option
   }
 
 type CodeLensParams =
