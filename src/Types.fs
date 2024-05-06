@@ -196,7 +196,8 @@ type SymbolTag =
 
 /// Represents information about programming constructs like variables, classes,
 /// interfaces etc.
-[<Obsolete("Use DocumentSymbol or WorkspaceSymbol instead.")>]
+///
+/// Deprecated: use DocumentSymbol or WorkspaceSymbol instead.
 type SymbolInformation =
   {
     /// The name of this symbol.
@@ -209,7 +210,8 @@ type SymbolInformation =
     Tags: SymbolTag[] option
 
     /// Indicates if this symbol is deprecated.
-    [<Obsolete("Use Tags instead")>]
+    ///
+    /// Deprecated: Use Tags instead
     Deprecated: bool option
 
     /// The location of this symbol. The location's range is used by a tool
@@ -247,7 +249,8 @@ type DocumentSymbol =
     /// tags for this document symbol.
     Tags: SymbolTag[] option
     /// Indicates if this symbol is deprecated.
-    [<Obsolete("Use Tags instead")>]
+    ///
+    /// Deprecated: Use Tags instead
     Deprecated: bool option
     /// The range enclosing this symbol not including leading/trailing whitespace
     /// but everything else like comments. This information is typically used to
@@ -1440,11 +1443,13 @@ type InitializeParams =
     /// https://en.wikipedia.org/wiki/IETF_language_tag)
     Locale: string option
     /// The rootPath of the workspace. Is null if no folder is open.
-    [<Obsolete("Use RootUri instead")>]
+    ///
+    /// Deprecated: Use RootUri instead
     RootPath: string option
     /// The rootUri of the workspace. Is null if no folder is open. If both
     /// `rootPath` and `rootUri` are set `rootUri` wins.
-    [<Obsolete("Use WorkspaceFolders instead")>]
+    ///
+    /// Deprecated: Use WorkspaceFolders instead
     RootUri: string option
     /// User provided initialization options.
     InitializationOptions: JToken option
@@ -2328,10 +2333,11 @@ type MarkedStringData = { Language: string; Value: string }
 ///
 /// Note that markdown strings will be sanitized - that means html will be
 /// escaped.
+///
+/// Deprecated: Use MarkupContent instead
 /// </summary>
 [<ErasedUnion>]
 [<RequireQualifiedAccess>]
-[<Obsolete("Use MarkupContent instead")>]
 type MarkedString =
   | String of string
   | WithLanguage of MarkedStringData
@@ -2387,7 +2393,8 @@ type TextDocumentContentChangeEvent =
     Range: Range option
 
     /// The length of the range that got replaced.
-    [<Obsolete("Use Range instead")>]
+    ///
+    /// Deprecated: Use Range instead
     RangeLength: int option
 
     /// The new text of the range/document.
@@ -2566,7 +2573,8 @@ type CompletionItem =
     Documentation: Documentation option
 
     /// Indicates if this item is deprecated.
-    [<Obsolete("Use Tags instead if supported")>]
+    ///
+    /// Deprecated: Use Tags instead if supported
     Deprecated: bool option
 
     /// Select this item when showing.
@@ -2592,8 +2600,8 @@ type CompletionItem =
     /// and a completion item with an `insertText` of `console` is provided it
     /// will only insert `sole`. Therefore it is recommended to use `textEdit` instead
     /// since it avoids additional client side interpretation.
-
-    [<Obsolete("Use TextEdit instead")>]
+    ///
+    /// Deprecated: Use TextEdit instead
     InsertText: string option
 
     /// The format of the insert text. The format applies to both the `insertText` property
