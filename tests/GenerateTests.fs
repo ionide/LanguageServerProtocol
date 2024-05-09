@@ -1,5 +1,16 @@
 namespace Ionide.LanguageServerProtocol
 
+module Option =
+  module Array =
+    /// Returns true if the given array is empty or None
+    let isEmpty (x: 'a array option) =
+      match x with
+      | None -> true
+      | Some x -> Array.isEmpty x
+
+    /// Returns empty array if None, otherwise the array
+    let toArray (x: 'a array option) = Option.defaultValue [||] x
+
 
 module String =
   open System
@@ -197,10 +208,10 @@ module rec MetaModel =
   type Structure = {
     Deprecated: string option
     Documentation: string option
-    Extends: Type array
-    Mixins: Type array
+    Extends: Type array option
+    Mixins: Type array option
     Name: string
-    Properties: Property array
+    Properties: Property array option
     Proposed: bool option
     Since: string option
   }
@@ -470,69 +481,55 @@ module GenerateTests =
       raise <| Exception(sprintf "createField on %A  " currentProperty, e)
 
 
-  let createSafeStructure (structure: MetaModel.Structure) =
-    let structure =
-      if
-        structure.Extends
-        |> isNull
-      then
-        { structure with Extends = [||] }
-      else
-        structure
-
-    let structure =
-      if
-        structure.Mixins
-        |> isNull
-      then
-        { structure with Mixins = [||] }
-      else
-        structure
-
-    let structure =
-      if
-        structure.Properties
-        |> isNull
-      then
-        { structure with Properties = [||] }
-      else
-        structure
-
-    structure
-
   let isUnitStructure (structure: MetaModel.Structure) =
 
     let isEmptyExtends =
       structure.Extends
-      |> isNull
-      || structure.Extends
-         |> Array.isEmpty
+      |> Option.Array.isEmpty
 
     let isEmptyMixins =
       structure.Mixins
-      |> isNull
-      || structure.Mixins
-         |> Array.isEmpty
+      |> Option.Array.isEmpty
 
     let isEmptyProperties =
       structure.Properties
-      |> isNull
-      || structure.Properties
-         |> Array.isEmpty
+      |> Option.Array.isEmpty
 
     isEmptyExtends
     && isEmptyMixins
     && isEmptyProperties
+
+  let createInterfaceStructures (structure: MetaModel.Structure array) (model: MetaModel.MetaModel) =
+    let interfaceStructures =
+      structure
+      |> Array.collect (fun s ->
+        s.Extends
+        |> Option.Array.toArray
+        |> Array.map (fun e ->
+          match e with
+          | MetaModel.Type.ReferenceType r ->
+            match
+              model.Structures
+              |> Array.tryFind (fun s -> s.Name = r.Name)
+            with
+            | Some s -> s
+            | None -> failwithf "Could not find structure %s" r.Name
+          | _ -> failwithf "todo Extends %A" e
+        )
+      )
+
+    ()
 
   let createStructure (structure: MetaModel.Structure) (model: MetaModel.MetaModel) =
 
     let alreadyAddedKey = ResizeArray<string>()
 
     let rec expandFields (structure: MetaModel.Structure) = [
-      let structure = createSafeStructure structure
 
       // TODO create interfaces from extensions and implement them
-      for e in structure.Extends do
+      for e in
+        structure.Extends
+        |> Option.Array.toArray do
         match e with
         | MetaModel.Type.ReferenceType r ->
           match
@@ -544,7 +541,9 @@ module GenerateTests =
         | _ -> failwithf "todo Extends %A" e
 
       // Mixins are inlined fields
-      for m in structure.Mixins do
+      for m in
+        structure.Mixins
+        |> Option.Array.toArray do
         match m with
         | MetaModel.Type.ReferenceType r ->
           match
@@ -552,7 +551,9 @@ module GenerateTests =
             |> Array.tryFind (fun s -> s.Name = r.Name)
           with
           | Some s ->
-            for p in s.Properties do
+            for p in
+              s.Properties
+              |> Option.Array.toArray do
               if alreadyAddedKey.Contains(p.NameAsPascalCase) then
                 ()
               else
@@ -561,7 +562,9 @@ module GenerateTests =
           | None -> failwithf "Could not find structure %s" r.Name
         | _ -> failwithf "todo Mixins %A" m
 
-      for p in structure.Properties do
+      for p in
+        structure.Properties
+        |> Option.Array.toArray do
         if alreadyAddedKey.Contains(p.NameAsPascalCase) then
           ()
         else
