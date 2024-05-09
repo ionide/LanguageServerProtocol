@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 09.05.2024
+
+### Added
+[Types: import more RegistrationOptions types from LSP spec](https://github.com/ionide/LanguageServerProtocol/pull/64) (Thanks @razzmatazz)
+
+### Removed 
+[Types: Do not use Obsolete attribute to annotate deprecated types in LSP](https://github.com/ionide/LanguageServerProtocol/pull/63) (Thanks @razzmatazz)
+
 ## [0.5.0] - 26.04.2024
 
 * [Support JsonRpc via web sockets](https://github.com/ionide/LanguageServerProtocol/pull/62) (Thanks @dawedawe)
