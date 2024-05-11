@@ -296,7 +296,13 @@ module rec MetaModel =
         failwith "Should never be writing this structure, it comes from Microsoft LSP Spec"
 
       override _.ReadJson
-        (reader: JsonReader, objectType: System.Type, existingValue: Type, hasExistingValue, serializer: JsonSerializer) =
+        (
+          reader: JsonReader,
+          objectType: System.Type,
+          existingValue: Type,
+          hasExistingValue,
+          serializer: JsonSerializer
+        ) =
         let jobj = JObject.Load(reader)
         let kind = jobj.["kind"].Value<string>()
 
@@ -498,6 +504,12 @@ module GenerateTests =
     && isEmptyMixins
     && isEmptyProperties
 
+  //HACK: need to add WorkDoneProgressOptions since it's a mixin but really should be an interface
+  let extensionsButNotReally = [
+    "WorkDoneProgressParams"
+    "WorkDoneProgressOptions"
+  ]
+
   let createInterfaceStructures (structure: MetaModel.Structure array) (model: MetaModel.MetaModel) =
     let interfaceStructures =
       structure
@@ -518,15 +530,20 @@ module GenerateTests =
       )
       |> Array.distinctBy (fun x -> x.Name)
 
+      //HACK: need to add WorkDoneProgressOptions since it's a mixin but really should be an interface
+      |> Array.append [|
+        yield!
+          model.Structures
+          |> Array.filter (fun s ->
+            extensionsButNotReally
+            |> List.contains s.Name
+          )
+      |]
+
     interfaceStructures
     |> Array.map (fun s ->
 
       Interface($"I{s.Name}") {
-
-        // Empty interface will crash Fabulous.AST
-        match s.Properties with
-        | Some _ -> yield AbstractProperty("LOL2", "unit")
-        | None -> yield AbstractProperty("LOL", "unit")
 
 
         // Nested Anonymous Records will not generate correct code
@@ -536,31 +553,32 @@ module GenerateTests =
           let name, t = createField p.Type p
           yield AbstractProperty(name, t)
 
-        // Can't implement interface on an interface
-
-        // for e in
-        //   s.Extends
-        //   |> Option.Array.toArray do
-        //   match e with
-        //   | MetaModel.Type.ReferenceType r -> yield Inherit($"I{r.Name}")
-        //   | _ -> failwithf "todo Extends %A" e
-
+        // MetaModel is incorrect we need to use Mixin instead of extends
+        // TODO: Open issue for clarification on why LSP Spec says extends but metamodel uses mixins
 
         for e in
-          s.Extends
+          s.Mixins
           |> Option.Array.toArray do
           match e with
-          | MetaModel.Type.ReferenceType r ->
-            yield
-              MemberDefnInheritNode(
-                (SingleTextNode("inherit", rangeZero)),
-                (Type.LongIdent(
-                  IdentListNode([ IdentifierOrDot.Ident(SingleTextNode($"I{r.Name}", rangeZero)) ], rangeZero)
-                )),
-                rangeZero
-              )
-              |> EscapeHatch
+          | MetaModel.Type.ReferenceType r -> yield Inherit($"I{r.Name}")
           | _ -> failwithf "todo Extends %A" e
+
+
+      // for e in
+      //   s.Extends
+      //   |> Option.Array.toArray do
+      //   match e with
+      //   | MetaModel.Type.ReferenceType r ->
+      //     yield
+      //       MemberDefnInheritNode(
+      //         (SingleTextNode("inherit", rangeZero)),
+      //         (Type.LongIdent(
+      //           IdentListNode([ IdentifierOrDot.Ident(SingleTextNode($"I{r.Name}", rangeZero)) ], rangeZero)
+      //         )),
+      //         rangeZero
+      //       )
+      //       |> EscapeHatch
+      //   | _ -> failwithf "todo Extends %A" e
 
       }
     )
@@ -721,45 +739,47 @@ module GenerateTests =
 
         let source =
           Ast.Oak() {
-            Namespace("Ionide.LanguageServerProtocol.Types") {
-              // Simple aliases for types that are not in dotnet
-              Abbrev("URI", "string")
-              Abbrev("DocumentUri", "string")
-              Abbrev("RegExp", "string")
+            Namespace("Ionide.LanguageServerProtocol") {
+              NestedModule("Types") {
+                // Simple aliases for types that are not in dotnet
+                Abbrev("URI", "string")
+                Abbrev("DocumentUri", "string")
+                Abbrev("RegExp", "string")
 
-              Class("ErasedUnionAttribute") { Inherit("System.Attribute()") }
+                Class("ErasedUnionAttribute") { Inherit("System.Attribute()") }
 
-              // Assuming the max is 5, can be increased if needed
-              for i in [ 2..5 ] do
+                // Assuming the max is 5, can be increased if needed
+                for i in [ 2..5 ] do
 
-                Union($"U%d{i}") {
-                  for j = 1 to i do
-                    UnionCase($"C{j}", Field $"'T{j}")
-                }
-                |> fun x -> x.attribute (Attribute "ErasedUnion")
-                |> fun x ->
-                    x.typeParams (
-                      [
-                        for j = 1 to i do
-                          $"'T{j}"
-                      ]
-                    )
+                  Union($"U%d{i}") {
+                    for j = 1 to i do
+                      UnionCase($"C{j}", Field $"'T{j}")
+                  }
+                  |> fun x -> x.attribute (Attribute "ErasedUnion")
+                  |> fun x ->
+                      x.typeParams (
+                        [
+                          for j = 1 to i do
+                            $"'T{j}"
+                        ]
+                      )
 
-              for i in createInterfaceStructures parsedMetaModel.Structures parsedMetaModel do
-                i
+                for i in createInterfaceStructures parsedMetaModel.Structures parsedMetaModel do
+                  i
 
-              for s in parsedMetaModel.Structures do
-                if isUnitStructure s then
-                  Abbrev(s.Name, "unit")
-                else
-                  createStructure s parsedMetaModel
+                for s in parsedMetaModel.Structures do
+                  if isUnitStructure s then
+                    Abbrev(s.Name, "unit")
+                  else
+                    createStructure s parsedMetaModel
 
-              for t in parsedMetaModel.TypeAliases do
-                Abbrev(t.Name, createTypeAlias t)
+                for t in parsedMetaModel.TypeAliases do
+                  Abbrev(t.Name, createTypeAlias t)
 
-              for e in parsedMetaModel.Enumerations do
-                createEnumeration e
+                for e in parsedMetaModel.Enumerations do
+                  createEnumeration e
 
+              }
             }
             |> fun x -> x.toRecursive ()
           }
