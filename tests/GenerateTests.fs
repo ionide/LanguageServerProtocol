@@ -458,7 +458,7 @@ module GenerateTests =
 
           let value = getType m.Value
 
-          AppPrefix(LongIdent("System.Collections.Generic.Dictionary"), [ key; value ])
+          createDictionary [ key; value ]
 
         | MetaModel.Type.StringLiteralType t ->
           LongIdent("string")
@@ -573,10 +573,10 @@ module GenerateTests =
     ]
 
     try
-
       Record(structure.Name) {
-        // expandFields structure
-        Field("TODO", LongIdent "TODO")
+        yield! 
+          expandFields structure
+          |> List.map (fun (name, t) -> Field(name, t))
       }
     with e ->
       raise
@@ -625,7 +625,7 @@ module GenerateTests =
               |> LongIdent
 
           let value = getType m.Value
-          AppPrefix(LongIdent("System.Collections.Generic.Dictionary"), [ key; value ])
+          createDictionary [ key; value ]
 
         | MetaModel.Type.StringLiteralType t -> String()
         | MetaModel.Type.TupleType t ->
@@ -679,6 +679,10 @@ module GenerateTests =
               Abbrev("DocumentUri", "string")
               Abbrev("RegExp", "string")
 
+              Class("ErasedUnionAttribute") {
+                Inherit("System.Attribute()")
+              }
+
               // Assuming the max is 5, can be increased if needed
               for i in [ 2..5 ] do
                 Union($"U%d{i}") {
@@ -686,7 +690,7 @@ module GenerateTests =
                       UnionCase($"C{j}", Field $"'T{j}")
                 }
                 |> _.attribute(Attribute "ErasedUnion")
-                |> _.typeParams([ for j = 1 to i do $"T{j}" ])
+                |> _.typeParams([ for j = 1 to i do $"'T{j}" ])
 
               for s in parsedMetaModel.Structures do
                 if isUnitStructure s then
@@ -704,7 +708,11 @@ module GenerateTests =
             |> _.toRecursive()
         }
 
-        let writeToFile path contents = File.WriteAllText(path, contents)
+        
+
+        let writeToFile path contents = 
+          printfn "%A" contents
+          File.WriteAllText(path, contents)
 
         source
         |> Gen.mkOak
