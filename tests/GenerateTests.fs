@@ -296,13 +296,7 @@ module rec MetaModel =
         failwith "Should never be writing this structure, it comes from Microsoft LSP Spec"
 
       override _.ReadJson
-        (
-          reader: JsonReader,
-          objectType: System.Type,
-          existingValue: Type,
-          hasExistingValue,
-          serializer: JsonSerializer
-        ) =
+        (reader: JsonReader, objectType: System.Type, existingValue: Type, hasExistingValue, serializer: JsonSerializer) =
         let jobj = JObject.Load(reader)
         let kind = jobj.["kind"].Value<string>()
 
@@ -388,9 +382,12 @@ module GenerateTests =
     | None -> s
 
 
-  let rec createField (currentType: MetaModel.Type) (currentProperty: MetaModel.Property): string * WidgetBuilder<Type> =
+  let rec createField
+    (currentType: MetaModel.Type)
+    (currentProperty: MetaModel.Property)
+    : string * WidgetBuilder<Type> =
     try
-      let rec getType (currentType: MetaModel.Type): WidgetBuilder<Type> =
+      let rec getType (currentType: MetaModel.Type) : WidgetBuilder<Type> =
         match currentType with
         | MetaModel.Type.ReferenceType r ->
           let name = r.Name
@@ -430,8 +427,7 @@ module GenerateTests =
           else
             createErasedUnion ts
 
-        | MetaModel.Type.ArrayType a ->
-          Array(getType a.Element, 1)
+        | MetaModel.Type.ArrayType a -> Array(getType a.Element, 1)
         | MetaModel.Type.StructureLiteralType l ->
           if
             l.Value.Properties
@@ -441,10 +437,9 @@ module GenerateTests =
           else
             let ts =
               l.Value.Properties
-              |> Array.map (fun p ->
-                createField p.Type p
-              )
+              |> Array.map (fun p -> createField p.Type p)
               |> Array.toList
+
             AnonRecord(ts)
 
         | MetaModel.Type.MapType m ->
@@ -453,15 +448,16 @@ module GenerateTests =
             | MetaModel.MapKeyType.Base b ->
               b.Name.ToDotNetType()
               |> LongIdent
-            | MetaModel.MapKeyType.ReferenceType r ->
-              LongIdent(r.Name)
+            | MetaModel.MapKeyType.ReferenceType r -> LongIdent(r.Name)
 
           let value = getType m.Value
 
-          createDictionary [ key; value ]
+          createDictionary [
+            key
+            value
+          ]
 
-        | MetaModel.Type.StringLiteralType t ->
-          LongIdent("string")
+        | MetaModel.Type.StringLiteralType t -> LongIdent("string")
         | MetaModel.Type.TupleType t ->
 
           let ts =
@@ -476,9 +472,10 @@ module GenerateTests =
       let t = getType currentType
       let t = if currentProperty.IsOptional then createOption t else t
       let name = currentProperty.NameAsPascalCase
-      name,  t
+      name, t
     with e ->
-      raise <| Exception(sprintf "createField on %A  " currentProperty, e)
+      raise
+      <| Exception(sprintf "createField on %A  " currentProperty, e)
 
 
   let isUnitStructure (structure: MetaModel.Structure) =
@@ -574,7 +571,7 @@ module GenerateTests =
 
     try
       Record(structure.Name) {
-        yield! 
+        yield!
           expandFields structure
           |> List.map (fun (name, t) -> Field(name, t))
       }
@@ -596,8 +593,7 @@ module GenerateTests =
             |> Array.map getType
 
           createErasedUnion ts
-        | MetaModel.Type.ArrayType a ->
-          Array(getType a.Element, 1)
+        | MetaModel.Type.ArrayType a -> Array(getType a.Element, 1)
         | MetaModel.Type.StructureLiteralType l ->
           if
             l.Value.Properties
@@ -607,9 +603,7 @@ module GenerateTests =
           else
             let ts =
               l.Value.Properties
-              |> Array.map (fun p ->
-                createField p.Type p
-              )
+              |> Array.map (fun p -> createField p.Type p)
               |> Array.toList
 
             AnonRecord ts
@@ -625,7 +619,11 @@ module GenerateTests =
               |> LongIdent
 
           let value = getType m.Value
-          createDictionary [ key; value ]
+
+          createDictionary [
+            key
+            value
+          ]
 
         | MetaModel.Type.StringLiteralType t -> String()
         | MetaModel.Type.TupleType t ->
@@ -671,6 +669,7 @@ module GenerateTests =
 
         let parsedMetaModel =
           JsonConvert.DeserializeObject<MetaModel.MetaModel>(metaModel, MetaModel.metaModelSerializerSettings)
+
         let source =
           Ast.Oak() {
             Namespace("Ionide.LanguageServerProtocol.Types") {
@@ -679,18 +678,23 @@ module GenerateTests =
               Abbrev("DocumentUri", "string")
               Abbrev("RegExp", "string")
 
-              Class("ErasedUnionAttribute") {
-                Inherit("System.Attribute()")
-              }
+              Class("ErasedUnionAttribute") { Inherit("System.Attribute()") }
 
               // Assuming the max is 5, can be increased if needed
               for i in [ 2..5 ] do
+
                 Union($"U%d{i}") {
-                    for j = 1 to i do
-                      UnionCase($"C{j}", Field $"'T{j}")
+                  for j = 1 to i do
+                    UnionCase($"C{j}", Field $"'T{j}")
                 }
-                |> _.attribute(Attribute "ErasedUnion")
-                |> _.typeParams([ for j = 1 to i do $"'T{j}" ])
+                |> fun x -> x.attribute (Attribute "ErasedUnion")
+                |> fun x ->
+                    x.typeParams (
+                      [
+                        for j = 1 to i do
+                          $"'T{j}"
+                      ]
+                    )
 
               for s in parsedMetaModel.Structures do
                 if isUnitStructure s then
@@ -705,12 +709,11 @@ module GenerateTests =
                 createEnumeration e
 
             }
-            |> _.toRecursive()
-        }
+            |> fun x -> x.toRecursive ()
+          }
 
-        
 
-        let writeToFile path contents = 
+        let writeToFile path contents =
           printfn "%A" contents
           File.WriteAllText(path, contents)
 
