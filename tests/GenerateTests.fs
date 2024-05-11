@@ -359,6 +359,8 @@ module GenerateTests =
   open Newtonsoft.Json
   open Fantomas.Core.SyntaxOak
 
+  let rangeZero = Fantomas.FCS.Text.range.Zero
+
   let createOption (t: WidgetBuilder<Type>) = AppPostfix(t, (LongIdent "option"))
 
   let createDictionary (types: WidgetBuilder<Type> list) =
@@ -514,8 +516,55 @@ module GenerateTests =
           | _ -> failwithf "todo Extends %A" e
         )
       )
+      |> Array.distinctBy (fun x -> x.Name)
 
-    ()
+    interfaceStructures
+    |> Array.map (fun s ->
+
+      Interface($"I{s.Name}") {
+
+        // Empty interface will crash Fabulous.AST
+        match s.Properties with
+        | Some _ -> yield AbstractProperty("LOL2", "unit")
+        | None -> yield AbstractProperty("LOL", "unit")
+
+
+        // Nested Anonymous Records will not generate correct code
+        for p in
+          s.Properties
+          |> Option.Array.toArray do
+          let name, t = createField p.Type p
+          yield AbstractProperty(name, t)
+
+        // Can't implement interface on an interface
+
+        // for e in
+        //   s.Extends
+        //   |> Option.Array.toArray do
+        //   match e with
+        //   | MetaModel.Type.ReferenceType r -> yield Inherit($"I{r.Name}")
+        //   | _ -> failwithf "todo Extends %A" e
+
+
+        for e in
+          s.Extends
+          |> Option.Array.toArray do
+          match e with
+          | MetaModel.Type.ReferenceType r ->
+            yield
+              MemberDefnInheritNode(
+                (SingleTextNode("inherit", rangeZero)),
+                (Type.LongIdent(
+                  IdentListNode([ IdentifierOrDot.Ident(SingleTextNode($"I{r.Name}", rangeZero)) ], rangeZero)
+                )),
+                rangeZero
+              )
+              |> EscapeHatch
+          | _ -> failwithf "todo Extends %A" e
+
+      }
+    )
+
 
   let createStructure (structure: MetaModel.Structure) (model: MetaModel.MetaModel) =
 
@@ -696,6 +745,9 @@ module GenerateTests =
                       ]
                     )
 
+              for i in createInterfaceStructures parsedMetaModel.Structures parsedMetaModel do
+                i
+
               for s in parsedMetaModel.Structures do
                 if isUnitStructure s then
                   Abbrev(s.Name, "unit")
@@ -721,7 +773,7 @@ module GenerateTests =
         |> Gen.mkOak
         |> CodeFormatter.FormatOakAsync
         |> Async.RunSynchronously
-        |> writeToFile "test.fsx"
+        |> writeToFile (Path.Combine(__SOURCE_DIRECTORY__, "Types.cg.fsx"))
       }
     ]
 
