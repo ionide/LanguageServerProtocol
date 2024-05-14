@@ -11,6 +11,12 @@ module Option =
     /// Returns empty array if None, otherwise the array
     let toArray (x: 'a array option) = Option.defaultValue [||] x
 
+type StructuredDocs = string list
+
+module StructuredDocs =
+  let parse (s: string) =
+    s.Split([| '\n' |])
+    |> Array.toList
 
 module String =
   open System
@@ -162,6 +168,10 @@ module rec MetaModel =
 
     member x.NameAsPascalCase = String.toPascalCase x.Name
 
+    member x.StructuredDocs =
+      x.Documentation
+      |> Option.map StructuredDocs.parse
+
   [<Literal>]
   let StructureTypeLiteral = "literal"
 
@@ -171,7 +181,11 @@ module rec MetaModel =
     Properties: Property array
     Proposed: bool option
     Since: string option
-  }
+  } with
+
+    member x.StructuredDocs =
+      x.Documentation
+      |> Option.map StructuredDocs.parse
 
   type StructureLiteralType = { Kind: string; Value: StructureLiteral }
 
@@ -220,6 +234,10 @@ module rec MetaModel =
     member x.MixinsSafe = Option.Array.toArray x.Mixins
     member x.PropertiesSafe = Option.Array.toArray x.Properties
 
+    member x.StructuredDocs =
+      x.Documentation
+      |> Option.map StructuredDocs.parse
+
   type TypeAlias = {
     Deprecated: string option
     Documentation: string option
@@ -227,7 +245,11 @@ module rec MetaModel =
     Proposed: bool option
     Since: string option
     Type: Type
-  }
+  } with
+
+    member x.StructuredDocs =
+      x.Documentation
+      |> Option.map StructuredDocs.parse
 
   [<JsonConverter(typeof<Newtonsoft.Json.Converters.StringEnumConverter>)>]
   type EnumerationTypeNameValues =
@@ -240,11 +262,16 @@ module rec MetaModel =
   type EnumerationEntry = {
     Deprecated: string option
     Documentation: string option
+
     Name: string
     Proposed: bool option
     Since: string option
     Value: string
-  }
+  } with
+
+    member x.StructuredDocs =
+      x.Documentation
+      |> Option.map StructuredDocs.parse
 
   type Enumeration = {
     Deprecated: string option
@@ -255,7 +282,11 @@ module rec MetaModel =
     SupportsCustomValues: bool option
     Type: EnumerationType
     Values: EnumerationEntry array
-  }
+  } with
+
+    member x.StructuredDocs =
+      x.Documentation
+      |> Option.map StructuredDocs.parse
 
   type MetaModel = {
     MetaData: MetaData
@@ -369,8 +400,6 @@ module GenerateTests =
   open Newtonsoft.Json
   open Fantomas.Core.SyntaxOak
 
-  let rangeZero = Fantomas.FCS.Text.range.Zero
-
   let createOption (t: WidgetBuilder<Type>) = Ast.OptionPostfix t
 
   let createDictionary (types: WidgetBuilder<Type> list) =
@@ -397,7 +426,7 @@ module GenerateTests =
   let rec createField
     (currentType: MetaModel.Type)
     (currentProperty: MetaModel.Property)
-    : string * WidgetBuilder<Type> =
+    : string * WidgetBuilder<Type> * string list option =
     try
       let rec getType (currentType: MetaModel.Type) : WidgetBuilder<Type> =
         match currentType with
@@ -449,7 +478,10 @@ module GenerateTests =
           else
             let ts =
               l.Value.Properties
-              |> Array.map (fun p -> createField p.Type p)
+              |> Array.map (fun p ->
+                let (name, typ, _) = createField p.Type p
+                name, typ
+              )
               |> Array.toList
 
             AnonRecord(ts)
@@ -484,7 +516,7 @@ module GenerateTests =
       let t = getType currentType
       let t = if currentProperty.IsOptional then createOption t else t
       let name = currentProperty.NameAsPascalCase
-      name, t
+      name, t, currentProperty.StructuredDocs
     with e ->
       raise
       <| Exception(sprintf "createField on %A  " currentProperty, e)
@@ -550,19 +582,25 @@ module GenerateTests =
       let widget =
         Interface($"I{s.Name}") {
           for p in s.PropertiesSafe do
-            let name, t = createField p.Type p
-            yield AbstractProperty(name, t)
+            let name, t, docs = createField p.Type p
+            let ap = AbstractProperty(name, t)
+
+            yield
+              docs
+              |> Option.map (ap.xmlDocs)
+              |> Option.defaultValue ap
 
           // MetaModel is incorrect we need to use Mixin instead of extends
-          // TODO: Open issue for clarification on why LSP Spec says extends but metamodel uses mixins
-
           for e in s.MixinsSafe do
             match e with
             | MetaModel.Type.ReferenceType r -> yield Inherit($"I{r.Name}")
             | _ -> ()
-
-
         }
+
+      let widget =
+        s.StructuredDocs
+        |> Option.map (fun docs -> widget.xmlDocs docs)
+        |> Option.defaultValue widget
 
       s, widget
     )
@@ -624,7 +662,11 @@ module GenerateTests =
             InterfaceMember(interfaceName) {
               for p in properties do
                 let name = Constant($"x.{p.NameAsPascalCase}")
-                Property(ConstantPat(name), ConstantExpr(name))
+                let outp = Property(ConstantPat(name), ConstantExpr(name))
+
+                p.StructuredDocs
+                |> Option.map (fun docs -> outp.xmlDocs docs)
+                |> Option.defaultValue outp
             }
         )
         |> Option.toArray
@@ -656,10 +698,20 @@ module GenerateTests =
       Record(structure.Name) {
         yield!
           expandFields structure
-          |> List.distinctBy (fun (name, _) -> name)
-          |> List.map (fun (name, t) -> Field(name, t))
+          |> List.distinctBy (fun (name, _, _) -> name)
+          |> List.map (fun (name, t, docs) ->
+            let f = Field(name, t)
+
+            docs
+            |> Option.map (f.xmlDocs)
+            |> Option.defaultValue f
+          )
       }
       |> fun r ->
+        let r =
+          structure.StructuredDocs
+          |> Option.map (fun docs -> r.xmlDocs docs)
+          |> Option.defaultValue r
 
         match implementInterface structure with
         | [||] -> r
@@ -695,7 +747,10 @@ module GenerateTests =
           else
             let ts =
               l.Value.Properties
-              |> Array.map (fun p -> createField p.Type p)
+              |> Array.map (fun p ->
+                let (name, typ, _) = createField p.Type p
+                name, typ
+              )
               |> Array.toList
 
             AnonRecord ts
@@ -727,25 +782,43 @@ module GenerateTests =
 
         | _ -> failwithf "todo Property %A" t
 
-
     getType alias.Type
 
   let createEnumeration (enumeration: MetaModel.Enumeration) =
     match enumeration.Type.Name with
     | MetaModel.EnumerationTypeNameValues.String ->
-      Enum enumeration.Name {
-        for i, v in
-          enumeration.Values
-          |> Array.mapi (fun i x -> i, x) do
-          // if v.Name.ToLower() <> v.Value.ToLower() then failwithf "Unknown string literal enum combo %A %A" v.Name v.Value
-          EnumCase(String.toPascalCase v.Name, string i)
-      }
+
+      let enum =
+        Enum enumeration.Name {
+          for i, v in
+            enumeration.Values
+            |> Array.mapi (fun i x -> i, x) do
+            let case = EnumCase(String.toPascalCase v.Name, string i)
+
+            v.StructuredDocs
+            |> Option.map (fun docs -> case.xmlDocs docs)
+            |> Option.defaultValue case
+        }
+
+      enumeration.StructuredDocs
+      |> Option.map (fun docs -> enum.xmlDocs docs)
+      |> Option.defaultValue enum
+
     | MetaModel.EnumerationTypeNameValues.Integer
     | MetaModel.EnumerationTypeNameValues.Uinteger ->
-      Enum enumeration.Name {
-        for v in enumeration.Values do
-          EnumCase(String.toPascalCase v.Name, v.Value)
-      }
+      let enum =
+        Enum enumeration.Name {
+          for v in enumeration.Values do
+            let case = EnumCase(String.toPascalCase v.Name, v.Value)
+
+            v.StructuredDocs
+            |> Option.map (fun docs -> case.xmlDocs docs)
+            |> Option.defaultValue case
+        }
+
+      enumeration.StructuredDocs
+      |> Option.map (fun docs -> enum.xmlDocs docs)
+      |> Option.defaultValue enum
     | _ -> failwithf "todo Enumeration %A" enumeration
 
 
@@ -802,7 +875,11 @@ module GenerateTests =
                     createStructure s knownInterfaces parsedMetaModel
 
                 for t in parsedMetaModel.TypeAliases do
-                  Abbrev(t.Name, createTypeAlias t)
+                  let alias = Abbrev(t.Name, createTypeAlias t)
+
+                  t.StructuredDocs
+                  |> Option.map (fun docs -> alias.xmlDocs docs)
+                  |> Option.defaultValue alias
 
                 for e in parsedMetaModel.Enumerations do
                   createEnumeration e
