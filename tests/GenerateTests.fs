@@ -214,7 +214,11 @@ module rec MetaModel =
     Properties: Property array option
     Proposed: bool option
     Since: string option
-  }
+  } with
+
+    member x.ExtendsSafe = Option.Array.toArray x.Extends
+    member x.MixinsSafe = Option.Array.toArray x.Mixins
+    member x.PropertiesSafe = Option.Array.toArray x.Properties
 
   type TypeAlias = {
     Deprecated: string option
@@ -367,7 +371,7 @@ module GenerateTests =
 
   let rangeZero = Fantomas.FCS.Text.range.Zero
 
-  let createOption (t: WidgetBuilder<Type>) = AppPostfix(t, (LongIdent "option"))
+  let createOption (t: WidgetBuilder<Type>) = Ast.OptionPostfix t
 
   let createDictionary (types: WidgetBuilder<Type> list) =
     AppPrefix(LongIdent("System.Collections.Generic.Dictionary"), types)
@@ -510,12 +514,13 @@ module GenerateTests =
     "WorkDoneProgressOptions"
   ]
 
+
   let createInterfaceStructures (structure: MetaModel.Structure array) (model: MetaModel.MetaModel) =
+    // Scan and find all interfaces
     let interfaceStructures =
       structure
       |> Array.collect (fun s ->
-        s.Extends
-        |> Option.Array.toArray
+        s.ExtendsSafe
         |> Array.map (fun e ->
           match e with
           | MetaModel.Type.ReferenceType r ->
@@ -530,7 +535,7 @@ module GenerateTests =
       )
       |> Array.distinctBy (fun x -> x.Name)
 
-      //HACK: need to add WorkDoneProgressOptions since it's a mixin but really should be an interface
+      //HACK: need to add additional types since it's a mixin but really should be an interface
       |> Array.append [|
         yield!
           model.Structures
@@ -542,58 +547,36 @@ module GenerateTests =
 
     interfaceStructures
     |> Array.map (fun s ->
+      let widget =
+        Interface($"I{s.Name}") {
+          for p in s.PropertiesSafe do
+            let name, t = createField p.Type p
+            yield AbstractProperty(name, t)
 
-      Interface($"I{s.Name}") {
+          // MetaModel is incorrect we need to use Mixin instead of extends
+          // TODO: Open issue for clarification on why LSP Spec says extends but metamodel uses mixins
 
-
-        // Nested Anonymous Records will not generate correct code
-        for p in
-          s.Properties
-          |> Option.Array.toArray do
-          let name, t = createField p.Type p
-          yield AbstractProperty(name, t)
-
-        // MetaModel is incorrect we need to use Mixin instead of extends
-        // TODO: Open issue for clarification on why LSP Spec says extends but metamodel uses mixins
-
-        for e in
-          s.Mixins
-          |> Option.Array.toArray do
-          match e with
-          | MetaModel.Type.ReferenceType r -> yield Inherit($"I{r.Name}")
-          | _ -> failwithf "todo Extends %A" e
+          for e in s.MixinsSafe do
+            match e with
+            | MetaModel.Type.ReferenceType r -> yield Inherit($"I{r.Name}")
+            | _ -> ()
 
 
-      // for e in
-      //   s.Extends
-      //   |> Option.Array.toArray do
-      //   match e with
-      //   | MetaModel.Type.ReferenceType r ->
-      //     yield
-      //       MemberDefnInheritNode(
-      //         (SingleTextNode("inherit", rangeZero)),
-      //         (Type.LongIdent(
-      //           IdentListNode([ IdentifierOrDot.Ident(SingleTextNode($"I{r.Name}", rangeZero)) ], rangeZero)
-      //         )),
-      //         rangeZero
-      //       )
-      //       |> EscapeHatch
-      //   | _ -> failwithf "todo Extends %A" e
+        }
 
-      }
+      s, widget
     )
 
 
-  let createStructure (structure: MetaModel.Structure) (model: MetaModel.MetaModel) =
-
-    let alreadyAddedKey = ResizeArray<string>()
+  let createStructure
+    (structure: MetaModel.Structure)
+    (interfaceStructures: MetaModel.Structure array)
+    (model: MetaModel.MetaModel)
+    =
 
     let rec expandFields (structure: MetaModel.Structure) = [
 
-      // TODO create interfaces from extensions and implement them
-      for e in
-        structure.Extends
-        |> Option.Array.toArray do
+      for e in structure.ExtendsSafe do
         match e with
         | MetaModel.Type.ReferenceType r ->
           match
@@ -602,12 +585,11 @@ module GenerateTests =
           with
           | Some s -> yield! expandFields s
           | None -> failwithf "Could not find structure %s" r.Name
+
         | _ -> failwithf "todo Extends %A" e
 
       // Mixins are inlined fields
-      for m in
-        structure.Mixins
-        |> Option.Array.toArray do
+      for m in structure.MixinsSafe do
         match m with
         | MetaModel.Type.ReferenceType r ->
           match
@@ -615,33 +597,78 @@ module GenerateTests =
             |> Array.tryFind (fun s -> s.Name = r.Name)
           with
           | Some s ->
-            for p in
-              s.Properties
-              |> Option.Array.toArray do
-              if alreadyAddedKey.Contains(p.NameAsPascalCase) then
-                ()
-              else
-                alreadyAddedKey.Add(p.NameAsPascalCase)
-                createField p.Type p
+            for p in s.PropertiesSafe do
+
+              createField p.Type p
           | None -> failwithf "Could not find structure %s" r.Name
         | _ -> failwithf "todo Mixins %A" m
 
-      for p in
-        structure.Properties
-        |> Option.Array.toArray do
-        if alreadyAddedKey.Contains(p.NameAsPascalCase) then
-          ()
-        else
-          alreadyAddedKey.Add(p.NameAsPascalCase)
-          createField p.Type p
+      for p in structure.PropertiesSafe do
+
+        createField p.Type p
     ]
+
+    let rec implementInterface (structure: MetaModel.Structure) = [|
+
+
+      // Implement interface
+      yield!
+        interfaceStructures
+        |> Array.tryFind (fun s -> s.Name = structure.Name)
+        |> Option.map (fun s ->
+          let interfaceName = Ast.LongIdent($"I{s.Name}")
+
+          match s.PropertiesSafe with
+          | [||] -> EmptyInterfaceMember(interfaceName)
+          | properties ->
+            InterfaceMember(interfaceName) {
+              for p in properties do
+                let name = Constant($"x.{p.NameAsPascalCase}")
+                Property(ConstantPat(name), ConstantExpr(name))
+            }
+        )
+        |> Option.toArray
+
+      for e in structure.ExtendsSafe do
+        match e with
+        | MetaModel.Type.ReferenceType r ->
+          yield!
+            interfaceStructures
+            |> Array.tryFind (fun s -> s.Name = r.Name)
+            |> Option.map implementInterface
+            |> Option.Array.toArray
+        | _ -> ()
+
+      // hack mixin with `extensionsButNotReally`
+      for m in structure.MixinsSafe do
+        match m with
+        | MetaModel.Type.ReferenceType r ->
+          yield!
+            interfaceStructures
+            |> Array.tryFind (fun s -> s.Name = r.Name)
+            |> Option.map implementInterface
+            |> Option.Array.toArray
+        | _ -> ()
+    |]
+
 
     try
       Record(structure.Name) {
         yield!
           expandFields structure
+          |> List.distinctBy (fun (name, _) -> name)
           |> List.map (fun (name, t) -> Field(name, t))
       }
+      |> fun r ->
+
+        match implementInterface structure with
+        | [||] -> r
+        | interfaces ->
+          r.members () {
+            for i in interfaces do
+              i
+          }
+
     with e ->
       raise
       <| Exception(sprintf "createStructure on %A" structure, e)
@@ -655,11 +682,9 @@ module GenerateTests =
         | MetaModel.Type.ReferenceType r -> LongIdent r.Name
         | MetaModel.Type.BaseType b -> LongIdent(b.Name.ToDotNetType())
         | MetaModel.Type.OrType o ->
-          let ts =
-            o.Items
-            |> Array.map getType
-
-          createErasedUnion ts
+          o.Items
+          |> Array.map getType
+          |> createErasedUnion
         | MetaModel.Type.ArrayType a -> Array(getType a.Element, 1)
         | MetaModel.Type.StructureLiteralType l ->
           if
@@ -695,12 +720,10 @@ module GenerateTests =
         | MetaModel.Type.StringLiteralType t -> String()
         | MetaModel.Type.TupleType t ->
 
-          let ts =
-            t.Items
-            |> Array.map getType
-            |> Array.toList
-
-          Tuple ts
+          t.Items
+          |> Array.map getType
+          |> Array.toList
+          |> Tuple
 
         | _ -> failwithf "todo Property %A" t
 
@@ -749,29 +772,34 @@ module GenerateTests =
                 Class("ErasedUnionAttribute") { Inherit("System.Attribute()") }
 
                 // Assuming the max is 5, can be increased if needed
-                for i in [ 2..5 ] do
+                for caseSize in [ 2..5 ] do
 
-                  Union($"U%d{i}") {
-                    for j = 1 to i do
-                      UnionCase($"C{j}", Field $"'T{j}")
+                  Union($"U%d{caseSize}") {
+                    for case = 1 to caseSize do
+                      UnionCase($"C{case}", Field $"'T{case}")
                   }
                   |> fun x -> x.attribute (Attribute "ErasedUnion")
                   |> fun x ->
                       x.typeParams (
                         [
-                          for j = 1 to i do
-                            $"'T{j}"
+                          for typeArg = 1 to caseSize do
+                            $"'T{typeArg}"
                         ]
                       )
 
-                for i in createInterfaceStructures parsedMetaModel.Structures parsedMetaModel do
-                  i
+                let (knownInterfaces, interfaceWidgets) =
+                  createInterfaceStructures parsedMetaModel.Structures parsedMetaModel
+                  |> Array.unzip
+
+
+                for w in interfaceWidgets do
+                  w
 
                 for s in parsedMetaModel.Structures do
                   if isUnitStructure s then
                     Abbrev(s.Name, "unit")
                   else
-                    createStructure s parsedMetaModel
+                    createStructure s knownInterfaces parsedMetaModel
 
                 for t in parsedMetaModel.TypeAliases do
                   Abbrev(t.Name, createTypeAlias t)
@@ -785,9 +813,7 @@ module GenerateTests =
           }
 
 
-        let writeToFile path contents =
-          printfn "%A" contents
-          File.WriteAllText(path, contents)
+        let writeToFile path contents = File.WriteAllText(path, contents)
 
         source
         |> Gen.mkOak
