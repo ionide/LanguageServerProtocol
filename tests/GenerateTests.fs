@@ -388,9 +388,13 @@ module rec MetaModel =
 
 module GenerateTests =
 
+  open System.Runtime.CompilerServices
+
+
   open System
   open Expecto
   open Fantomas.Core
+  open Fantomas.Core.SyntaxOak
 
   open Fabulous.AST
 
@@ -398,12 +402,27 @@ module GenerateTests =
 
   open System.IO
   open Newtonsoft.Json
-  open Fantomas.Core.SyntaxOak
+  open Fantomas.FCS.Syntax
+  open Fabulous.AST.StackAllocatedCollections
+
+
+  type ModuleOrNamespaceExtensions2 =
+    [<Extension>]
+    static member inline Yield(_: CollectionBuilder<'parent, ModuleDecl>, x: WidgetBuilder<ModuleOrNamespaceNode>) =
+      let node = Gen.mkOak x
+
+      let ws =
+        node.Declarations
+        |> List.map (fun x -> Ast.EscapeHatch(x).Compile())
+        |> List.toArray
+        |> MutStackArray1.fromArray
+
+      { Widgets = ws }
+
 
   let createOption (t: WidgetBuilder<Type>) = Ast.OptionPostfix t
 
-  let createDictionary (types: WidgetBuilder<Type> list) =
-    AppPrefix(LongIdent("System.Collections.Generic.Dictionary"), types)
+  let createDictionary (types: WidgetBuilder<Type> list) = AppPrefix(LongIdent("Map"), types)
 
   let createErasedUnion (types: WidgetBuilder<Type> array) =
     if types.Length > 1 then
@@ -426,6 +445,7 @@ module GenerateTests =
   let rec createField
     (currentType: MetaModel.Type)
     (currentProperty: MetaModel.Property)
+    (topLevelName: string)
     : string * WidgetBuilder<Type> * string list option =
     try
       let rec getType (currentType: MetaModel.Type) : WidgetBuilder<Type> =
@@ -479,7 +499,7 @@ module GenerateTests =
             let ts =
               l.Value.Properties
               |> Array.map (fun p ->
-                let (name, typ, _) = createField p.Type p
+                let (name, typ, _) = createField p.Type p topLevelName
                 name, typ
               )
               |> Array.toList
@@ -501,7 +521,9 @@ module GenerateTests =
             value
           ]
 
-        | MetaModel.Type.StringLiteralType t -> LongIdent("string")
+        | MetaModel.Type.StringLiteralType t ->
+          printfn $"StringLiteralType: {topLevelName} {currentProperty.Name} - {t.Kind} {t.Value}"
+          LongIdent("string")
         | MetaModel.Type.TupleType t ->
 
           let ts =
@@ -582,7 +604,7 @@ module GenerateTests =
       let widget =
         Interface($"I{s.Name}") {
           for p in s.PropertiesSafe do
-            let name, t, docs = createField p.Type p
+            let name, t, docs = createField p.Type p s.Name
             let ap = AbstractProperty(name, t)
 
             yield
@@ -637,13 +659,13 @@ module GenerateTests =
           | Some s ->
             for p in s.PropertiesSafe do
 
-              createField p.Type p
+              createField p.Type p s.Name
           | None -> failwithf "Could not find structure %s" r.Name
         | _ -> failwithf "todo Mixins %A" m
 
       for p in structure.PropertiesSafe do
 
-        createField p.Type p
+        createField p.Type p structure.Name
     ]
 
     let rec implementInterface (structure: MetaModel.Structure) = [|
@@ -728,7 +750,7 @@ module GenerateTests =
   let createTypeAlias (alias: MetaModel.TypeAlias) =
     let rec getType (t: MetaModel.Type) =
       if alias.Name = "LSPAny" then
-        Obj()
+        LongIdent("Newtonsoft.Json.Linq.JToken")
       else
         match t with
         | MetaModel.Type.ReferenceType r -> LongIdent r.Name
@@ -748,7 +770,7 @@ module GenerateTests =
             let ts =
               l.Value.Properties
               |> Array.map (fun p ->
-                let (name, typ, _) = createField p.Type p
+                let (name, typ, _) = createField p.Type p alias.Name
                 name, typ
               )
               |> Array.toList
@@ -772,7 +794,9 @@ module GenerateTests =
             value
           ]
 
-        | MetaModel.Type.StringLiteralType t -> String()
+        | MetaModel.Type.StringLiteralType t ->
+          printfn $"StringLiteralType: alias {alias.Name} -> {t.Kind} {t.Value}"
+          String()
         | MetaModel.Type.TupleType t ->
 
           t.Items
@@ -785,41 +809,72 @@ module GenerateTests =
     getType alias.Type
 
   let createEnumeration (enumeration: MetaModel.Enumeration) =
-    match enumeration.Type.Name with
-    | MetaModel.EnumerationTypeNameValues.String ->
+    AnonymousModule() {
+      match enumeration.Type.Name with
+      | MetaModel.EnumerationTypeNameValues.String ->
+        match enumeration.SupportsCustomValues with
+        | Some true ->
 
-      let enum =
-        Enum enumeration.Name {
-          for i, v in
-            enumeration.Values
-            |> Array.mapi (fun i x -> i, x) do
-            let case = EnumCase(String.toPascalCase v.Name, string i)
+          let ab = Abbrev(enumeration.Name, "string")
 
-            v.StructuredDocs
-            |> Option.map (fun docs -> case.xmlDocs docs)
-            |> Option.defaultValue case
-        }
+          enumeration.StructuredDocs
+          |> Option.map (fun docs -> ab.xmlDocs docs)
+          |> Option.defaultValue ab
 
-      enumeration.StructuredDocs
-      |> Option.map (fun docs -> enum.xmlDocs docs)
-      |> Option.defaultValue enum
+          NestedModule(enumeration.Name) {
+            for v in enumeration.Values do
+              let name = PrettyNaming.NormalizeIdentifierBackticks v.Name
+              let l = Value(ConstantPat(Constant(name)), ConstantExpr(String(v.Value))).attribute (Attribute "Literal")
+              let l = l.returnType (LongIdent enumeration.Name)
 
-    | MetaModel.EnumerationTypeNameValues.Integer
-    | MetaModel.EnumerationTypeNameValues.Uinteger ->
-      let enum =
-        Enum enumeration.Name {
-          for v in enumeration.Values do
-            let case = EnumCase(String.toPascalCase v.Name, v.Value)
+              v.StructuredDocs
+              |> Option.map (fun docs -> l.xmlDocs docs)
+              |> Option.defaultValue l
 
-            v.StructuredDocs
-            |> Option.map (fun docs -> case.xmlDocs docs)
-            |> Option.defaultValue case
-        }
+          }
 
-      enumeration.StructuredDocs
-      |> Option.map (fun docs -> enum.xmlDocs docs)
-      |> Option.defaultValue enum
-    | _ -> failwithf "todo Enumeration %A" enumeration
+
+        | _ ->
+          let enum =
+            Enum enumeration.Name {
+              for i, v in
+                enumeration.Values
+                |> Array.mapi (fun i x -> i, x) do
+                let case = EnumCase(v.Name, string i)
+
+                let case = case.attribute (Attribute($"System.Runtime.Serialization.EnumMember(Value = \"{v.Value}\")"))
+
+                v.StructuredDocs
+                |> Option.map (fun docs -> case.xmlDocs docs)
+                |> Option.defaultValue case
+            }
+
+          let enum =
+            enumeration.StructuredDocs
+            |> Option.map (fun docs -> enum.xmlDocs docs)
+            |> Option.defaultValue enum
+
+          enum.attribute (
+            Attribute("Newtonsoft.Json.JsonConverter(typeof<Newtonsoft.Json.Converters.StringEnumConverter>)")
+          )
+
+      | MetaModel.EnumerationTypeNameValues.Integer
+      | MetaModel.EnumerationTypeNameValues.Uinteger ->
+        let enum =
+          Enum enumeration.Name {
+            for v in enumeration.Values do
+              let case = EnumCase(String.toPascalCase v.Name, v.Value)
+
+              v.StructuredDocs
+              |> Option.map (fun docs -> case.xmlDocs docs)
+              |> Option.defaultValue case
+          }
+
+        enumeration.StructuredDocs
+        |> Option.map (fun docs -> enum.xmlDocs docs)
+        |> Option.defaultValue enum
+      | _ -> failwithf "todo Enumeration %A" enumeration
+    }
 
 
   let generateTests =
@@ -836,6 +891,7 @@ module GenerateTests =
         let source =
           Ast.Oak() {
             Namespace("Ionide.LanguageServerProtocol") {
+
               NestedModule("Types") {
                 // Simple aliases for types that are not in dotnet
                 Abbrev("URI", "string")
@@ -844,7 +900,6 @@ module GenerateTests =
 
                 Class("ErasedUnionAttribute") { Inherit("System.Attribute()") }
 
-                // Assuming the max is 5, can be increased if needed
                 for caseSize in [ 2..5 ] do
 
                   Union($"U%d{caseSize}") {
@@ -853,8 +908,9 @@ module GenerateTests =
                   }
                   |> fun x -> x.attribute (Attribute "ErasedUnion")
                   |> fun x ->
+
                       x.typeParams (
-                        [
+                        PostfixList [
                           for typeArg = 1 to caseSize do
                             $"'T{typeArg}"
                         ]
@@ -881,8 +937,10 @@ module GenerateTests =
                   |> Option.map (fun docs -> alias.xmlDocs docs)
                   |> Option.defaultValue alias
 
+
                 for e in parsedMetaModel.Enumerations do
                   createEnumeration e
+
 
               }
             }
@@ -902,4 +960,4 @@ module GenerateTests =
 
 
   [<Tests>]
-  let tests = ftestList "Generate" [ generateTests ]
+  let tests = ptestList "Generate" [ generateTests ]
