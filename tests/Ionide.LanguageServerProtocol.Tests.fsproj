@@ -12,6 +12,7 @@
     <Compile Include="Shotgun.fs" />
     <Compile Include="StartWithSetup.fs" />
     <Compile Include="GenerateTests.fs" />
+    <!-- <Compile Include="Types.cg.fs"/> -->
     <Compile Include="Tests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
@@ -21,7 +22,7 @@
     <PackageReference Include="Expecto" Version="9.0.4" />
     <PackageReference Include="Expecto.FsCheck" Version="9.0.4" />
     <PackageReference Include="FsCheck" Version="2.16.5" />
-    <PackageReference Include="Fabulous.AST" Version="1.0.0-pre10" />
+    <PackageReference Include="Fabulous.AST" Version="[1.0.0-pre11]" />
     <PackageReference Include="GitHubActionsTestLogger" Version="2.0.1">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>

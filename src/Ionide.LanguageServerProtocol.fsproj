@@ -13,13 +13,16 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- FsLibLog.fs comes verbatim from
-         https://github.com/TheAngryByrd/FsLibLog/blob/f81cba440bf0476bb4e2262b57a067a0d6ab78a7/src/FsLibLog/FsLibLog.fs
+    https://github.com/TheAngryByrd/FsLibLog/blob/f81cba440bf0476bb4e2262b57a067a0d6ab78a7/src/FsLibLog/FsLibLog.fs
 
-         Namespace changed from FsLibLog to LanguageServerProtocol.Logging per the instructions in that repo.
+         Namespace changed from FsLibLog to LanguageServerProtocol.Logging per the instructions in that
+    repo.
     -->
     <Compile Include="FsLibLog.fs" />
     <Compile Include="JsonRpc.fs" />
     <Compile Include="Types.fs" />
+    <Compile Include="Types.cg.fs" />
+    <Compile Include="TypeDefaults.fs" />
     <Compile Include="Client.fs" />
     <Compile Include="Server.fs" />
     <Compile Include="JsonUtils.fs" />

@@ -53,7 +53,11 @@ module Server =
             | Error error ->
               let rpcException = LocalRpcException(error.Message)
               rpcException.ErrorCode <- error.Code
-              rpcException.ErrorData <- error.Data |> Option.defaultValue null
+
+              rpcException.ErrorData <-
+                error.Data
+                |> Option.defaultValue null
+
               raise rpcException
         }
 
@@ -111,7 +115,8 @@ module Server =
           | Flatten(:? JsonSerializationException as ex) ->
             let data: obj = if isSerializable then ex else CommonErrorData(ex)
             JsonRpcError.ErrorDetail(Code = JsonRpcErrorCode.ParseError, Message = ex.Message, Data = data)
-          | _ -> ``base``.CreateErrorDetails(request, ex) }
+          | _ -> ``base``.CreateErrorDetails(request, ex)
+    }
 
   let startWithSetupCore<'client when 'client :> Ionide.LanguageServerProtocol.ILspClient>
     (setupRequestHandlings: 'client -> Map<string, Delegate>)
@@ -131,7 +136,9 @@ module Server =
           jsonRpc.NotifyWithParameterObjectAsync(rpcMethod, notificationObj)
           |> Async.AwaitTask
 
-        return () |> LspResult.success
+        return
+          ()
+          |> LspResult.success
       }
 
     /// When the server wants to send a request to the client
@@ -141,14 +148,17 @@ module Server =
           jsonRpc.InvokeWithParameterObjectAsync<'response>(rpcMethod, requestObj)
           |> Async.AwaitTask
 
-        return response |> LspResult.success
+        return
+          response
+          |> LspResult.success
       }
 
     let lspClient =
       clientCreator (
         sendServerNotification,
         { new ClientRequestSender with
-            member __.Send x t = sendServerRequest x t }
+            member __.Send x t = sendServerRequest x t
+        }
       )
 
     // Note on server shutdown.
@@ -175,7 +185,9 @@ module Server =
     let onExit () =
       logger.trace (Log.setMessage "Exit received")
       quitReceived <- true
-      quitSemaphore.Release() |> ignore
+
+      quitSemaphore.Release()
+      |> ignore
 
     jsonRpc.AddLocalRpcMethod("exit", Action(onExit))
 
@@ -225,8 +237,9 @@ module Server =
     use jsonRpcHandler = new WebSocketMessageHandler(socket, defaultJsonRpcFormatter ())
     startWithSetupCore setupRequestHandlings jsonRpcHandler clientCreator customizeRpc
 
-  type ServerRequestHandling<'server when 'server :> Ionide.LanguageServerProtocol.ILspServer> =
-    { Run: 'server -> Delegate }
+  type ServerRequestHandling<'server when 'server :> Ionide.LanguageServerProtocol.ILspServer> = {
+    Run: 'server -> Delegate
+  }
 
   let serverRequestHandling<'server, 'param, 'result when 'server :> Ionide.LanguageServerProtocol.ILspServer>
     (run: 'server -> 'param -> AsyncLspResult<'result>)
@@ -236,11 +249,24 @@ module Server =
   let defaultRequestHandlings () : Map<string, ServerRequestHandling<'server>> =
     let requestHandling = serverRequestHandling
 
-    [ "initialize", requestHandling (fun s p -> s.Initialize(p))
-      "initialized", requestHandling (fun s p -> s.Initialized(p) |> notificationSuccess)
+    [
+      "initialize", requestHandling (fun s p -> s.Initialize(p))
+      "initialized",
+      requestHandling (fun s () ->
+        s.Initialized()
+        |> notificationSuccess
+      )
       "textDocument/hover", requestHandling (fun s p -> s.TextDocumentHover(p))
-      "textDocument/didOpen", requestHandling (fun s p -> s.TextDocumentDidOpen(p) |> notificationSuccess)
-      "textDocument/didChange", requestHandling (fun s p -> s.TextDocumentDidChange(p) |> notificationSuccess)
+      "textDocument/didOpen",
+      requestHandling (fun s p ->
+        s.TextDocumentDidOpen(p)
+        |> notificationSuccess
+      )
+      "textDocument/didChange",
+      requestHandling (fun s p ->
+        s.TextDocumentDidChange(p)
+        |> notificationSuccess
+      )
       "textDocument/completion", requestHandling (fun s p -> s.TextDocumentCompletion(p))
       "completionItem/resolve", requestHandling (fun s p -> s.CompletionItemResolve(p))
       "textDocument/rename", requestHandling (fun s p -> s.TextDocumentRename(p))
@@ -263,10 +289,22 @@ module Server =
       "textDocument/formatting", requestHandling (fun s p -> s.TextDocumentFormatting(p))
       "textDocument/rangeFormatting", requestHandling (fun s p -> s.TextDocumentRangeFormatting(p))
       "textDocument/onTypeFormatting", requestHandling (fun s p -> s.TextDocumentOnTypeFormatting(p))
-      "textDocument/willSave", requestHandling (fun s p -> s.TextDocumentWillSave(p) |> notificationSuccess)
+      "textDocument/willSave",
+      requestHandling (fun s p ->
+        s.TextDocumentWillSave(p)
+        |> notificationSuccess
+      )
       "textDocument/willSaveWaitUntil", requestHandling (fun s p -> s.TextDocumentWillSaveWaitUntil(p))
-      "textDocument/didSave", requestHandling (fun s p -> s.TextDocumentDidSave(p) |> notificationSuccess)
-      "textDocument/didClose", requestHandling (fun s p -> s.TextDocumentDidClose(p) |> notificationSuccess)
+      "textDocument/didSave",
+      requestHandling (fun s p ->
+        s.TextDocumentDidSave(p)
+        |> notificationSuccess
+      )
+      "textDocument/didClose",
+      requestHandling (fun s p ->
+        s.TextDocumentDidClose(p)
+        |> notificationSuccess
+      )
       "textDocument/documentSymbol", requestHandling (fun s p -> s.TextDocumentDocumentSymbol(p))
       "textDocument/moniker", requestHandling (fun s p -> s.TextDocumentMoniker(p))
       "textDocument/linkedEditingRange", requestHandling (fun s p -> s.TextDocumentLinkedEditingRange(p))
@@ -286,26 +324,58 @@ module Server =
       "textDocument/inlineValue", requestHandling (fun s p -> s.TextDocumentInlineValue(p))
       "textDocument/diagnostic", requestHandling (fun s p -> s.TextDocumentDiagnostic(p))
       "workspace/didChangeWatchedFiles",
-      requestHandling (fun s p -> s.WorkspaceDidChangeWatchedFiles(p) |> notificationSuccess)
+      requestHandling (fun s p ->
+        s.WorkspaceDidChangeWatchedFiles(p)
+        |> notificationSuccess
+      )
       "workspace/didChangeWorkspaceFolders",
       requestHandling (fun s p ->
         s.WorkspaceDidChangeWorkspaceFolders(p)
-        |> notificationSuccess)
+        |> notificationSuccess
+      )
       "workspace/didChangeConfiguration",
-      requestHandling (fun s p -> s.WorkspaceDidChangeConfiguration(p) |> notificationSuccess)
+      requestHandling (fun s p ->
+        s.WorkspaceDidChangeConfiguration(p)
+        |> notificationSuccess
+      )
       "workspace/willCreateFiles", requestHandling (fun s p -> s.WorkspaceWillCreateFiles(p))
-      "workspace/didCreateFiles", requestHandling (fun s p -> s.WorkspaceDidCreateFiles(p) |> notificationSuccess)
+      "workspace/didCreateFiles",
+      requestHandling (fun s p ->
+        s.WorkspaceDidCreateFiles(p)
+        |> notificationSuccess
+      )
       "workspace/willRenameFiles", requestHandling (fun s p -> s.WorkspaceWillRenameFiles(p))
-      "workspace/didRenameFiles", requestHandling (fun s p -> s.WorkspaceDidRenameFiles(p) |> notificationSuccess)
+      "workspace/didRenameFiles",
+      requestHandling (fun s p ->
+        s.WorkspaceDidRenameFiles(p)
+        |> notificationSuccess
+      )
       "workspace/willDeleteFiles", requestHandling (fun s p -> s.WorkspaceWillDeleteFiles(p))
-      "workspace/didDeleteFiles", requestHandling (fun s p -> s.WorkspaceDidDeleteFiles(p) |> notificationSuccess)
+      "workspace/didDeleteFiles",
+      requestHandling (fun s p ->
+        s.WorkspaceDidDeleteFiles(p)
+        |> notificationSuccess
+      )
       "workspace/symbol", requestHandling (fun s p -> s.WorkspaceSymbol(p))
       "workspaceSymbol/resolve", requestHandling (fun s p -> s.WorkspaceSymbolResolve(p))
       "workspace/executeCommand", requestHandling (fun s p -> s.WorkspaceExecuteCommand(p))
-      "window/workDoneProgress/cancel", requestHandling (fun s p -> s.WorkDoneProgressCancel(p) |> notificationSuccess)
+      "window/workDoneProgress/cancel",
+      requestHandling (fun s p ->
+        s.WorkDoneProgressCancel(p)
+        |> notificationSuccess
+      )
       "workspace/diagnostic", requestHandling (fun s p -> s.WorkspaceDiagnostic(p))
-      "shutdown", requestHandling (fun s () -> s.Shutdown() |> notificationSuccess)
-      "exit", requestHandling (fun s () -> s.Exit() |> notificationSuccess) ]
+      "shutdown",
+      requestHandling (fun s () ->
+        s.Shutdown()
+        |> notificationSuccess
+      )
+      "exit",
+      requestHandling (fun s () ->
+        s.Exit()
+        |> notificationSuccess
+      )
+    ]
     |> Map.ofList
 
   let private requestHandlingSetupFunc<'client, 'server
@@ -408,12 +478,20 @@ module Client =
       else
         // TODO: Check that we don't over-fill headerBufferSize
         while count < headerBufferSize
-              && (buffer.[count - 2] <> cr && buffer.[count - 1] <> lf) do
+              && (buffer.[count - 2]
+                  <> cr
+                  && buffer.[count - 1]
+                     <> lf) do
           let additionalBytesRead = stream.Read(buffer, count, 1)
           // TODO: exit when additionalBytesRead = 0, end of stream
-          count <- count + additionalBytesRead
+          count <-
+            count
+            + additionalBytesRead
 
-        if count >= headerBufferSize then
+        if
+          count
+          >= headerBufferSize
+        then
           None
         else
           Some(headerEncoding.GetString(buffer, 0, count - 2))
@@ -430,9 +508,17 @@ module Client =
           raise (Exception(sprintf "Separator not found in header '%s'" line))
         else
           let name = line.Substring(0, separatorPos)
-          let value = line.Substring(separatorPos + 2)
+
+          let value =
+            line.Substring(
+              separatorPos
+              + 2
+            )
+
           let otherHeaders = readHeaders stream
-          (name, value) :: otherHeaders
+
+          (name, value)
+          :: otherHeaders
       | None -> raise (EndOfStreamException())
 
     let read (stream: Stream) =
@@ -445,7 +531,8 @@ module Client =
         |> Option.bind (fun s ->
           match Int32.TryParse(s) with
           | true, x -> Some x
-          | _ -> None)
+          | _ -> None
+        )
 
       if contentLength = None then
         failwithf "Content-Length header not found"
@@ -454,9 +541,15 @@ module Client =
         let mutable readCount = 0
 
         while readCount < contentLength.Value do
-          let toRead = contentLength.Value - readCount
+          let toRead =
+            contentLength.Value
+            - readCount
+
           let readInCurrentBatch = stream.Read(result, readCount, toRead)
-          readCount <- readCount + readInCurrentBatch
+
+          readCount <-
+            readCount
+            + readInCurrentBatch
 
         let str = Encoding.UTF8.GetString(result, 0, readCount)
         headers, str
@@ -468,7 +561,13 @@ module Client =
         sprintf "Content-Type: application/vscode-jsonrpc; charset=utf-8\r\nContent-Length: %d\r\n\r\n" bytes.Length
 
       let headerBytes = Encoding.ASCII.GetBytes header
-      use ms = new MemoryStream(headerBytes.Length + bytes.Length)
+
+      use ms =
+        new MemoryStream(
+          headerBytes.Length
+          + bytes.Length
+        )
+
       ms.Write(headerBytes, 0, headerBytes.Length)
       ms.Write(bytes, 0, bytes.Length)
       stream.Write(ms.ToArray(), 0, int ms.Position)
@@ -488,18 +587,23 @@ module Client =
             |> Option.iter (fun input ->
               // fprintfn stderr "[CLIENT] Writing: %s" str
               LowLevel.write input.BaseStream str
-              input.BaseStream.Flush())
+              input.BaseStream.Flush()
+            )
             // do! Async.Sleep 1000
             return! loop ()
           }
 
-        loop ())
+        loop ()
+      )
 
     let handleRequest (request: JsonRpc.Request) =
       async {
         let mutable methodCallResult = None
 
-        match notificationHandlings |> Map.tryFind request.Method with
+        match
+          notificationHandlings
+          |> Map.tryFind request.Method
+        with
         | Some handling ->
           try
             match request.Params with
@@ -518,7 +622,10 @@ module Client =
 
     let handleNotification (notification: JsonRpc.Notification) =
       async {
-        match notificationHandlings |> Map.tryFind notification.Method with
+        match
+          notificationHandlings
+          |> Map.tryFind notification.Method
+        with
         | Some handling ->
           try
             match notification.Params with

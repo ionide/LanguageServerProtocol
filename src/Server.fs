@@ -11,6 +11,11 @@ module private ServerUtil =
 
 open ServerUtil
 
+
+type GotoResult = U2<Location, Location[]>
+
+type TextDocumentCodeActionResult = U2<Command, CodeAction>[]
+
 [<Interface>]
 type ILspServer =
   inherit System.IDisposable
@@ -402,7 +407,7 @@ type LspServer() =
   /// The initialized notification may only be sent once.
   abstract member Initialized: InitializedParams -> Async<unit>
 
-  default __.Initialized(_) = ignoreNotification
+  default __.Initialized() = ignoreNotification
 
   /// The shutdown request is sent from the client to the server. It asks the server to shut down, but to not
   /// exit (otherwise the response might not be delivered correctly to the client). There is a separate exit
@@ -468,8 +473,7 @@ type LspServer() =
   /// If None is returned then it is deemed that a ‘textDocument/rename’ request is not valid at the given position.
   abstract member TextDocumentPrepareRename: PrepareRenameParams -> AsyncLspResult<PrepareRenameResult option>
 
-  default __.TextDocumentPrepareRename(_) =
-    AsyncLspResult.success (Some(PrepareRenameResult.Default { DefaultBehavior = true }))
+  default __.TextDocumentPrepareRename(_) = AsyncLspResult.success (Some(U3.C3 {| DefaultBehavior = true |}))
 
   /// The go to declaration request is sent from the client to the server to resolve the declaration location
   /// of a symbol at a given text document position.
@@ -848,7 +852,7 @@ type LspServer() =
   interface ILspServer with
     member this.Dispose() = this.Dispose()
     member this.Initialize(p: InitializeParams) = this.Initialize(p)
-    member this.Initialized(p: InitializedParams) = this.Initialized(p)
+    member this.Initialized() = this.Initialized()
     member this.Shutdown() = this.Shutdown()
     member this.Exit() = this.Exit()
     member this.TextDocumentHover(p: TextDocumentPositionParams) = this.TextDocumentHover(p)

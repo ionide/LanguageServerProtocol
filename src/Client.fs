@@ -68,7 +68,7 @@ type ILspClient =
   abstract member WorkspaceConfiguration: ConfigurationParams -> AsyncLspResult<Newtonsoft.Json.Linq.JToken[]>
 
 
-  abstract member WorkspaceApplyEdit: ApplyWorkspaceEditParams -> AsyncLspResult<ApplyWorkspaceEditResponse>
+  abstract member WorkspaceApplyEdit: ApplyWorkspaceEditParams -> AsyncLspResult<ApplyWorkspaceEditResult>
 
   /// The workspace/semanticTokens/refresh request is sent from the server to the client.
   /// Servers can use it to ask clients to refresh the editors for which this server provides semantic tokens.
@@ -209,7 +209,7 @@ type LspClient() =
 
   default __.WorkspaceConfiguration(_) = notImplemented
 
-  abstract member WorkspaceApplyEdit: ApplyWorkspaceEditParams -> AsyncLspResult<ApplyWorkspaceEditResponse>
+  abstract member WorkspaceApplyEdit: ApplyWorkspaceEditParams -> AsyncLspResult<ApplyWorkspaceEditResult>
   default __.WorkspaceApplyEdit(_) = notImplemented
 
   /// The workspace/semanticTokens/refresh request is sent from the server to the client.
