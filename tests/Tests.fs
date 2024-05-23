@@ -658,7 +658,7 @@ let private serializationTests =
           <| fun _ ->
             let textDoc = { OptionalVersionedTextDocumentIdentifier.Uri = "..."; Version = None }
             let json = textDoc |> serialize :?> JObject
-            let prop = json.Property("Version")
+            let prop = json.Property("version")
             let value = prop.Value
             Expect.equal (value.Type) (JTokenType.Null) "Version should be null"
 

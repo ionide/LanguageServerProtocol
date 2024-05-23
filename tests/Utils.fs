@@ -21,7 +21,7 @@ module Lsp =
 
   let internal path =
     let name = example.FullName
-    let i = name.IndexOf '+'
+    let i = name.IndexOf ".TextDocumentIdentifier"
     name.Substring(0, i + 1)
 
   module Is =

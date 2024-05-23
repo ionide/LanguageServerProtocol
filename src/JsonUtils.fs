@@ -242,8 +242,8 @@ type ErasedUnionConverter() =
           match fields |> Seq.tryFind(fun f -> f.Name.ToLowerInvariant() = "kind"), 
                 props |> Seq.tryFind (fun p -> p.Name.ToLowerInvariant() = "kind") with
           | Some f, Some p ->
-            match p.GetCustomAttribute(typeof<UnionKind>) |> Option.ofObj with
-            | Some (:? UnionKind as k) when k.Value = string f.Value -> 
+            match p.GetCustomAttribute(typeof<UnionKindAttribute>) |> Option.ofObj with
+            | Some (:? UnionKindAttribute as k) when k.Value = string f.Value -> 
               json.ToObject(targetType, serializer) |> Some
             | _ -> None
           | _ -> None

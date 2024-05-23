@@ -15,19 +15,18 @@ type StructuredDocs = string list
 
 
 module Proposed =
-    let skipProposed = true
+  let skipProposed = true
 
-    let inline checkProposed x =
-      if skipProposed then 
-        (^a : (member Proposed: bool option) x) <> Some true
-      else
-        true
+  let inline checkProposed x =
+    if skipProposed then
+      (^a: (member Proposed: bool option) x)
+      <> Some true
+    else
+      true
 
 module StructuredDocs =
   let parse (s: string) =
-    s
-      .Trim('\n')
-      .Split([| '\n' |])
+    s.Trim('\n').Split([| '\n' |])
     |> Array.toList
 
 module String =
@@ -186,7 +185,7 @@ module rec MetaModel =
       x.Documentation
       |> Option.map StructuredDocs.parse
 
-  
+
   [<Literal>]
   let StructureTypeLiteral = "literal"
 
@@ -237,6 +236,11 @@ module rec MetaModel =
     | IntegerLiteralType of IntegerLiteralType
     | BooleanLiteralType of BooleanLiteralType
 
+    member x.isStructureLiteralType =
+      match x with
+      | StructureLiteralType _ -> true
+      | _ -> false
+
 
   type Structure = {
     Deprecated: string option
@@ -249,11 +253,10 @@ module rec MetaModel =
     Since: string option
   } with
 
-    member x.ExtendsSafe = 
-      Option.Array.toArray x.Extends
-    member x.MixinsSafe = 
-      Option.Array.toArray x.Mixins
-    member x.PropertiesSafe = 
+    member x.ExtendsSafe = Option.Array.toArray x.Extends
+    member x.MixinsSafe = Option.Array.toArray x.Mixins
+
+    member x.PropertiesSafe =
       Option.Array.toArray x.Properties
       |> Seq.filter Proposed.checkProposed
 
@@ -310,6 +313,7 @@ module rec MetaModel =
     member x.StructuredDocs =
       x.Documentation
       |> Option.map StructuredDocs.parse
+
     member x.ValuesSafe =
       x.Values
       |> Array.filter Proposed.checkProposed
@@ -320,17 +324,19 @@ module rec MetaModel =
     Structures: Structure array
     TypeAliases: TypeAlias array
     Enumerations: Enumeration array
-  }
-    with 
-      member x.StructuresSafe =
-        x.Structures
-        |> Array.filter  Proposed.checkProposed
-      member x.TypeAliasesSafe =
-        x.TypeAliases
-        |> Array.filter Proposed.checkProposed
-      member x.EnumerationsSafe =
-        x.Enumerations
-        |> Array.filter Proposed.checkProposed
+  } with
+
+    member x.StructuresSafe =
+      x.Structures
+      |> Array.filter Proposed.checkProposed
+
+    member x.TypeAliasesSafe =
+      x.TypeAliases
+      |> Array.filter Proposed.checkProposed
+
+    member x.EnumerationsSafe =
+      x.Enumerations
+      |> Array.filter Proposed.checkProposed
 
   module Converters =
 
@@ -442,8 +448,6 @@ module GenerateTests =
   open Fabulous.AST.StackAllocatedCollections
 
 
-
-
   type ModuleOrNamespaceExtensions2 =
     [<Extension>]
     static member inline Yield(_: CollectionBuilder<'parent, ModuleDecl>, x: WidgetBuilder<AnonymousModuleNode>) =
@@ -480,6 +484,52 @@ module GenerateTests =
     | Some x -> sprintf "%s %s" s x
     | None -> s
 
+    
+  let handleSameShapeStructuredUnions createField (ts: MetaModel.Type array) =
+    // TODO: Really this should be a dedicated union type with named fields 
+    if
+      ts
+      |> Array.forall (fun t -> t.isStructureLiteralType)
+    then
+      let ts =
+        ts
+        |> Array.map (fun t ->
+          match t with
+          | MetaModel.Type.StructureLiteralType s -> s.Value
+          | _ -> failwithf "Expected StructureLiteralType %A" t
+        )
+
+      let allProperties =
+        ts
+        |> Array.collect (fun s -> s.PropertiesSafe)
+        |> Array.groupBy (fun p -> p.Name)
+
+      if
+        allProperties
+        |> Array.forall (fun (_, props) ->
+          let (_, first) = allProperties.[0]
+          props.Length = first.Length
+        )
+      then
+        let fields: (string * WidgetBuilder<_>) list =
+          allProperties
+          |> Array.map (fun (name, props) ->
+            let prop =
+              props
+              |> Array.tryFind (fun x -> x.IsOptional) // Prefer optional properties
+              |> Option.defaultValue (props.[0])
+
+            let (name, ty, _, _) = createField prop.Type prop ""
+            name, ty
+          )
+          |> Array.toList
+
+        Some(AnonRecord(fields))
+      else
+        None
+    else
+      None
+
 
   let rec createField
     (currentType: MetaModel.Type)
@@ -498,15 +548,16 @@ module GenerateTests =
           LongIdent name, None
 
         | MetaModel.Type.OrType o ->
+          
+          match handleSameShapeStructuredUnions createField o.Items with
+          | Some x -> x, None
+          | None ->
 
           // TS types can have optional properties (myKey?: string)
           // and unions with null (string | null)
           // we need to handle both cases
           let isOptional, items =
-            if
-              currentProperty.IsOptional
-              || Array.exists (isNullableType) o.Items
-            then
+            if Array.exists isNullableType o.Items then
               true,
               o.Items
               |> Array.filter (fun x -> not (isNullableType x))
@@ -515,7 +566,10 @@ module GenerateTests =
 
           let ts =
             items
-            |> Array.map (getType >> fst)
+            |> Array.map (
+              getType
+              >> fst
+            )
 
           // if this is already marked as Optional in the schema, ignore the union case
           // as we'll wrap it in an option type near the end
@@ -523,12 +577,20 @@ module GenerateTests =
             isOptional
             && not currentProperty.IsOptional
           then
-            createOption (createErasedUnion ts), None
+            createOption (createErasedUnion ts),
+            Some(
+              Attribute "Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)"
+            )
           else
             createErasedUnion ts, None
 
         | MetaModel.Type.ArrayType a ->
-          Array(getType a.Element |> fst, 1), None
+          Array(
+            getType a.Element
+            |> fst,
+            1
+          ),
+          None
         | MetaModel.Type.StructureLiteralType l ->
           if
             l.Value.PropertiesSafe
@@ -554,20 +616,26 @@ module GenerateTests =
               |> LongIdent
             | MetaModel.MapKeyType.ReferenceType r -> LongIdent(r.Name)
 
-          let value = getType m.Value |> fst
+          let value =
+            getType m.Value
+            |> fst
 
           createDictionary [
             key
             value
-          ], None
+          ],
+          None
 
         | MetaModel.Type.StringLiteralType t ->
-          LongIdent("string"), Some (Attribute($"UnionKind(\"{t.Value}\")"))
+          LongIdent("string"), Some(Attribute($"UnionKindAttribute(\"{t.Value}\")"))
         | MetaModel.Type.TupleType t ->
 
           let ts =
             t.Items
-            |> Array.map (getType >> fst)
+            |> Array.map (
+              getType
+              >> fst
+            )
             |> Array.toList
 
           Tuple(ts), None
@@ -643,6 +711,7 @@ module GenerateTests =
       let widget =
         Interface($"I{s.Name}") {
           let properties = s.PropertiesSafe
+
           for p in properties do
             let name, t, docs, _ = createField p.Type p s.Name
             let ap = AbstractProperty(name, t)
@@ -668,14 +737,13 @@ module GenerateTests =
     )
 
 
-
   let createStructure
     (structure: MetaModel.Structure)
     (interfaceStructures: MetaModel.Structure array)
     (model: MetaModel.MetaModel)
     =
 
-    let rec expandFields (structure: MetaModel.Structure) : list<_ * _ * _ * _ * _>= [
+    let rec expandFields (structure: MetaModel.Structure) : list<_ * _ * _ * _ * _> = [
 
       for e in structure.ExtendsSafe do
         match e with
@@ -684,7 +752,7 @@ module GenerateTests =
             model.StructuresSafe
             |> Array.tryFind (fun s -> s.Name = r.Name)
           with
-          | Some s -> 
+          | Some s ->
             for (name, ty, docs, attr, _) in expandFields s do
               (name, ty, docs, attr, 10)
           | None -> failwithf "Could not find structure %s" r.Name
@@ -722,7 +790,7 @@ module GenerateTests =
           let interfaceName = Ast.LongIdent($"I{s.Name}")
 
           InterfaceMember(interfaceName) {
-            for p in s.PropertiesSafe  do
+            for p in s.PropertiesSafe do
               let name = Constant($"x.{p.NameAsPascalCase}")
               let outp = Property(ConstantPat(name), ConstantExpr(name))
 
@@ -730,7 +798,7 @@ module GenerateTests =
               |> Option.map (fun docs -> outp.xmlDocs docs)
               |> Option.defaultValue outp
           }
-            
+
         )
         |> Option.toArray
 
@@ -762,19 +830,23 @@ module GenerateTests =
         yield!
           expandFields structure
           |> List.groupBy (fun (name, _, _, _, _) -> name)
-          |> List.map (fun (name, group ) ->
-            let (name, t, docs, attr, _) = 
+          |> List.map (fun (name, group) ->
+            let (name, t, docs, attr, _) =
               group
               |> List.maxBy (fun (_, _, _, _, order) -> order)
+
             let f = Field(name, t)
+
             let f =
               docs
               |> Option.map (f.xmlDocs)
               |> Option.defaultValue f
+
             let f =
               attr
               |> Option.map (f.attribute)
               |> Option.defaultValue f
+
             f
 
           )
@@ -797,6 +869,8 @@ module GenerateTests =
       raise
       <| Exception(sprintf "createStructure on %A" structure, e)
 
+
+
   let createTypeAlias (alias: MetaModel.TypeAlias) =
     let rec getType (t: MetaModel.Type) =
       if alias.Name = "LSPAny" then
@@ -806,13 +880,17 @@ module GenerateTests =
         | MetaModel.Type.ReferenceType r -> LongIdent r.Name
         | MetaModel.Type.BaseType b -> LongIdent(b.Name.ToDotNetType())
         | MetaModel.Type.OrType o ->
-          let types =
-            o.Items
-            |> Array.map getType
+          match handleSameShapeStructuredUnions createField o.Items with
+          | Some x -> x
+          | None ->
+
+            let types =
+              o.Items
+              |> Array.map getType
 
 
-          types
-          |> createErasedUnion
+            types
+            |> createErasedUnion
         | MetaModel.Type.ArrayType a -> Array(getType a.Element, 1)
         | MetaModel.Type.StructureLiteralType l when Proposed.checkProposed l.Value ->
           if
@@ -848,8 +926,7 @@ module GenerateTests =
             value
           ]
 
-        | MetaModel.Type.StringLiteralType t ->
-          String()
+        | MetaModel.Type.StringLiteralType t -> String()
         | MetaModel.Type.TupleType t ->
 
           t.Items
@@ -941,13 +1018,15 @@ module GenerateTests =
         let parsedMetaModel =
           JsonConvert.DeserializeObject<MetaModel.MetaModel>(metaModel, MetaModel.metaModelSerializerSettings)
 
-        let documentUriDocs = """
+        let documentUriDocs =
+          """
 URI’s are transferred as strings. The URI’s format is defined in https://tools.ietf.org/html/rfc3986
 
 See: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#uri
 """
 
-        let regexpDocs = """
+        let regexpDocs =
+          """
 Regular expressions are transferred as strings.
 
 See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#regExp
@@ -957,60 +1036,72 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
           Ast.Oak() {
             Namespace("Ionide.LanguageServerProtocol.Types") {
 
-                // Simple aliases for types that are not in dotnet
-                Abbrev("URI", "string").xmlDocs(documentUriDocs |> StructuredDocs.parse)
-                Abbrev("DocumentUri", "string").xmlDocs(documentUriDocs |> StructuredDocs.parse)
-                Abbrev("RegExp", "string").xmlDocs(regexpDocs |> StructuredDocs.parse)
+              // Simple aliases for types that are not in dotnet
+              Abbrev("URI", "string")
+                .xmlDocs (
+                  documentUriDocs
+                  |> StructuredDocs.parse
+                )
 
-                Class("ErasedUnionAttribute") { Inherit("System.Attribute()") }
+              Abbrev("DocumentUri", "string")
+                .xmlDocs (
+                  documentUriDocs
+                  |> StructuredDocs.parse
+                )
 
-                for caseSize in [ 2..5 ] do
+              Abbrev("RegExp", "string")
+                .xmlDocs (
+                  regexpDocs
+                  |> StructuredDocs.parse
+                )
 
-                  Union($"U%d{caseSize}") {
-                    for case = 1 to caseSize do
-                      UnionCase($"C{case}", Field $"'T{case}")
-                  }
-                  |> fun x -> x.attribute (Attribute "ErasedUnion")
-                  |> fun x ->
+              Class("ErasedUnionAttribute") { Inherit("System.Attribute()") }
 
-                      x.typeParams (
-                        PostfixList [
-                          for typeArg = 1 to caseSize do
-                            $"'T{typeArg}"
-                        ]
-                      )
+              for caseSize in [ 2..5 ] do
 
-                let structures =
-                  parsedMetaModel.StructuresSafe
+                Union($"U%d{caseSize}") {
+                  for case = 1 to caseSize do
+                    UnionCase($"C{case}", Field $"'T{case}")
+                }
+                |> fun x -> x.attribute (Attribute "ErasedUnion")
+                |> fun x ->
 
-                let (knownInterfaces, interfaceWidgets) =
-                  createInterfaceStructures structures parsedMetaModel
-                  |> Array.unzip
+                    x.typeParams (
+                      PostfixList [
+                        for typeArg = 1 to caseSize do
+                          $"'T{typeArg}"
+                      ]
+                    )
 
+              let structures = parsedMetaModel.StructuresSafe
 
-                for w in interfaceWidgets do
-                  w
-
-                for s in structures do
-                  if isUnitStructure s then
-                    Abbrev(s.Name, "unit")
-                  else
-                    createStructure s knownInterfaces parsedMetaModel
-
-                for t in parsedMetaModel.TypeAliasesSafe do
-                  // todo TextDocumentFilter NotebookDocumentFilter NotebookDocumentSyncOptions NotebookDocumentSyncRegistrationOptions
-                  let alias = Abbrev(t.Name, createTypeAlias t)
-
-                  t.StructuredDocs
-                  |> Option.map (fun docs -> alias.xmlDocs docs)
-                  |> Option.defaultValue alias
+              let (knownInterfaces, interfaceWidgets) =
+                createInterfaceStructures structures parsedMetaModel
+                |> Array.unzip
 
 
-                for e in parsedMetaModel.EnumerationsSafe do
-                  createEnumeration e
+              for w in interfaceWidgets do
+                w
+
+              for s in structures do
+                if isUnitStructure s then
+                  Abbrev(s.Name, "unit")
+                else
+                  createStructure s knownInterfaces parsedMetaModel
+
+              for t in parsedMetaModel.TypeAliasesSafe do
+                let alias = Abbrev(t.Name, createTypeAlias t)
+
+                t.StructuredDocs
+                |> Option.map (fun docs -> alias.xmlDocs docs)
+                |> Option.defaultValue alias
 
 
-              }
+              for e in parsedMetaModel.EnumerationsSafe do
+                createEnumeration e
+
+
+            }
             |> fun x -> x.toRecursive ()
           }
 
