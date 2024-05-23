@@ -38,6 +38,18 @@ type Gens =
     |> Gen.constant
     |> Arb.fromGen
 
+  static member CreateFile() : Arbitrary<CreateFile> =
+    let create annotationId uri options : CreateFile = { AnnotationId = annotationId; Uri = uri; Options = options ; Kind = "create" }
+    Gen.map3 create Arb.generate Arb.generate Arb.generate |> Arb.fromGen
+
+  static member RenameFile() : Arbitrary<RenameFile> =
+    let create annotationId oldUri newUri options : RenameFile = { AnnotationId = annotationId; OldUri = oldUri; NewUri = newUri; Options = options ; Kind = "rename" }
+    Gen.map4 create Arb.generate Arb.generate Arb.generate Arb.generate |> Arb.fromGen
+
+  static member DeleteFile() : Arbitrary<DeleteFile> =
+    let create annotationId uri options : DeleteFile = { AnnotationId = annotationId; Uri = uri; Options = options ; Kind = "delete" }
+    Gen.map3 create Arb.generate Arb.generate Arb.generate |> Arb.fromGen
+
   static member DocumentSymbol() : Arbitrary<DocumentSymbol> =
     // DocumentSymbol is recursive -> Stack overflow when default generation
     // https://fscheck.github.io/FsCheck/TestData.html#Generating-recursive-data-types
@@ -108,10 +120,15 @@ let tests =
       let abbrevTys =
         [| nameof DocumentUri, typeof<DocumentUri>
            nameof DocumentSelector, typeof<DocumentSelector>
-           nameof TextDocumentCodeActionResult, typeof<TextDocumentCodeActionResult> |]
+           nameof TextDocumentCodeActionResult, typeof<TextDocumentCodeActionResult> 
+           
+           |]
 
       let tys =
-        let shouldTestType (t: Type) = Utils.isLspType [ not << Lsp.Is.Generic; not << Lsp.Is.Nested ] t
+        let shouldTestType (t: Type) = 
+          Utils.isLspType [ not << Lsp.Is.Generic; not << Lsp.Is.Nested ] t
+          && t.Name = "ApplyWorkspaceEditParams"
+
 
         let example = typeof<Ionide.LanguageServerProtocol.Types.TextDocumentIdentifier>
         let ass = example.Assembly

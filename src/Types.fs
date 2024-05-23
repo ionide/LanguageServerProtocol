@@ -19,6 +19,11 @@ open Ionide.LanguageServerProtocol
 type LspResult<'t> = Result<'t, JsonRpc.Error>
 type AsyncLspResult<'t> = Async<LspResult<'t>>
 
+type UnionKind( value: string ) =
+    inherit System.Attribute()
+    member x.Value = value
+
+
 module LspResult =
   open Ionide.LanguageServerProtocol
 

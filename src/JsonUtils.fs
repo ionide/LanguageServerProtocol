@@ -214,7 +214,7 @@ type ErasedUnionConverter() =
     | values -> failwith $"Expected exactly one field for case `{value.GetType().Name}`, but were {values.Length}"
 
   override __.ReadJson(reader: JsonReader, t, _existingValue, serializer) =
-    let tryReadValue (json: JToken) (targetType: Type) =
+    let tryReadPrimitive (json: JToken) (targetType: Type) =
       if Type.isString targetType then
         if json.Type = JTokenType.String then
           reader.Value |> Some
@@ -231,15 +231,38 @@ type ErasedUnionConverter() =
         | JTokenType.Float -> json.ToObject(targetType, serializer) |> Some
         | _ -> None
       else
+        None
+    let tryReadUnionKind (json: JToken) (targetType: Type) =
         try
-          json.ToObject(targetType, serializer) |> Some
+          let fields = 
+            json.Children<JProperty>()
+          let props = 
+            targetType.GetProperties()
+
+          match fields |> Seq.tryFind(fun f -> f.Name.ToLowerInvariant() = "kind"), 
+                props |> Seq.tryFind (fun p -> p.Name.ToLowerInvariant() = "kind") with
+          | Some f, Some p ->
+            match p.GetCustomAttribute(typeof<UnionKind>) |> Option.ofObj with
+            | Some (:? UnionKind as k) when k.Value = string f.Value -> 
+              json.ToObject(targetType, serializer) |> Some
+            | _ -> None
+          | _ -> None
+        with _ -> None
+    let tryReadAllMatchingFields (json: JToken) (targetType: Type) =
+        try
+            let fields = json.Children<JProperty>()  |> Seq.map (fun f -> f.Name.ToLowerInvariant())
+            let props = targetType.GetProperties() |> Seq.map(fun p -> p.Name.ToLowerInvariant())
+            if fields |> Seq.forall (fun f -> props |> Seq.contains f) then
+              json.ToObject(targetType, serializer) |> Some
+            else
+              None
         with _ ->
           None
 
     let union = UnionInfo.get t
     let json = JToken.ReadFrom reader
 
-    let tryMakeUnionCase (json: JToken) (case: CaseInfo) =
+    let tryMakeUnionCase tryReadValue (json: JToken) (case: CaseInfo) =
       match case.Fields with
       | [| field |] ->
         let ty = field.PropertyType
@@ -251,7 +274,14 @@ type ErasedUnionConverter() =
         failwith
           $"Expected union {case.Info.DeclaringType.Name} to have exactly one field in each case, but case {case.Info.Name} has {fields.Length} fields"
 
-    let c = union.Cases |> Array.tryPick (tryMakeUnionCase json)
+    let c = 
+      union.Cases |> Array.tryPick (tryMakeUnionCase tryReadPrimitive json)
+      |> Option.orElseWith (fun () ->
+        union.Cases |> Array.tryPick (tryMakeUnionCase tryReadUnionKind json)
+      )
+      |> Option.orElseWith (fun () ->
+        union.Cases |> Array.tryPick (tryMakeUnionCase tryReadAllMatchingFields json)
+      )
 
     match c with
     | None -> failwith $"Could not create an instance of the type '%s{t.Name}'"

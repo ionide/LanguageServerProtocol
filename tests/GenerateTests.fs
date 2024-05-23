@@ -13,9 +13,21 @@ module Option =
 
 type StructuredDocs = string list
 
+
+module Proposed =
+    let skipProposed = true
+
+    let inline checkProposed x =
+      if skipProposed then 
+        (^a : (member Proposed: bool option) x) <> Some true
+      else
+        true
+
 module StructuredDocs =
   let parse (s: string) =
-    s.Split([| '\n' |])
+    s
+      .Trim('\n')
+      .Split([| '\n' |])
     |> Array.toList
 
 module String =
@@ -46,8 +58,10 @@ module rec MetaModel =
   open Newtonsoft.Json.Linq
   open Newtonsoft.Json
 
-  let metaModel = IO.Path.Join(__SOURCE_DIRECTORY__, "..", "data", "3.17.0", "metaModel.json")
-  let metaModelSchema = IO.Path.Join(__SOURCE_DIRECTORY__, "..", "data", "3.17.0", "metaModel.schema.json")
+  let metaModelVersion = "3.17.0"
+
+  let metaModel = IO.Path.Join(__SOURCE_DIRECTORY__, "..", "data", metaModelVersion, "metaModel.json")
+  let metaModelSchema = IO.Path.Join(__SOURCE_DIRECTORY__, "..", "data", metaModelVersion, "metaModel.schema.json")
   type MetaData = { Version: string }
   type Requests = { Method: string }
 
@@ -172,6 +186,7 @@ module rec MetaModel =
       x.Documentation
       |> Option.map StructuredDocs.parse
 
+  
   [<Literal>]
   let StructureTypeLiteral = "literal"
 
@@ -186,6 +201,10 @@ module rec MetaModel =
     member x.StructuredDocs =
       x.Documentation
       |> Option.map StructuredDocs.parse
+
+    member x.PropertiesSafe =
+      x.Properties
+      |> Array.filter Proposed.checkProposed
 
   type StructureLiteralType = { Kind: string; Value: StructureLiteral }
 
@@ -230,9 +249,13 @@ module rec MetaModel =
     Since: string option
   } with
 
-    member x.ExtendsSafe = Option.Array.toArray x.Extends
-    member x.MixinsSafe = Option.Array.toArray x.Mixins
-    member x.PropertiesSafe = Option.Array.toArray x.Properties
+    member x.ExtendsSafe = 
+      Option.Array.toArray x.Extends
+    member x.MixinsSafe = 
+      Option.Array.toArray x.Mixins
+    member x.PropertiesSafe = 
+      Option.Array.toArray x.Properties
+      |> Seq.filter Proposed.checkProposed
 
     member x.StructuredDocs =
       x.Documentation
@@ -287,6 +310,9 @@ module rec MetaModel =
     member x.StructuredDocs =
       x.Documentation
       |> Option.map StructuredDocs.parse
+    member x.ValuesSafe =
+      x.Values
+      |> Array.filter Proposed.checkProposed
 
   type MetaModel = {
     MetaData: MetaData
@@ -295,6 +321,16 @@ module rec MetaModel =
     TypeAliases: TypeAlias array
     Enumerations: Enumeration array
   }
+    with 
+      member x.StructuresSafe =
+        x.Structures
+        |> Array.filter  Proposed.checkProposed
+      member x.TypeAliasesSafe =
+        x.TypeAliases
+        |> Array.filter Proposed.checkProposed
+      member x.EnumerationsSafe =
+        x.Enumerations
+        |> Array.filter Proposed.checkProposed
 
   module Converters =
 
@@ -406,9 +442,11 @@ module GenerateTests =
   open Fabulous.AST.StackAllocatedCollections
 
 
+
+
   type ModuleOrNamespaceExtensions2 =
     [<Extension>]
-    static member inline Yield(_: CollectionBuilder<'parent, ModuleDecl>, x: WidgetBuilder<ModuleOrNamespaceNode>) =
+    static member inline Yield(_: CollectionBuilder<'parent, ModuleDecl>, x: WidgetBuilder<AnonymousModuleNode>) =
       let node = Gen.mkOak x
 
       let ws =
@@ -419,6 +457,7 @@ module GenerateTests =
 
       { Widgets = ws }
 
+  let JToken = LongIdent("Newtonsoft.Json.Linq.JToken")
 
   let createOption (t: WidgetBuilder<Type>) = Ast.OptionPostfix t
 
@@ -446,17 +485,17 @@ module GenerateTests =
     (currentType: MetaModel.Type)
     (currentProperty: MetaModel.Property)
     (topLevelName: string)
-    : string * WidgetBuilder<Type> * string list option =
+    : string * WidgetBuilder<Type> * string list option * WidgetBuilder<AttributeNode> option =
     try
-      let rec getType (currentType: MetaModel.Type) : WidgetBuilder<Type> =
+      let rec getType (currentType: MetaModel.Type) : WidgetBuilder<Type> * WidgetBuilder<AttributeNode> option =
         match currentType with
         | MetaModel.Type.ReferenceType r ->
           let name = r.Name
-          LongIdent name
+          LongIdent name, None
 
         | MetaModel.Type.BaseType b ->
           let name = b.Name.ToDotNetType()
-          LongIdent name
+          LongIdent name, None
 
         | MetaModel.Type.OrType o ->
 
@@ -476,7 +515,7 @@ module GenerateTests =
 
           let ts =
             items
-            |> Array.map getType
+            |> Array.map (getType >> fst)
 
           // if this is already marked as Optional in the schema, ignore the union case
           // as we'll wrap it in an option type near the end
@@ -484,27 +523,28 @@ module GenerateTests =
             isOptional
             && not currentProperty.IsOptional
           then
-            createOption (createErasedUnion ts)
+            createOption (createErasedUnion ts), None
           else
-            createErasedUnion ts
+            createErasedUnion ts, None
 
-        | MetaModel.Type.ArrayType a -> Array(getType a.Element, 1)
+        | MetaModel.Type.ArrayType a ->
+          Array(getType a.Element |> fst, 1), None
         | MetaModel.Type.StructureLiteralType l ->
           if
-            l.Value.Properties
+            l.Value.PropertiesSafe
             |> Array.isEmpty
           then
-            Obj()
+            JToken, None
           else
             let ts =
-              l.Value.Properties
+              l.Value.PropertiesSafe
               |> Array.map (fun p ->
-                let (name, typ, _) = createField p.Type p topLevelName
+                let (name, typ, _, _) = createField p.Type p topLevelName
                 name, typ
               )
               |> Array.toList
 
-            AnonRecord(ts)
+            AnonRecord(ts), None
 
         | MetaModel.Type.MapType m ->
           let key =
@@ -514,31 +554,30 @@ module GenerateTests =
               |> LongIdent
             | MetaModel.MapKeyType.ReferenceType r -> LongIdent(r.Name)
 
-          let value = getType m.Value
+          let value = getType m.Value |> fst
 
           createDictionary [
             key
             value
-          ]
+          ], None
 
         | MetaModel.Type.StringLiteralType t ->
-          printfn $"StringLiteralType: {topLevelName} {currentProperty.Name} - {t.Kind} {t.Value}"
-          LongIdent("string")
+          LongIdent("string"), Some (Attribute($"UnionKind(\"{t.Value}\")"))
         | MetaModel.Type.TupleType t ->
 
           let ts =
             t.Items
-            |> Array.map getType
+            |> Array.map (getType >> fst)
             |> Array.toList
 
-          Tuple(ts)
+          Tuple(ts), None
 
         | _ -> failwithf $"todo Property %A{currentType}"
 
-      let t = getType currentType
+      let (t, attribute) = getType currentType
       let t = if currentProperty.IsOptional then createOption t else t
       let name = currentProperty.NameAsPascalCase
-      name, t, currentProperty.StructuredDocs
+      name, t, currentProperty.StructuredDocs, attribute
     with e ->
       raise
       <| Exception(sprintf "createField on %A  " currentProperty, e)
@@ -579,7 +618,7 @@ module GenerateTests =
           match e with
           | MetaModel.Type.ReferenceType r ->
             match
-              model.Structures
+              model.StructuresSafe
               |> Array.tryFind (fun s -> s.Name = r.Name)
             with
             | Some s -> s
@@ -592,7 +631,7 @@ module GenerateTests =
       //HACK: need to add additional types since it's a mixin but really should be an interface
       |> Array.append [|
         yield!
-          model.Structures
+          model.StructuresSafe
           |> Array.filter (fun s ->
             extensionsButNotReally
             |> List.contains s.Name
@@ -603,8 +642,9 @@ module GenerateTests =
     |> Array.map (fun s ->
       let widget =
         Interface($"I{s.Name}") {
-          for p in s.PropertiesSafe do
-            let name, t, docs = createField p.Type p s.Name
+          let properties = s.PropertiesSafe
+          for p in properties do
+            let name, t, docs, _ = createField p.Type p s.Name
             let ap = AbstractProperty(name, t)
 
             yield
@@ -628,22 +668,25 @@ module GenerateTests =
     )
 
 
+
   let createStructure
     (structure: MetaModel.Structure)
     (interfaceStructures: MetaModel.Structure array)
     (model: MetaModel.MetaModel)
     =
 
-    let rec expandFields (structure: MetaModel.Structure) = [
+    let rec expandFields (structure: MetaModel.Structure) : list<_ * _ * _ * _ * _>= [
 
       for e in structure.ExtendsSafe do
         match e with
         | MetaModel.Type.ReferenceType r ->
           match
-            model.Structures
+            model.StructuresSafe
             |> Array.tryFind (fun s -> s.Name = r.Name)
           with
-          | Some s -> yield! expandFields s
+          | Some s -> 
+            for (name, ty, docs, attr, _) in expandFields s do
+              (name, ty, docs, attr, 10)
           | None -> failwithf "Could not find structure %s" r.Name
 
         | _ -> failwithf "todo Extends %A" e
@@ -653,19 +696,19 @@ module GenerateTests =
         match m with
         | MetaModel.Type.ReferenceType r ->
           match
-            model.Structures
+            model.StructuresSafe
             |> Array.tryFind (fun s -> s.Name = r.Name)
           with
           | Some s ->
             for p in s.PropertiesSafe do
-
-              createField p.Type p s.Name
+              let (name, ty, docs, attr) = createField p.Type p s.Name
+              (name, ty, docs, attr, 1)
           | None -> failwithf "Could not find structure %s" r.Name
         | _ -> failwithf "todo Mixins %A" m
 
       for p in structure.PropertiesSafe do
-
-        createField p.Type p structure.Name
+        let (name, ty, docs, attr) = createField p.Type p structure.Name
+        (name, ty, docs, attr, 100)
     ]
 
     let rec implementInterface (structure: MetaModel.Structure) = [|
@@ -678,18 +721,16 @@ module GenerateTests =
         |> Option.map (fun s ->
           let interfaceName = Ast.LongIdent($"I{s.Name}")
 
-          match s.PropertiesSafe with
-          | [||] -> EmptyInterfaceMember(interfaceName)
-          | properties ->
-            InterfaceMember(interfaceName) {
-              for p in properties do
-                let name = Constant($"x.{p.NameAsPascalCase}")
-                let outp = Property(ConstantPat(name), ConstantExpr(name))
+          InterfaceMember(interfaceName) {
+            for p in s.PropertiesSafe  do
+              let name = Constant($"x.{p.NameAsPascalCase}")
+              let outp = Property(ConstantPat(name), ConstantExpr(name))
 
-                p.StructuredDocs
-                |> Option.map (fun docs -> outp.xmlDocs docs)
-                |> Option.defaultValue outp
-            }
+              p.StructuredDocs
+              |> Option.map (fun docs -> outp.xmlDocs docs)
+              |> Option.defaultValue outp
+          }
+            
         )
         |> Option.toArray
 
@@ -720,13 +761,22 @@ module GenerateTests =
       Record(structure.Name) {
         yield!
           expandFields structure
-          |> List.distinctBy (fun (name, _, _) -> name)
-          |> List.map (fun (name, t, docs) ->
+          |> List.groupBy (fun (name, _, _, _, _) -> name)
+          |> List.map (fun (name, group ) ->
+            let (name, t, docs, attr, _) = 
+              group
+              |> List.maxBy (fun (_, _, _, _, order) -> order)
             let f = Field(name, t)
+            let f =
+              docs
+              |> Option.map (f.xmlDocs)
+              |> Option.defaultValue f
+            let f =
+              attr
+              |> Option.map (f.attribute)
+              |> Option.defaultValue f
+            f
 
-            docs
-            |> Option.map (f.xmlDocs)
-            |> Option.defaultValue f
           )
       }
       |> fun r ->
@@ -750,27 +800,31 @@ module GenerateTests =
   let createTypeAlias (alias: MetaModel.TypeAlias) =
     let rec getType (t: MetaModel.Type) =
       if alias.Name = "LSPAny" then
-        LongIdent("Newtonsoft.Json.Linq.JToken")
+        JToken
       else
         match t with
         | MetaModel.Type.ReferenceType r -> LongIdent r.Name
         | MetaModel.Type.BaseType b -> LongIdent(b.Name.ToDotNetType())
         | MetaModel.Type.OrType o ->
-          o.Items
-          |> Array.map getType
+          let types =
+            o.Items
+            |> Array.map getType
+
+
+          types
           |> createErasedUnion
         | MetaModel.Type.ArrayType a -> Array(getType a.Element, 1)
-        | MetaModel.Type.StructureLiteralType l ->
+        | MetaModel.Type.StructureLiteralType l when Proposed.checkProposed l.Value ->
           if
-            l.Value.Properties
+            l.Value.PropertiesSafe
             |> Array.isEmpty
           then
-            Obj()
+            JToken
           else
             let ts =
-              l.Value.Properties
+              l.Value.PropertiesSafe
               |> Array.map (fun p ->
-                let (name, typ, _) = createField p.Type p alias.Name
+                let (name, typ, _, _) = createField p.Type p alias.Name
                 name, typ
               )
               |> Array.toList
@@ -795,7 +849,6 @@ module GenerateTests =
           ]
 
         | MetaModel.Type.StringLiteralType t ->
-          printfn $"StringLiteralType: alias {alias.Name} -> {t.Kind} {t.Value}"
           String()
         | MetaModel.Type.TupleType t ->
 
@@ -822,7 +875,7 @@ module GenerateTests =
           |> Option.defaultValue ab
 
           NestedModule(enumeration.Name) {
-            for v in enumeration.Values do
+            for v in enumeration.ValuesSafe do
               let name = PrettyNaming.NormalizeIdentifierBackticks v.Name
               let l = Value(ConstantPat(Constant(name)), ConstantExpr(String(v.Value))).attribute (Attribute "Literal")
               let l = l.returnType (LongIdent enumeration.Name)
@@ -838,7 +891,7 @@ module GenerateTests =
           let enum =
             Enum enumeration.Name {
               for i, v in
-                enumeration.Values
+                enumeration.ValuesSafe
                 |> Array.mapi (fun i x -> i, x) do
                 let case = EnumCase(v.Name, string i)
 
@@ -862,7 +915,7 @@ module GenerateTests =
       | MetaModel.EnumerationTypeNameValues.Uinteger ->
         let enum =
           Enum enumeration.Name {
-            for v in enumeration.Values do
+            for v in enumeration.ValuesSafe do
               let case = EnumCase(String.toPascalCase v.Name, v.Value)
 
               v.StructuredDocs
@@ -888,15 +941,26 @@ module GenerateTests =
         let parsedMetaModel =
           JsonConvert.DeserializeObject<MetaModel.MetaModel>(metaModel, MetaModel.metaModelSerializerSettings)
 
+        let documentUriDocs = """
+URI’s are transferred as strings. The URI’s format is defined in https://tools.ietf.org/html/rfc3986
+
+See: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#uri
+"""
+
+        let regexpDocs = """
+Regular expressions are transferred as strings.
+
+See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#regExp
+"""
+
         let source =
           Ast.Oak() {
-            Namespace("Ionide.LanguageServerProtocol") {
+            Namespace("Ionide.LanguageServerProtocol.Types") {
 
-              NestedModule("Types") {
                 // Simple aliases for types that are not in dotnet
-                Abbrev("URI", "string")
-                Abbrev("DocumentUri", "string")
-                Abbrev("RegExp", "string")
+                Abbrev("URI", "string").xmlDocs(documentUriDocs |> StructuredDocs.parse)
+                Abbrev("DocumentUri", "string").xmlDocs(documentUriDocs |> StructuredDocs.parse)
+                Abbrev("RegExp", "string").xmlDocs(regexpDocs |> StructuredDocs.parse)
 
                 Class("ErasedUnionAttribute") { Inherit("System.Attribute()") }
 
@@ -916,21 +980,25 @@ module GenerateTests =
                         ]
                       )
 
+                let structures =
+                  parsedMetaModel.StructuresSafe
+
                 let (knownInterfaces, interfaceWidgets) =
-                  createInterfaceStructures parsedMetaModel.Structures parsedMetaModel
+                  createInterfaceStructures structures parsedMetaModel
                   |> Array.unzip
 
 
                 for w in interfaceWidgets do
                   w
 
-                for s in parsedMetaModel.Structures do
+                for s in structures do
                   if isUnitStructure s then
                     Abbrev(s.Name, "unit")
                   else
                     createStructure s knownInterfaces parsedMetaModel
 
-                for t in parsedMetaModel.TypeAliases do
+                for t in parsedMetaModel.TypeAliasesSafe do
+                  // todo TextDocumentFilter NotebookDocumentFilter NotebookDocumentSyncOptions NotebookDocumentSyncRegistrationOptions
                   let alias = Abbrev(t.Name, createTypeAlias t)
 
                   t.StructuredDocs
@@ -938,12 +1006,11 @@ module GenerateTests =
                   |> Option.defaultValue alias
 
 
-                for e in parsedMetaModel.Enumerations do
+                for e in parsedMetaModel.EnumerationsSafe do
                   createEnumeration e
 
 
               }
-            }
             |> fun x -> x.toRecursive ()
           }
 

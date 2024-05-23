@@ -422,7 +422,6 @@ type MultipleTypesBenchmarks() =
                   Configuration = None
                   FileOperations = None
                   Diagnostics = None 
-                  FoldingRange = None
                   
                   }
             NotebookDocument = None
@@ -434,7 +433,6 @@ type MultipleTypesBenchmarks() =
                         WillSave = Some true
                         WillSaveWaitUntil = Some false
                         DidSave = Some true }
-                  InlineCompletion = None
                   PublishDiagnostics =
                     Some
                       { RelatedInformation = None
@@ -463,7 +461,6 @@ type MultipleTypesBenchmarks() =
                   Formatting = Some { DynamicRegistration = Some true }
                   RangeFormatting = Some { 
                       DynamicRegistration = Some true 
-                      RangesSupport = None
                     }
                   OnTypeFormatting = None
                   Definition = Some { DynamicRegistration = Some false; LinkSupport = Some false }
