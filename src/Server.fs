@@ -11,11 +11,6 @@ module private ServerUtil =
 
 open ServerUtil
 
-
-type GotoResult = U2<Location, Location[]>
-
-type TextDocumentCodeActionResult = U2<Command, CodeAction>[]
-
 [<Interface>]
 type ILspServer =
   inherit System.IDisposable
@@ -89,11 +84,11 @@ type ILspServer =
 
   /// The go to declaration request is sent from the client to the server to resolve the declaration location
   /// of a symbol at a given text document position
-  abstract member TextDocumentDeclaration: TextDocumentPositionParams -> AsyncLspResult<GotoResult option>
+  abstract member TextDocumentDeclaration: TextDocumentPositionParams -> AsyncLspResult<Declaration option>
 
   /// The goto definition request is sent from the client to the server to resolve the definition location of
   /// a symbol at a given text document position.
-  abstract member TextDocumentDefinition: TextDocumentPositionParams -> AsyncLspResult<GotoResult option>
+  abstract member TextDocumentDefinition: TextDocumentPositionParams -> AsyncLspResult<Definition option>
 
 
   /// The references request is sent from the client to the server to resolve project-wide references for
@@ -119,12 +114,12 @@ type ILspServer =
 
   /// The goto type definition request is sent from the client to the server to resolve the type definition
   /// location of a symbol at a given text document position.
-  abstract member TextDocumentTypeDefinition: TextDocumentPositionParams -> AsyncLspResult<GotoResult option>
+  abstract member TextDocumentTypeDefinition: TextDocumentPositionParams -> AsyncLspResult<Definition option>
 
 
   /// The goto implementation request is sent from the client to the server to resolve the implementation
   /// location of a symbol at a given text document position.
-  abstract member TextDocumentImplementation: TextDocumentPositionParams -> AsyncLspResult<GotoResult option>
+  abstract member TextDocumentImplementation: TextDocumentPositionParams -> AsyncLspResult<Definition option>
 
 
   /// The code action request is sent from the client to the server to compute commands for a given text
@@ -477,13 +472,13 @@ type LspServer() =
 
   /// The go to declaration request is sent from the client to the server to resolve the declaration location
   /// of a symbol at a given text document position.
-  abstract member TextDocumentDeclaration: TextDocumentPositionParams -> AsyncLspResult<GotoResult option>
+  abstract member TextDocumentDeclaration: TextDocumentPositionParams -> AsyncLspResult<Declaration option>
 
   default __.TextDocumentDeclaration(_) = notImplemented
 
   /// The goto definition request is sent from the client to the server to resolve the definition location of
   /// a symbol at a given text document position.
-  abstract member TextDocumentDefinition: TextDocumentPositionParams -> AsyncLspResult<GotoResult option>
+  abstract member TextDocumentDefinition: TextDocumentPositionParams -> AsyncLspResult<Definition option>
 
   default __.TextDocumentDefinition(_) = notImplemented
 
@@ -513,13 +508,13 @@ type LspServer() =
 
   /// The goto type definition request is sent from the client to the server to resolve the type definition
   /// location of a symbol at a given text document position.
-  abstract member TextDocumentTypeDefinition: TextDocumentPositionParams -> AsyncLspResult<GotoResult option>
+  abstract member TextDocumentTypeDefinition: TextDocumentPositionParams -> AsyncLspResult<Definition option>
 
   default __.TextDocumentTypeDefinition(_) = notImplemented
 
   /// The goto implementation request is sent from the client to the server to resolve the implementation
   /// location of a symbol at a given text document position.
-  abstract member TextDocumentImplementation: TextDocumentPositionParams -> AsyncLspResult<GotoResult option>
+  abstract member TextDocumentImplementation: TextDocumentPositionParams -> AsyncLspResult<Definition option>
 
   default __.TextDocumentImplementation(_) = notImplemented
 

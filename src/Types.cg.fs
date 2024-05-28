@@ -13,34 +13,6 @@ type DocumentUri = string
 /// See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#regExp
 type RegExp = string
 
-type ErasedUnionAttribute() =
-  inherit System.Attribute()
-
-[<ErasedUnion>]
-type U2<'T1, 'T2> =
-  | C1 of 'T1
-  | C2 of 'T2
-
-[<ErasedUnion>]
-type U3<'T1, 'T2, 'T3> =
-  | C1 of 'T1
-  | C2 of 'T2
-  | C3 of 'T3
-
-[<ErasedUnion>]
-type U4<'T1, 'T2, 'T3, 'T4> =
-  | C1 of 'T1
-  | C2 of 'T2
-  | C3 of 'T3
-  | C4 of 'T4
-
-[<ErasedUnion>]
-type U5<'T1, 'T2, 'T3, 'T4, 'T5> =
-  | C1 of 'T1
-  | C2 of 'T2
-  | C3 of 'T3
-  | C4 of 'T4
-  | C5 of 'T5
 
 type IWorkDoneProgressOptions =
   abstract member WorkDoneProgress: bool option

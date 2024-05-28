@@ -1055,23 +1055,23 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
                   |> StructuredDocs.parse
                 )
 
-              Class("ErasedUnionAttribute") { Inherit("System.Attribute()") }
+              // Class("ErasedUnionAttribute") { Inherit("System.Attribute()") }
 
-              for caseSize in [ 2..5 ] do
+              // for caseSize in [ 2..5 ] do
 
-                Union($"U%d{caseSize}") {
-                  for case = 1 to caseSize do
-                    UnionCase($"C{case}", Field $"'T{case}")
-                }
-                |> fun x -> x.attribute (Attribute "ErasedUnion")
-                |> fun x ->
+              //   Union($"U%d{caseSize}") {
+              //     for case = 1 to caseSize do
+              //       UnionCase($"C{case}", Field $"'T{case}")
+              //   }
+              //   |> fun x -> x.attribute (Attribute "ErasedUnion")
+              //   |> fun x ->
 
-                    x.typeParams (
-                      PostfixList [
-                        for typeArg = 1 to caseSize do
-                          $"'T{typeArg}"
-                      ]
-                    )
+              //       x.typeParams (
+              //         PostfixList [
+              //           for typeArg = 1 to caseSize do
+              //             $"'T{typeArg}"
+              //         ]
+              //       )
 
               let structures = parsedMetaModel.StructuresSafe
 
