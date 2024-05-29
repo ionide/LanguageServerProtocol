@@ -1,5 +1,8 @@
 namespace rec Ionide.LanguageServerProtocol.Types
 
+open System
+open System.Diagnostics
+open Newtonsoft.Json
 /// URI’s are transferred as strings. The URI’s format is defined in https://tools.ietf.org/html/rfc3986
 ///
 /// See: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#uri
@@ -3409,6 +3412,7 @@ type LocationLink =
 ///     end : { line 6, character : 0 }
 /// }
 /// ```
+[<DebuggerDisplay("{DebuggerDisplay}")>]
 type Range =
     {
         /// The range's start position.
@@ -3416,6 +3420,9 @@ type Range =
         /// The range's end position.
         End: Position
     }
+
+    [<DebuggerBrowsable(DebuggerBrowsableState.Never); JsonIgnore>]
+    member x.DebuggerDisplay = $"{x.Start.DebuggerDisplay}-{x.End.DebuggerDisplay}"
 
 type ImplementationOptions =
     { WorkDoneProgress: bool option }
@@ -3534,6 +3541,7 @@ type DeclarationOptions =
 /// that denotes `\r|\n` or `\n|` where `|` represents the character offset.
 ///
 /// @since 3.17.0 - support for negotiated position encoding.
+[<DebuggerDisplay("{DebuggerDisplay}")>]
 type Position =
     {
         /// Line position in a document (zero-based).
@@ -3550,6 +3558,9 @@ type Position =
         /// line length.
         Character: uint32
     }
+
+    [<DebuggerBrowsable(DebuggerBrowsableState.Never); JsonIgnore>]
+    member x.DebuggerDisplay = $"({x.Line},{x.Character})"
 
 type SelectionRangeOptions =
     { WorkDoneProgress: bool option }
@@ -4480,6 +4491,7 @@ type FileSystemWatcher =
 
 /// Represents a diagnostic, such as a compiler error or warning. Diagnostic objects
 /// are only valid in the scope of a resource.
+[<DebuggerDisplay("{DebuggerDisplay}")>]
 type Diagnostic =
     {
         /// The range at which the message applies
@@ -4513,6 +4525,10 @@ type Diagnostic =
         /// @since 3.16.0
         Data: LSPAny option
     }
+
+    [<DebuggerBrowsable(DebuggerBrowsableState.Never); JsonIgnore>]
+    member x.DebuggerDisplay =
+        $"[{defaultArg x.Severity DiagnosticSeverity.Error}] ({x.Range.DebuggerDisplay}) {x.Message} ({Option.map string x.Code |> Option.defaultValue String.Empty})"
 
 /// Contains additional information about the context in which a completion request is triggered.
 type CompletionContext =

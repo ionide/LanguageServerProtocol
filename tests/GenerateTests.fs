@@ -484,6 +484,51 @@ module GenerateTests =
     | Some x -> sprintf "%s %s" s x
     | None -> s
 
+  let range_debuggerDisplay (r : WidgetBuilder<TypeDefnRecordNode>) =
+    r
+      .attribute(
+        Attribute("DebuggerDisplay(\"{DebuggerDisplay}\")")
+      )
+      .members () {
+        Property("x.DebuggerDisplay", "$\"{x.Start.DebuggerDisplay}-{x.End.DebuggerDisplay}\"")
+          .attributes([
+            Attribute("DebuggerBrowsable(DebuggerBrowsableState.Never)")
+            Attribute("JsonIgnore")
+          ])
+      }
+
+  let position_debuggerDisplay (r : WidgetBuilder<TypeDefnRecordNode>) =
+    r
+      .attribute(
+        Attribute("DebuggerDisplay(\"{DebuggerDisplay}\")")
+      )
+      .members () {
+        Property("x.DebuggerDisplay", "$\"({x.Line},{x.Character})\"")
+          .attributes ([
+            Attribute("DebuggerBrowsable(DebuggerBrowsableState.Never)")
+            Attribute("JsonIgnore")
+          ])
+      }
+    
+  let diagnostic_debuggerDisplay (r : WidgetBuilder<TypeDefnRecordNode>) =
+    r
+      .attribute(
+        Attribute("DebuggerDisplay(\"{DebuggerDisplay}\")")
+      )
+      .members () {
+        Property("x.DebuggerDisplay", "$\"[{defaultArg x.Severity DiagnosticSeverity.Error}] ({x.Range.DebuggerDisplay}) {x.Message} ({Option.map string x.Code |> Option.defaultValue String.Empty})\"")
+          .attributes ([
+            Attribute("DebuggerBrowsable(DebuggerBrowsableState.Never)")
+            Attribute("JsonIgnore")
+          ])
+      }
+
+  let debuggerDisplays =
+    Map [
+      "Range", range_debuggerDisplay
+      "Position", position_debuggerDisplay
+      "Diagnostic", diagnostic_debuggerDisplay
+    ]
 
   let handleSameShapeStructuredUnions path createField (ts: MetaModel.Type array) =
     if
@@ -979,6 +1024,12 @@ module GenerateTests =
             structure.StructuredDocs
             |> Option.map (fun docs -> r.xmlDocs docs)
             |> Option.defaultValue r
+          
+          let r = 
+            debuggerDisplays 
+            |> Map.tryFind structure.Name 
+            |> Option.map(fun f -> f r)
+            |> Option.defaultValue r
 
           match implementInterface structure with
           | [||] -> r
@@ -1262,7 +1313,9 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
         let source =
           Ast.Oak() {
             Namespace("Ionide.LanguageServerProtocol.Types") {
-
+              Open("System")
+              Open("System.Diagnostics")
+              Open("Newtonsoft.Json")
               // Simple aliases for types that are not in dotnet
               Abbrev("URI", "string")
                 .xmlDocs (
@@ -1347,4 +1400,4 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
 
 
   [<Tests>]
-  let tests = ftestList "Generate" [ generateTests ]
+  let tests = ptestList "Generate" [ generateTests ]

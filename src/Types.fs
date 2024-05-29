@@ -23,12 +23,21 @@ type ErasedUnionAttribute() =
 type U2<'T1, 'T2> =
     | C1 of 'T1
     | C2 of 'T2
+    override x.ToString() =
+      match x with
+      | C1 c -> string c
+      | C2 c -> string c
 
 [<ErasedUnion>]
 type U3<'T1, 'T2, 'T3> =
     | C1 of 'T1
     | C2 of 'T2
     | C3 of 'T3
+    override x.ToString() =
+      match x with
+      | C1 c -> string c
+      | C2 c -> string c
+      | C3 c -> string c
 
 [<ErasedUnion>]
 type U4<'T1, 'T2, 'T3, 'T4> =
@@ -36,6 +45,12 @@ type U4<'T1, 'T2, 'T3, 'T4> =
     | C2 of 'T2
     | C3 of 'T3
     | C4 of 'T4
+    override x.ToString() =
+      match x with
+      | C1 c -> string c
+      | C2 c -> string c
+      | C3 c -> string 3
+      | C4 c -> string 3
 
 
 type LspResult<'t> = Result<'t, JsonRpc.Error>
