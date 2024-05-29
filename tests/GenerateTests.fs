@@ -510,7 +510,7 @@ module GenerateTests =
           props.Length = first.Length
         )
       then
-        let fields: (string * WidgetBuilder<_> * _ list) list =
+        let fields: (string * WidgetBuilder<_> * _ * _ list) list =
           allProperties
           |> Array.map (fun (name, props) ->
             let prop =
@@ -519,18 +519,23 @@ module GenerateTests =
               |> Option.defaultValue (props.[0])
 
             let (name, ty, _, _, others) = createField (path @ [prop.NameAsPascalCase]) prop.Type prop 
-            name, ty, others
+            name, ty, prop.StructuredDocs, others
           )
           |> Array.toList
-        let others = fields |> Seq.collect(fun (a,b,c) -> c) |> Seq.toList
+        let others = fields |> Seq.collect(fun (a,b,_,d) -> d) |> Seq.toList
 
-        let fields = fields |> List.map(fun (n,f,_) -> n,f)
+        let fields = fields |> List.map(fun (n,f, docs,_) -> n,f, docs)
 
         let (fieldTy, record) =
           let name = String.concat "" path
           LongIdent name,
             Record (name) {
-              for (n,f) in fields do Field(n,f)
+              for (n,f, docs) in fields do 
+                let f = Field(n,f)
+
+                docs
+                |> Option.map (f.xmlDocs)
+                |> Option.defaultValue f
             }
 
         Some(fieldTy, record::others)
@@ -616,14 +621,18 @@ module GenerateTests =
               l.Value.PropertiesSafe
               |> Array.map (fun  p ->
                 let (name, typ, _, _, others) = createField (path @ [p.NameAsPascalCase]) p.Type p
-                name, typ, others
+                name, typ, p.StructuredDocs, others
               )
               |> Array.toList
             let fieldTy, record =
               let fields =
                 ts
-                |> List.map(fun (n,f,_) ->
-                  Field(n,f)
+                |> List.map(fun (n,f, docs,_) ->
+                  let f = Field(n,f)
+
+                  docs
+                  |> Option.map (f.xmlDocs)
+                  |> Option.defaultValue f
                 )
               let name = String.concat "" path 
               LongIdent name, 
@@ -633,7 +642,7 @@ module GenerateTests =
 
             let others =
               ts
-              |> List.collect(fun (a,b,c) -> c)
+              |> List.collect(fun (a,b,_,c) -> c)
 
             fieldTy, None, record :: others
 
@@ -952,12 +961,19 @@ module GenerateTests =
               l.Value.PropertiesSafe
               |> Array.map (fun p ->
                 let (name, typ: WidgetBuilder<Type>, _, _, others) = createField [alias.Name] p.Type p 
-                name, typ
+                name, typ, p.StructuredDocs
               )
               |> Array.toList
             let name = path |> String.concat ""
             LongIdent(name)
-            , [Record (name) { for (n, t) in ts do Field(n, t) }]
+            , [Record (name) { 
+                for (n, t, docs) in ts do 
+                  let f = Field(n, t) 
+
+                  docs
+                  |> Option.map (f.xmlDocs)
+                  |> Option.defaultValue f
+                }]
 
         | MetaModel.Type.MapType m ->
           let key =
