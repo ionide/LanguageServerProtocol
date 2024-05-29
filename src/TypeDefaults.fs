@@ -47,7 +47,7 @@ module Extensions =
       CompletionItemKind.Reference
     |]
 
-  type TextDocumentSyncOptions =
+  type TextDocumentSyncOptions with
     static member Default = {
       OpenClose = None
       Change = None
@@ -56,13 +56,13 @@ module Extensions =
       Save = None
     }
 
-  type WorkspaceFoldersServerCapabilities =
+  type WorkspaceFoldersServerCapabilities with
     static member Default = { Supported = None; ChangeNotifications = None }
 
-  type FileOperationPatternOptions =
+  type FileOperationPatternOptions with
     static member Default = { IgnoreCase = None }
 
-  type FileOperationOptions =
+  type FileOperationOptions with
     static member Default = {
       DidCreate = None
       WillCreate = None
@@ -77,7 +77,7 @@ module Extensions =
     static member Default = {| WorkspaceFolders = None; FileOperations = None |}
 
 
-  type ServerCapabilities =
+  type ServerCapabilities with
     static member Default = {
       TextDocumentSync = None
       HoverProvider = None
@@ -117,10 +117,10 @@ module Extensions =
     }
 
 
-  type InitializeResult =
+  type InitializeResult with
     static member Default = { Capabilities = ServerCapabilities.Default; ServerInfo = None }
 
-  type CompletionItem =
+  type CompletionItem with
     static member Create(label: string) = {
       Label = label
       LabelDetails = None
@@ -154,10 +154,10 @@ module Extensions =
       | Report -> "report"
       | End -> "end"
 
-  type WorkDoneProgressEnd =
+  type WorkDoneProgressEnd with
     static member Create(?message) = { Kind = WorkDoneProgressKind.End.ToString(); Message = message }
 
-  type WorkDoneProgressBegin =
+  type WorkDoneProgressBegin with
     static member Create(title, ?cancellable, ?message, ?percentage) = {
       Kind = WorkDoneProgressKind.Begin.ToString()
       Title = title
@@ -166,7 +166,7 @@ module Extensions =
       Percentage = percentage
     }
 
-  type WorkDoneProgressReport =
+  type WorkDoneProgressReport with
     static member Create(?cancellable, ?message, ?percentage) = {
       Kind = WorkDoneProgressKind.Report.ToString()
       Cancellable = cancellable
@@ -175,7 +175,7 @@ module Extensions =
     }
 
 
-  type WorkspaceEdit =
+  type WorkspaceEdit with
     static member DocumentChangesToChanges(edits: TextDocumentEdit[]) =
       edits
       |> Array.map (fun edit ->
