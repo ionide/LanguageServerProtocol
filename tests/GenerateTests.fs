@@ -484,7 +484,7 @@ module GenerateTests =
     | Some x -> sprintf "%s %s" s x
     | None -> s
 
-    
+
   let handleSameShapeStructuredUnions path createField (ts: MetaModel.Type array) =
     if
       ts
@@ -518,32 +518,48 @@ module GenerateTests =
               |> Array.tryFind (fun x -> x.IsOptional) // Prefer optional properties
               |> Option.defaultValue (props.[0])
 
-            let (name, ty, _, _, others) = createField (path @ [prop.NameAsPascalCase]) prop.Type prop 
+            let (name, ty, _, _, others) =
+              createField
+                (path
+                 @ [ prop.NameAsPascalCase ])
+                prop.Type
+                prop
+
             name, ty, prop.StructuredDocs, others
           )
           |> Array.toList
-        let others = fields |> Seq.collect(fun (a,b,_,d) -> d) |> Seq.toList
 
-        let fields = fields |> List.map(fun (n,f, docs,_) -> n,f, docs)
+        let others =
+          fields
+          |> Seq.collect (fun (a, b, _, d) -> d)
+          |> Seq.toList
+
+        let fields =
+          fields
+          |> List.map (fun (n, f, docs, _) -> n, f, docs)
 
         let (fieldTy, record) =
           let name = String.concat "" path
+
           LongIdent name,
-            Record (name) {
-              for (n,f, docs) in fields do 
-                let f = Field(n,f)
+          Record(name) {
+            for (n, f, docs) in fields do
+              let f = Field(n, f)
 
-                docs
-                |> Option.map (f.xmlDocs)
-                |> Option.defaultValue f
-            }
+              docs
+              |> Option.map (f.xmlDocs)
+              |> Option.defaultValue f
+          }
 
-        Some(fieldTy, record::others)
+        Some(
+          fieldTy,
+          record
+          :: others
+        )
       else
         None
     else
       None
-
 
 
   let rec createField
@@ -552,7 +568,10 @@ module GenerateTests =
     (currentProperty: MetaModel.Property)
     : string * WidgetBuilder<Type> * string list option * WidgetBuilder<AttributeNode> option * _ list =
     try
-      let rec getType path (currentType: MetaModel.Type) : WidgetBuilder<Type> * WidgetBuilder<AttributeNode> option * _ list =
+      let rec getType
+        path
+        (currentType: MetaModel.Type)
+        : WidgetBuilder<Type> * WidgetBuilder<AttributeNode> option * _ list =
         match currentType with
         | MetaModel.Type.ReferenceType r ->
           let name = r.Name
@@ -563,53 +582,56 @@ module GenerateTests =
           LongIdent name, None, []
 
         | MetaModel.Type.OrType o ->
-          
-          match handleSameShapeStructuredUnions  path (createField) o.Items with
-          | Some (x: WidgetBuilder<Type>, others) -> x, None, others
+
+          match handleSameShapeStructuredUnions path (createField) o.Items with
+          | Some(x: WidgetBuilder<Type>, others) -> x, None, others
           | None ->
 
-          // TS types can have optional properties (myKey?: string)
-          // and unions with null (string | null)
-          // we need to handle both cases
-          let isOptional, items =
-            if Array.exists isNullableType o.Items then
-              true,
-              o.Items
-              |> Array.filter (fun x -> not (isNullableType x))
+            // TS types can have optional properties (myKey?: string)
+            // and unions with null (string | null)
+            // we need to handle both cases
+            let isOptional, items =
+              if Array.exists isNullableType o.Items then
+                true,
+                o.Items
+                |> Array.filter (fun x -> not (isNullableType x))
+              else
+                false, o.Items
+
+            let ts =
+              items
+              |> Array.mapi (fun i ->
+                getType (
+                  path
+                  @ [ $"C{i + 1}" ]
+                )
+              )
+
+            let others =
+              ts
+              |> Seq.collect (fun (a, b, c) -> c)
+              |> Seq.toList
+
+            let ts =
+              ts
+              |> Array.map (fun (a, b, c) -> a)
+            // if this is already marked as Optional in the schema, ignore the union case
+            // as we'll wrap it in an option type near the end
+            if
+              isOptional
+              && not currentProperty.IsOptional
+            then
+              createOption (createErasedUnion ts),
+              Some(
+                Attribute "Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)"
+              ),
+              others
             else
-              false, o.Items
-
-          let ts =
-            items
-            |> Array.mapi ( fun i ->
-              getType (path @ [$"C{i+1}"])
-            )
-          
-          let others = ts |> Seq.collect(fun (a,b,c) -> c) |> Seq.toList
-
-          let ts = ts |> Array.map(fun (a,b,c) -> a)
-          // if this is already marked as Optional in the schema, ignore the union case
-          // as we'll wrap it in an option type near the end
-          if
-            isOptional
-            && not currentProperty.IsOptional
-          then
-            createOption (createErasedUnion ts),
-            Some(
-              Attribute "Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)"
-            ), others
-          else
-            createErasedUnion ts, None, others
+              createErasedUnion ts, None, others
 
         | MetaModel.Type.ArrayType a ->
-          let (t, _, others) =
-            getType path a.Element
-          Array(
-            t,
-            1
-          ),
-          None,
-          others
+          let (t, _, others) = getType path a.Element
+          Array(t, 1), None, others
         | MetaModel.Type.StructureLiteralType l ->
           if
             l.Value.PropertiesSafe
@@ -619,32 +641,52 @@ module GenerateTests =
           else
             let ts =
               l.Value.PropertiesSafe
-              |> Array.map (fun  p ->
-                let (name, typ, _, _, others) = createField (path @ [p.NameAsPascalCase]) p.Type p
+              |> Array.map (fun p ->
+                let (name, typ, _, _, others) =
+                  createField
+                    (path
+                     @ [ p.NameAsPascalCase ])
+                    p.Type
+                    p
+
                 name, typ, p.StructuredDocs, others
               )
               |> Array.toList
+
             let fieldTy, record =
               let fields =
                 ts
-                |> List.map(fun (n,f, docs,_) ->
-                  let f = Field(n,f)
+                |> List.map (fun (n, f, docs, _) ->
+                  let f = Field(n, f)
 
                   docs
                   |> Option.map (f.xmlDocs)
                   |> Option.defaultValue f
                 )
-              let name = String.concat "" path 
-              LongIdent name, 
-              Record (String.concat "" path) {
-                for f in fields do f
-              }
+
+              let name = String.concat "" path
+
+              let r =
+                Record(String.concat "" path) {
+                  for f in fields do
+                    f
+                }
+
+              let r =
+                l.Value.StructuredDocs
+                |> Option.map r.xmlDocs
+                |> Option.defaultValue r
+
+              LongIdent name, r
 
             let others =
               ts
-              |> List.collect(fun (a,b,_,c) -> c)
+              |> List.collect (fun (a, b, _, c) -> c)
 
-            fieldTy, None, record :: others
+            fieldTy,
+            None,
+            record
+            :: others
 
         | MetaModel.Type.MapType m ->
           let key =
@@ -654,8 +696,7 @@ module GenerateTests =
               |> LongIdent
             | MetaModel.MapKeyType.ReferenceType r -> LongIdent(r.Name)
 
-          let (value, _, others) =
-            getType path m.Value
+          let (value, _, others) = getType path m.Value
 
           createDictionary [
             key
@@ -667,18 +708,25 @@ module GenerateTests =
         | MetaModel.Type.StringLiteralType t ->
           LongIdent("string"), Some(Attribute($"UnionKindAttribute(\"{t.Value}\")")), []
         | MetaModel.Type.TupleType t ->
-          
+
           let ts =
             t.Items
-            |> Array.mapi (fun i -> 
-              getType (path @ [$"T{i+1}"])
+            |> Array.mapi (fun i ->
+              getType (
+                path
+                @ [ $"T{i + 1}" ]
+              )
             )
             |> Array.toList
+
           let tuple =
             ts
-            |> List.map(fun (a,b,c) -> a)
+            |> List.map (fun (a, b, c) -> a)
             |> Tuple
-          let others = ts |> List.collect(fun (a,b,c) -> c)
+
+          let others =
+            ts
+            |> List.collect (fun (a, b, c) -> c)
 
           tuple, None, others
 
@@ -755,7 +803,15 @@ module GenerateTests =
           let properties = s.PropertiesSafe
 
           for p in properties do
-            let name, t, docs, _, others= createField [s.Name; p.NameAsPascalCase] p.Type p
+            let name, t, docs, _, others =
+              createField
+                [
+                  s.Name
+                  p.NameAsPascalCase
+                ]
+                p.Type
+                p
+
             let ap = AbstractProperty(name, t)
 
             yield
@@ -811,13 +867,29 @@ module GenerateTests =
           with
           | Some s ->
             for p in s.PropertiesSafe do
-              let (name, ty, docs, attr, others) = createField [s.Name; p.NameAsPascalCase] p.Type p 
+              let (name, ty, docs, attr, others) =
+                createField
+                  [
+                    s.Name
+                    p.NameAsPascalCase
+                  ]
+                  p.Type
+                  p
+
               (name, ty, docs, attr, 1, others)
           | None -> failwithf "Could not find structure %s" r.Name
         | _ -> failwithf "todo Mixins %A" m
 
       for p in structure.PropertiesSafe do
-        let (name, ty, docs, attr, others) = createField [structure.Name; p.NameAsPascalCase] p.Type p 
+        let (name, ty, docs, attr, others) =
+          createField
+            [
+              structure.Name
+              p.NameAsPascalCase
+            ]
+            p.Type
+            p
+
         (name, ty, docs, attr, 100, others)
     ]
 
@@ -868,57 +940,58 @@ module GenerateTests =
 
 
     try
-      let recordFields = 
-        expandFields structure
+      let recordFields = expandFields structure
+
       let others =
-        recordFields 
-        |> List.collect(fun (_,_,_,_,_,o) -> o)
+        recordFields
+        |> List.collect (fun (_, _, _, _, _, o) -> o)
+
       [
         yield! others
         Record(structure.Name) {
-        yield!
-          recordFields
-          |> List.groupBy (fun (name, _, _, _, _, _) -> name)
-          |> List.map (fun (name, group) ->
-            let (name, t, docs, attr, _, _) =
-              group
-              |> List.maxBy (fun (_, _, _, _, order, _) -> order)
+          yield!
+            recordFields
+            |> List.groupBy (fun (name, _, _, _, _, _) -> name)
+            |> List.map (fun (name, group) ->
+              let (name, t, docs, attr, _, _) =
+                group
+                |> List.maxBy (fun (_, _, _, _, order, _) -> order)
 
-            let f = Field(name, t)
+              let f = Field(name, t)
 
-            let f =
-              docs
-              |> Option.map (f.xmlDocs)
-              |> Option.defaultValue f
+              let f =
+                docs
+                |> Option.map (f.xmlDocs)
+                |> Option.defaultValue f
 
-            let f =
-              attr
-              |> Option.map (f.attribute)
-              |> Option.defaultValue f
+              let f =
+                attr
+                |> Option.map (f.attribute)
+                |> Option.defaultValue f
 
-            f
+              f
 
-          )
-      }
-      |> fun r ->
-        let r =
-          structure.StructuredDocs
-          |> Option.map (fun docs -> r.xmlDocs docs)
-          |> Option.defaultValue r
+            )
+        }
+        |> fun r ->
 
-        match implementInterface structure with
-        | [||] -> r
-        | interfaces ->
-          r.members () {
-            for i in interfaces do
-              i
-          }
+          let r =
+            structure.StructuredDocs
+            |> Option.map (fun docs -> r.xmlDocs docs)
+            |> Option.defaultValue r
+
+          match implementInterface structure with
+          | [||] -> r
+          | interfaces ->
+            r.members () {
+              for i in interfaces do
+                i
+            }
       ]
 
     with e ->
       raise
       <| Exception(sprintf "createStructure on %A" structure, e)
-
 
 
   let createTypeAlias (alias: MetaModel.TypeAlias) =
@@ -928,26 +1001,35 @@ module GenerateTests =
       else
         match t with
         | MetaModel.Type.ReferenceType r -> LongIdent r.Name, []
-        | MetaModel.Type.BaseType b -> LongIdent(b.Name.ToDotNetType()) , []
+        | MetaModel.Type.BaseType b -> LongIdent(b.Name.ToDotNetType()), []
         | MetaModel.Type.OrType o ->
           match handleSameShapeStructuredUnions path (createField) o.Items with
-          | Some (x, others) -> x, others
+          | Some(x, others) -> x, others
           | None ->
 
             let types =
               o.Items
-              |> Array.mapi(fun i item ->
-                getType (path @ [$"C{i+1}"]) item
-              ) 
+              |> Array.mapi (fun i item ->
+                getType
+                  (path
+                   @ [ $"C{i + 1}" ])
+                  item
+              )
+
             let types2 =
-              types |> Array.map fst
-            
-            let others = types |> Seq.collect snd
+              types
+              |> Array.map fst
+
+            let others =
+              types
+              |> Seq.collect snd
+
             let x =
               types2
               |> createErasedUnion
+
             x, Seq.toList others
-        | MetaModel.Type.ArrayType a -> 
+        | MetaModel.Type.ArrayType a ->
           let (types, others) = getType path a.Element
           Array(types, 1), others
         | MetaModel.Type.StructureLiteralType l when Proposed.checkProposed l.Value ->
@@ -960,20 +1042,31 @@ module GenerateTests =
             let ts =
               l.Value.PropertiesSafe
               |> Array.map (fun p ->
-                let (name, typ: WidgetBuilder<Type>, _, _, others) = createField [alias.Name] p.Type p 
+                let (name, typ: WidgetBuilder<Type>, _, _, others) = createField [ alias.Name ] p.Type p
                 name, typ, p.StructuredDocs
               )
               |> Array.toList
-            let name = path |> String.concat ""
-            LongIdent(name)
-            , [Record (name) { 
-                for (n, t, docs) in ts do 
-                  let f = Field(n, t) 
 
-                  docs
-                  |> Option.map (f.xmlDocs)
-                  |> Option.defaultValue f
-                }]
+            let name =
+              path
+              |> String.concat ""
+
+            LongIdent(name),
+            [
+              let r =
+                Record(name) {
+                  for (n, t, docs) in ts do
+                    let f = Field(n, t)
+
+                    docs
+                    |> Option.map (f.xmlDocs)
+                    |> Option.defaultValue f
+                }
+
+              l.Value.StructuredDocs
+              |> Option.map (fun d -> r.xmlDocs (d))
+              |> Option.defaultValue r
+            ]
 
         | MetaModel.Type.MapType m ->
           let key =
@@ -990,45 +1083,63 @@ module GenerateTests =
           createDictionary [
             key
             value
-          ], others
+          ],
+          others
 
-        | MetaModel.Type.StringLiteralType t -> String() , []
+        | MetaModel.Type.StringLiteralType t -> String(), []
         | MetaModel.Type.TupleType t ->
-          let types = 
+          let types =
 
             t.Items
-            |> Array.mapi(fun i item ->
-              getType (path @ ["$T{i+1}"]) item
-            ) 
-          let others = 
+            |> Array.mapi (fun i item ->
+              getType
+                (path
+                 @ [ "$T{i+1}" ])
+                item
+            )
+
+          let others =
             types
             |> Seq.collect snd
             |> Seq.toList
+
           let tuple =
             types
             |> Array.map fst
             |> Array.toList
             |> Tuple
+
           tuple, others
 
         | _ -> failwithf "todo Property %A" t
 
-    let (types: WidgetBuilder<Type>, others) = getType [alias.Name] alias.Type
+    let (types: WidgetBuilder<Type>, others) = getType [ alias.Name ] alias.Type
 
-    let getIdent (x : IdentifierOrDot list) =
+    let getIdent (x: IdentifierOrDot list) =
       x
-      |> List.map(function IdentifierOrDot.Ident i -> i.Text | _ -> "")
+      |> List.map (
+        function
+        | IdentifierOrDot.Ident i -> i.Text
+        | _ -> ""
+      )
       |> String.concat ""
 
     let abbrev =
-      match Gen.mkOak types, others |> Seq.tryHead |> Option.map(Gen.mkOak) with
-      | Type.LongIdent i, Some r when  (getIdent i.Content) = getIdent ((r :> ITypeDefn).TypeName.Identifier.Content)  ->
+      match
+        Gen.mkOak types,
+        others
+        |> Seq.tryHead
+        |> Option.map (Gen.mkOak)
+      with
+      | Type.LongIdent i, Some r when (getIdent i.Content) = getIdent ((r :> ITypeDefn).TypeName.Identifier.Content) ->
         AnonymousModule() {
           let r =
             Record(alias.Name) {
-              for f in r.Fields do  f
-                
+              for f in r.Fields do
+                f
+
             }
+
           alias.StructuredDocs
           |> Option.map (fun docs -> r.xmlDocs docs)
           |> Option.defaultValue r
@@ -1041,15 +1152,17 @@ module GenerateTests =
             alias.StructuredDocs
             |> Option.map (fun docs -> abbrev.xmlDocs docs)
             |> Option.defaultValue abbrev
+
           abbrev
-          
-          for o in others do o
+
+          for o in others do
+            o
         }
 
     AnonymousModule() {
-      
-        abbrev
-      
+
+      abbrev
+
     }
 
   let createEnumeration (enumeration: MetaModel.Enumeration) =
@@ -1179,29 +1292,38 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
 
               for w in interfaceWidgets do
                 w
-              
+
               let records = ResizeArray<_>()
+
               for s in structures do
                 if isUnitStructure s then
                   Abbrev(s.Name, "unit")
                 else
-                    createStructure s knownInterfaces parsedMetaModel
-                    |> List.map(fun r ->
-                      let x  = Gen.mkOak r
-                      let y :ITypeDefn = x
-                      let name =
-                        match y.TypeName.Identifier.Content |> List.head with
-                        | IdentifierOrDot.Ident x -> x.Text
-                        | _ -> ""
-                      name, r
-                    )
-                    |> records.AddRange
-              
-              for r in records |> Seq.distinctBy fst |> Seq.map snd do r
+                  createStructure s knownInterfaces parsedMetaModel
+                  |> List.map (fun r ->
+                    let x = Gen.mkOak r
+                    let y: ITypeDefn = x
+
+                    let name =
+                      match
+                        y.TypeName.Identifier.Content
+                        |> List.head
+                      with
+                      | IdentifierOrDot.Ident x -> x.Text
+                      | _ -> ""
+
+                    name, r
+                  )
+                  |> records.AddRange
+
+              for r in
+                records
+                |> Seq.distinctBy fst
+                |> Seq.map snd do
+                r
 
               for t in parsedMetaModel.TypeAliasesSafe do
                 createTypeAlias t
-                  
 
 
               for e in parsedMetaModel.EnumerationsSafe do
