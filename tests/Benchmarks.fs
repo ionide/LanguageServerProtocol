@@ -382,7 +382,7 @@ module Example =
 type MultipleTypesBenchmarks() =
   let initializeParams: InitializeParams =
     { ProcessId = Some 42
-      ClientInfo = Some {| Name = "foo"; Version = None |}
+      ClientInfo = Some { Name = "foo"; Version = None }
       Locale = None
       RootPath = Some "/"
       RootUri = Some "file://..."
@@ -404,13 +404,13 @@ type MultipleTypesBenchmarks() =
                                ResourceOperationKind.Delete |]
                         FailureHandling = Some FailureHandlingKind.Abort
                         NormalizesLineEndings = None
-                        ChangeAnnotationSupport = Some {| GroupsOnLabel = Some false |} }
+                        ChangeAnnotationSupport = Some { GroupsOnLabel = Some false } }
                   DidChangeConfiguration = None
                   DidChangeWatchedFiles = None
                   Symbol =
                     Some
                       { DynamicRegistration = Some false
-                        SymbolKind = Some {| ValueSet = Some SymbolKindCapabilities.DefaultValueSet |}
+                        SymbolKind = Some { ValueSet = Some SymbolKindCapabilities.DefaultValueSet }
                         TagSupport = None
                         ResolveSupport = None }
                   SemanticTokens = Some { RefreshSupport = Some true }
@@ -450,9 +450,9 @@ type MultipleTypesBenchmarks() =
                       { DynamicRegistration = Some true
                         SignatureInformation =
                           Some
-                            {| DocumentationFormat = None
+                            {  DocumentationFormat = None
                                ParameterInformation = None
-                               ActiveParameterSupport = None |}
+                               ActiveParameterSupport = None }
                         ContextSupport = None }
                   Declaration = Some { DynamicRegistration = Some false; LinkSupport = Some false }
                   References = Some { DynamicRegistration = Some false }
@@ -471,12 +471,12 @@ type MultipleTypesBenchmarks() =
                       { DynamicRegistration = Some true
                         CodeActionLiteralSupport =
                           Some
-                            {| CodeActionKind =
-                                {| ValueSet = [| "foo"; "bar"; "baz"; "alpha"; "beta"; "gamma"; "delta"; "x"; "y"; "z" |] |} |}
+                            {  CodeActionKind =
+                                { ValueSet = [| "foo"; "bar"; "baz"; "alpha"; "beta"; "gamma"; "delta"; "x"; "y"; "z" |] } }
                         IsPreferredSupport = Some true
                         DisabledSupport = Some false
                         DataSupport = None
-                        ResolveSupport = Some {| Properties = [| "foo"; "bar"; "baz" |] |}
+                        ResolveSupport = Some { Properties = [| "foo"; "bar"; "baz" |] }
                         HonorsChangeAnnotations = Some false }
                   CodeLens = Some { DynamicRegistration = Some true }
                   DocumentLink = Some { DynamicRegistration = Some true; TooltipSupport = None }
@@ -495,7 +495,7 @@ type MultipleTypesBenchmarks() =
                   SemanticTokens =
                     Some
                       { DynamicRegistration = Some false
-                        Requests = {| Range = Some (U2.C1 true); Full = Some(U2.C2 {| Delta = Some true |}) |}
+                        Requests = { Range = Some (U2.C1 true); Full = Some(U2.C2 { Delta = Some true }) }
                         TokenTypes =
                           "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Proin tortor purus platea sit eu id nisi litora libero. Neque vulputate consequat ac amet augue blandit maximus aliquet congue. Pharetra vestibulum posuere ornare faucibus fusce dictumst orci aenean eu facilisis ut volutpat commodo senectus purus himenaeos fames primis convallis nisi."
                           |> fun s -> s.Split(' ')
@@ -513,7 +513,7 @@ type MultipleTypesBenchmarks() =
                   InlayHint =
                     Some
                       { DynamicRegistration = Some true
-                        ResolveSupport = Some {| Properties = [| "Tooltip"; "Position"; "TextEdits" |] |} }
+                        ResolveSupport = Some { Properties = [| "Tooltip"; "Position"; "TextEdits" |] } }
                   Diagnostic = Some { DynamicRegistration = None; RelatedDocumentSupport = None } }
             General = None
             Experimental = None

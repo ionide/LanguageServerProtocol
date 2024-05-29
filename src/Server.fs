@@ -468,7 +468,7 @@ type LspServer() =
   /// If None is returned then it is deemed that a ‘textDocument/rename’ request is not valid at the given position.
   abstract member TextDocumentPrepareRename: PrepareRenameParams -> AsyncLspResult<PrepareRenameResult option>
 
-  default __.TextDocumentPrepareRename(_) = AsyncLspResult.success (Some(U3.C3 {| DefaultBehavior = true |}))
+  default __.TextDocumentPrepareRename(_) = AsyncLspResult.success (Some(U3.C3 { DefaultBehavior = true }))
 
   /// The go to declaration request is sent from the client to the server to resolve the declaration location
   /// of a symbol at a given text document position.
