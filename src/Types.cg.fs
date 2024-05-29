@@ -3,6 +3,7 @@ namespace rec Ionide.LanguageServerProtocol.Types
 open System
 open System.Diagnostics
 open Newtonsoft.Json
+open Newtonsoft.Json.Linq
 /// URI’s are transferred as strings. The URI’s format is defined in https://tools.ietf.org/html/rfc3986
 ///
 /// See: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#uri
@@ -67,7 +68,7 @@ type ISemanticTokensOptions =
     abstract member Legend: SemanticTokensLegend
     /// Server supports providing semantic tokens for a specific range
     /// of a document.
-    abstract member Range: U2<bool, Newtonsoft.Json.Linq.JToken> option
+    abstract member Range: U2<bool, JToken> option
     /// Server supports providing semantic tokens for a full document.
     abstract member Full: U2<bool, SemanticTokensOptionsFullC2> option
     inherit IWorkDoneProgressOptions
@@ -421,7 +422,7 @@ type ImplementationRegistrationOptions =
     {
         /// A document selector to identify the scope of the registration. If set to null
         /// the document selector provided on the client side will be used.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         DocumentSelector: DocumentSelector option
         WorkDoneProgress: bool option
         /// The id used to register the request. The id can be used to deregister
@@ -466,7 +467,7 @@ type TypeDefinitionRegistrationOptions =
     {
         /// A document selector to identify the scope of the registration. If set to null
         /// the document selector provided on the client side will be used.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         DocumentSelector: DocumentSelector option
         WorkDoneProgress: bool option
         /// The id used to register the request. The id can be used to deregister
@@ -533,7 +534,7 @@ type DocumentColorRegistrationOptions =
     {
         /// A document selector to identify the scope of the registration. If set to null
         /// the document selector provided on the client side will be used.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         DocumentSelector: DocumentSelector option
         WorkDoneProgress: bool option
         /// The id used to register the request. The id can be used to deregister
@@ -597,7 +598,7 @@ type TextDocumentRegistrationOptions =
     {
         /// A document selector to identify the scope of the registration. If set to null
         /// the document selector provided on the client side will be used.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         DocumentSelector: DocumentSelector option
     }
 
@@ -652,7 +653,7 @@ type FoldingRangeRegistrationOptions =
     {
         /// A document selector to identify the scope of the registration. If set to null
         /// the document selector provided on the client side will be used.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         DocumentSelector: DocumentSelector option
         WorkDoneProgress: bool option
         /// The id used to register the request. The id can be used to deregister
@@ -698,7 +699,7 @@ type DeclarationRegistrationOptions =
         WorkDoneProgress: bool option
         /// A document selector to identify the scope of the registration. If set to null
         /// the document selector provided on the client side will be used.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         DocumentSelector: DocumentSelector option
         /// The id used to register the request. The id can be used to deregister
         /// the request again. See also Registration#id.
@@ -748,7 +749,7 @@ type SelectionRangeRegistrationOptions =
         WorkDoneProgress: bool option
         /// A document selector to identify the scope of the registration. If set to null
         /// the document selector provided on the client side will be used.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         DocumentSelector: DocumentSelector option
         /// The id used to register the request. The id can be used to deregister
         /// the request again. See also Registration#id.
@@ -833,7 +834,7 @@ type CallHierarchyRegistrationOptions =
     {
         /// A document selector to identify the scope of the registration. If set to null
         /// the document selector provided on the client side will be used.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         DocumentSelector: DocumentSelector option
         WorkDoneProgress: bool option
         /// The id used to register the request. The id can be used to deregister
@@ -952,14 +953,14 @@ type SemanticTokensRegistrationOptions =
     {
         /// A document selector to identify the scope of the registration. If set to null
         /// the document selector provided on the client side will be used.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         DocumentSelector: DocumentSelector option
         WorkDoneProgress: bool option
         /// The legend used by the server
         Legend: SemanticTokensLegend
         /// Server supports providing semantic tokens for a specific range
         /// of a document.
-        Range: U2<bool, Newtonsoft.Json.Linq.JToken> option
+        Range: U2<bool, JToken> option
         /// Server supports providing semantic tokens for a full document.
         Full: U2<bool, SemanticTokensOptionsFullC2> option
         /// The id used to register the request. The id can be used to deregister
@@ -1102,7 +1103,7 @@ type LinkedEditingRangeRegistrationOptions =
     {
         /// A document selector to identify the scope of the registration. If set to null
         /// the document selector provided on the client side will be used.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         DocumentSelector: DocumentSelector option
         WorkDoneProgress: bool option
         /// The id used to register the request. The id can be used to deregister
@@ -1239,7 +1240,7 @@ type MonikerRegistrationOptions =
     {
         /// A document selector to identify the scope of the registration. If set to null
         /// the document selector provided on the client side will be used.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         DocumentSelector: DocumentSelector option
         WorkDoneProgress: bool option
     }
@@ -1311,7 +1312,7 @@ type TypeHierarchyRegistrationOptions =
     {
         /// A document selector to identify the scope of the registration. If set to null
         /// the document selector provided on the client side will be used.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         DocumentSelector: DocumentSelector option
         WorkDoneProgress: bool option
         /// The id used to register the request. The id can be used to deregister
@@ -1391,7 +1392,7 @@ type InlineValueRegistrationOptions =
         WorkDoneProgress: bool option
         /// A document selector to identify the scope of the registration. If set to null
         /// the document selector provided on the client side will be used.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         DocumentSelector: DocumentSelector option
         /// The id used to register the request. The id can be used to deregister
         /// the request again. See also Registration#id.
@@ -1479,7 +1480,7 @@ type InlayHintRegistrationOptions =
         ResolveProvider: bool option
         /// A document selector to identify the scope of the registration. If set to null
         /// the document selector provided on the client side will be used.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         DocumentSelector: DocumentSelector option
         /// The id used to register the request. The id can be used to deregister
         /// the request again. See also Registration#id.
@@ -1539,7 +1540,7 @@ type DiagnosticRegistrationOptions =
     {
         /// A document selector to identify the scope of the registration. If set to null
         /// the document selector provided on the client side will be used.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         DocumentSelector: DocumentSelector option
         WorkDoneProgress: bool option
         /// An optional identifier under which the diagnostics are
@@ -1689,7 +1690,7 @@ type InitializeParams =
         ///
         /// Is `null` if the process has not been started by another process.
         /// If the parent process is not alive then the server should exit.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         ProcessId: int32 option
         /// Information about the client
         ///
@@ -1714,7 +1715,7 @@ type InitializeParams =
         /// `rootUri` wins.
         ///
         /// @deprecated in favour of workspaceFolders.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         RootUri: DocumentUri option
         /// The capabilities provided by the client (editor or tool)
         Capabilities: ClientCapabilities
@@ -1891,7 +1892,7 @@ type TextDocumentChangeRegistrationOptions =
     {
         /// A document selector to identify the scope of the registration. If set to null
         /// the document selector provided on the client side will be used.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         DocumentSelector: DocumentSelector option
         /// How documents are synced to the server.
         SyncKind: TextDocumentSyncKind
@@ -1924,7 +1925,7 @@ type TextDocumentSaveRegistrationOptions =
     {
         /// A document selector to identify the scope of the registration. If set to null
         /// the document selector provided on the client side will be used.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         DocumentSelector: DocumentSelector option
         /// The client is supposed to include the content on save.
         IncludeText: bool option
@@ -2212,7 +2213,7 @@ type CompletionRegistrationOptions =
     {
         /// A document selector to identify the scope of the registration. If set to null
         /// the document selector provided on the client side will be used.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         DocumentSelector: DocumentSelector option
         WorkDoneProgress: bool option
         /// Most tools trigger completion request automatically without explicitly requesting
@@ -2315,7 +2316,7 @@ type HoverRegistrationOptions =
     {
         /// A document selector to identify the scope of the registration. If set to null
         /// the document selector provided on the client side will be used.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         DocumentSelector: DocumentSelector option
         WorkDoneProgress: bool option
     }
@@ -2388,7 +2389,7 @@ type SignatureHelpRegistrationOptions =
     {
         /// A document selector to identify the scope of the registration. If set to null
         /// the document selector provided on the client side will be used.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         DocumentSelector: DocumentSelector option
         WorkDoneProgress: bool option
         /// List of characters that trigger signature help automatically.
@@ -2450,7 +2451,7 @@ type DefinitionRegistrationOptions =
     {
         /// A document selector to identify the scope of the registration. If set to null
         /// the document selector provided on the client side will be used.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         DocumentSelector: DocumentSelector option
         WorkDoneProgress: bool option
     }
@@ -2495,7 +2496,7 @@ type ReferenceRegistrationOptions =
     {
         /// A document selector to identify the scope of the registration. If set to null
         /// the document selector provided on the client side will be used.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         DocumentSelector: DocumentSelector option
         WorkDoneProgress: bool option
     }
@@ -2550,7 +2551,7 @@ type DocumentHighlightRegistrationOptions =
     {
         /// A document selector to identify the scope of the registration. If set to null
         /// the document selector provided on the client side will be used.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         DocumentSelector: DocumentSelector option
         WorkDoneProgress: bool option
     }
@@ -2666,7 +2667,7 @@ type DocumentSymbolRegistrationOptions =
     {
         /// A document selector to identify the scope of the registration. If set to null
         /// the document selector provided on the client side will be used.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         DocumentSelector: DocumentSelector option
         WorkDoneProgress: bool option
         /// A human-readable string that is shown when multiple outlines trees
@@ -2790,7 +2791,7 @@ type CodeActionRegistrationOptions =
     {
         /// A document selector to identify the scope of the registration. If set to null
         /// the document selector provided on the client side will be used.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         DocumentSelector: DocumentSelector option
         WorkDoneProgress: bool option
         /// CodeActionKinds that this server may return.
@@ -2948,7 +2949,7 @@ type CodeLensRegistrationOptions =
     {
         /// A document selector to identify the scope of the registration. If set to null
         /// the document selector provided on the client side will be used.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         DocumentSelector: DocumentSelector option
         WorkDoneProgress: bool option
         /// Code lens has a resolve provider as well.
@@ -3009,7 +3010,7 @@ type DocumentLinkRegistrationOptions =
     {
         /// A document selector to identify the scope of the registration. If set to null
         /// the document selector provided on the client side will be used.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         DocumentSelector: DocumentSelector option
         WorkDoneProgress: bool option
         /// Document links have a resolve provider as well.
@@ -3048,7 +3049,7 @@ type DocumentFormattingRegistrationOptions =
     {
         /// A document selector to identify the scope of the registration. If set to null
         /// the document selector provided on the client side will be used.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         DocumentSelector: DocumentSelector option
         WorkDoneProgress: bool option
     }
@@ -3085,7 +3086,7 @@ type DocumentRangeFormattingRegistrationOptions =
     {
         /// A document selector to identify the scope of the registration. If set to null
         /// the document selector provided on the client side will be used.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         DocumentSelector: DocumentSelector option
         WorkDoneProgress: bool option
     }
@@ -3123,7 +3124,7 @@ type DocumentOnTypeFormattingRegistrationOptions =
     {
         /// A document selector to identify the scope of the registration. If set to null
         /// the document selector provided on the client side will be used.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         DocumentSelector: DocumentSelector option
         /// A character on which formatting should be triggered, like `{`.
         FirstTriggerCharacter: string
@@ -3166,7 +3167,7 @@ type RenameRegistrationOptions =
     {
         /// A document selector to identify the scope of the registration. If set to null
         /// the document selector provided on the client side will be used.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         DocumentSelector: DocumentSelector option
         WorkDoneProgress: bool option
         /// Renames should be checked and tested before being executed.
@@ -3589,7 +3590,7 @@ type SemanticTokensOptions =
         Legend: SemanticTokensLegend
         /// Server supports providing semantic tokens for a specific range
         /// of a document.
-        Range: U2<bool, Newtonsoft.Json.Linq.JToken> option
+        Range: U2<bool, JToken> option
         /// Server supports providing semantic tokens for a full document.
         Full: U2<bool, SemanticTokensOptionsFullC2> option
     }
@@ -4225,7 +4226,7 @@ type _InitializeParams =
         ///
         /// Is `null` if the process has not been started by another process.
         /// If the parent process is not alive then the server should exit.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         ProcessId: int32 option
         /// Information about the client
         ///
@@ -4250,7 +4251,7 @@ type _InitializeParams =
         /// `rootUri` wins.
         ///
         /// @deprecated in favour of workspaceFolders.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         RootUri: DocumentUri option
         /// The capabilities provided by the client (editor or tool)
         Capabilities: ClientCapabilities
@@ -5010,7 +5011,7 @@ type OptionalVersionedTextDocumentIdentifier =
         /// (the server has not received an open notification before) the server can send
         /// `null` to indicate that the version is unknown and the content on disk is the
         /// truth (as specified with document content ownership).
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         Version: int32 option
     }
 
@@ -5127,7 +5128,7 @@ type WorkspaceFullDocumentDiagnosticReport =
         Uri: DocumentUri
         /// The version number for which the diagnostics are reported.
         /// If the document is not marked as open `null` can be provided.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         Version: int32 option
     }
 
@@ -5159,7 +5160,7 @@ type WorkspaceUnchangedDocumentDiagnosticReport =
         Uri: DocumentUri
         /// The version number for which the diagnostics are reported.
         /// If the document is not marked as open `null` can be provided.
-        [<Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)>]
+        [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
         Version: int32 option
     }
 
@@ -6387,7 +6388,7 @@ type SemanticTokensClientCapabilitiesRequests =
     {
         /// The client will send the `textDocument/semanticTokens/range` request if
         /// the server provides a corresponding handler.
-        Range: U2<bool, Newtonsoft.Json.Linq.JToken> option
+        Range: U2<bool, JToken> option
         /// The client will send the `textDocument/semanticTokens/full` request if
         /// the server provides a corresponding handler.
         Full: U2<bool, SemanticTokensClientCapabilitiesRequestsFullC2> option
@@ -6604,7 +6605,7 @@ type LSPArray = LSPAny[]
 /// convenience it is allowed and assumed that all these properties are
 /// optional as well.
 /// @since 3.17.0
-type LSPAny = Newtonsoft.Json.Linq.JToken
+type LSPAny = JToken
 /// The declaration of a symbol representation as one or many {@link Location locations}.
 type Declaration = U2<Location, Location[]>
 /// Information about where a symbol is declared.
@@ -6871,7 +6872,7 @@ module SemanticTokenModifiers =
 /// The document diagnostic report kinds.
 ///
 /// @since 3.17.0
-[<Newtonsoft.Json.JsonConverter(typeof<Newtonsoft.Json.Converters.StringEnumConverter>)>]
+[<JsonConverter(typeof<Converters.StringEnumConverter>)>]
 type DocumentDiagnosticReportKind =
     /// A diagnostic report with a full
     /// set of problems.
@@ -6974,7 +6975,7 @@ type SymbolTag =
 /// Moniker uniqueness level to define scope of the moniker.
 ///
 /// @since 3.16.0
-[<Newtonsoft.Json.JsonConverter(typeof<Newtonsoft.Json.Converters.StringEnumConverter>)>]
+[<JsonConverter(typeof<Converters.StringEnumConverter>)>]
 type UniquenessLevel =
     /// The moniker is only unique inside a document
     | [<System.Runtime.Serialization.EnumMember(Value = "document")>] document = 0
@@ -6990,7 +6991,7 @@ type UniquenessLevel =
 /// The moniker kind.
 ///
 /// @since 3.16.0
-[<Newtonsoft.Json.JsonConverter(typeof<Newtonsoft.Json.Converters.StringEnumConverter>)>]
+[<JsonConverter(typeof<Converters.StringEnumConverter>)>]
 type MonikerKind =
     /// The moniker represent a symbol that is imported into a project
     | [<System.Runtime.Serialization.EnumMember(Value = "import")>] import = 0
@@ -7198,7 +7199,7 @@ module CodeActionKind =
     [<Literal>]
     let SourceFixAll: CodeActionKind = "source.fixAll"
 
-[<Newtonsoft.Json.JsonConverter(typeof<Newtonsoft.Json.Converters.StringEnumConverter>)>]
+[<JsonConverter(typeof<Converters.StringEnumConverter>)>]
 type TraceValues =
     /// Turn tracing off.
     | [<System.Runtime.Serialization.EnumMember(Value = "off")>] Off = 0
@@ -7212,7 +7213,7 @@ type TraceValues =
 ///
 /// Please note that `MarkupKinds` must not start with a `$`. This kinds
 /// are reserved for internal usage.
-[<Newtonsoft.Json.JsonConverter(typeof<Newtonsoft.Json.Converters.StringEnumConverter>)>]
+[<JsonConverter(typeof<Converters.StringEnumConverter>)>]
 type MarkupKind =
     /// Plain text is supported as a content format
     | [<System.Runtime.Serialization.EnumMember(Value = "plaintext")>] PlainText = 0
@@ -7324,7 +7325,7 @@ type CodeActionTriggerKind =
 /// both.
 ///
 /// @since 3.16.0
-[<Newtonsoft.Json.JsonConverter(typeof<Newtonsoft.Json.Converters.StringEnumConverter>)>]
+[<JsonConverter(typeof<Converters.StringEnumConverter>)>]
 type FileOperationPatternKind =
     /// The pattern matches a file only.
     | [<System.Runtime.Serialization.EnumMember(Value = "file")>] file = 0
@@ -7340,7 +7341,7 @@ type NotebookCellKind =
     /// A code-cell is source code.
     | Code = 2
 
-[<Newtonsoft.Json.JsonConverter(typeof<Newtonsoft.Json.Converters.StringEnumConverter>)>]
+[<JsonConverter(typeof<Converters.StringEnumConverter>)>]
 type ResourceOperationKind =
     /// Supports creating new files and folders.
     | [<System.Runtime.Serialization.EnumMember(Value = "create")>] Create = 0
@@ -7349,7 +7350,7 @@ type ResourceOperationKind =
     /// Supports deleting existing files and folders.
     | [<System.Runtime.Serialization.EnumMember(Value = "delete")>] Delete = 2
 
-[<Newtonsoft.Json.JsonConverter(typeof<Newtonsoft.Json.Converters.StringEnumConverter>)>]
+[<JsonConverter(typeof<Converters.StringEnumConverter>)>]
 type FailureHandlingKind =
     /// Applying the workspace change is simply aborted if one of the changes provided
     /// fails. All operations executed before the failing operation stay executed.
@@ -7370,6 +7371,6 @@ type PrepareSupportDefaultBehavior =
     /// according the to language's syntax rule.
     | Identifier = 1
 
-[<Newtonsoft.Json.JsonConverter(typeof<Newtonsoft.Json.Converters.StringEnumConverter>)>]
+[<JsonConverter(typeof<Converters.StringEnumConverter>)>]
 type TokenFormat =
     | [<System.Runtime.Serialization.EnumMember(Value = "relative")>] Relative = 0

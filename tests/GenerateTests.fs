@@ -461,7 +461,7 @@ module GenerateTests =
 
       { Widgets = ws }
 
-  let JToken = LongIdent("Newtonsoft.Json.Linq.JToken")
+  let JToken = LongIdent("JToken")
 
   let createOption (t: WidgetBuilder<Type>) = Ast.OptionPostfix t
 
@@ -668,7 +668,7 @@ module GenerateTests =
             then
               createOption (createErasedUnion ts),
               Some(
-                Attribute "Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)"
+                Attribute "JsonProperty(NullValueHandling = NullValueHandling.Include)"
               ),
               others
             else
@@ -1263,7 +1263,7 @@ module GenerateTests =
             |> Option.defaultValue enum
 
           enum.attribute (
-            Attribute("Newtonsoft.Json.JsonConverter(typeof<Newtonsoft.Json.Converters.StringEnumConverter>)")
+            Attribute("JsonConverter(typeof<Converters.StringEnumConverter>)")
           )
 
       | MetaModel.EnumerationTypeNameValues.Integer
@@ -1316,6 +1316,7 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
               Open("System")
               Open("System.Diagnostics")
               Open("Newtonsoft.Json")
+              Open("Newtonsoft.Json.Linq")
               // Simple aliases for types that are not in dotnet
               Abbrev("URI", "string")
                 .xmlDocs (
