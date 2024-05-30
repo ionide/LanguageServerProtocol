@@ -1,14 +1,15 @@
 namespace rec Ionide.LanguageServerProtocol.Types
 
 open System
+open System.Runtime.Serialization
 open System.Diagnostics
 open Newtonsoft.Json
 open Newtonsoft.Json.Linq
-/// URI’s are transferred as strings. The URI’s format is defined in https://tools.ietf.org/html/rfc3986
+/// URI's are transferred as strings. The URI's format is defined in https://tools.ietf.org/html/rfc3986
 ///
 /// See: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#uri
 type URI = string
-/// URI’s are transferred as strings. The URI’s format is defined in https://tools.ietf.org/html/rfc3986
+/// URI's are transferred as strings. The URI's format is defined in https://tools.ietf.org/html/rfc3986
 ///
 /// See: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#uri
 type DocumentUri = string
@@ -6876,10 +6877,10 @@ module SemanticTokenModifiers =
 type DocumentDiagnosticReportKind =
     /// A diagnostic report with a full
     /// set of problems.
-    | [<System.Runtime.Serialization.EnumMember(Value = "full")>] Full = 0
+    | [<EnumMember(Value = "full")>] Full = 0
     /// A report indicating that the last
     /// returned report is still accurate.
-    | [<System.Runtime.Serialization.EnumMember(Value = "unchanged")>] Unchanged = 1
+    | [<EnumMember(Value = "unchanged")>] Unchanged = 1
 
 /// Predefined error codes.
 type ErrorCodes =
@@ -6978,15 +6979,15 @@ type SymbolTag =
 [<JsonConverter(typeof<Converters.StringEnumConverter>)>]
 type UniquenessLevel =
     /// The moniker is only unique inside a document
-    | [<System.Runtime.Serialization.EnumMember(Value = "document")>] document = 0
+    | [<EnumMember(Value = "document")>] document = 0
     /// The moniker is unique inside a project for which a dump got created
-    | [<System.Runtime.Serialization.EnumMember(Value = "project")>] project = 1
+    | [<EnumMember(Value = "project")>] project = 1
     /// The moniker is unique inside the group to which a project belongs
-    | [<System.Runtime.Serialization.EnumMember(Value = "group")>] group = 2
+    | [<EnumMember(Value = "group")>] group = 2
     /// The moniker is unique inside the moniker scheme.
-    | [<System.Runtime.Serialization.EnumMember(Value = "scheme")>] scheme = 3
+    | [<EnumMember(Value = "scheme")>] scheme = 3
     /// The moniker is globally unique
-    | [<System.Runtime.Serialization.EnumMember(Value = "global")>] ``global`` = 4
+    | [<EnumMember(Value = "global")>] ``global`` = 4
 
 /// The moniker kind.
 ///
@@ -6994,12 +6995,12 @@ type UniquenessLevel =
 [<JsonConverter(typeof<Converters.StringEnumConverter>)>]
 type MonikerKind =
     /// The moniker represent a symbol that is imported into a project
-    | [<System.Runtime.Serialization.EnumMember(Value = "import")>] import = 0
+    | [<EnumMember(Value = "import")>] import = 0
     /// The moniker represents a symbol that is exported from a project
-    | [<System.Runtime.Serialization.EnumMember(Value = "export")>] export = 1
+    | [<EnumMember(Value = "export")>] export = 1
     /// The moniker represents a symbol that is local to a project (e.g. a local
     /// variable of a function, a class not visible outside the project, ...)
-    | [<System.Runtime.Serialization.EnumMember(Value = "local")>] local = 2
+    | [<EnumMember(Value = "local")>] local = 2
 
 /// Inlay hint kinds.
 ///
@@ -7202,11 +7203,11 @@ module CodeActionKind =
 [<JsonConverter(typeof<Converters.StringEnumConverter>)>]
 type TraceValues =
     /// Turn tracing off.
-    | [<System.Runtime.Serialization.EnumMember(Value = "off")>] Off = 0
+    | [<EnumMember(Value = "off")>] Off = 0
     /// Trace messages only.
-    | [<System.Runtime.Serialization.EnumMember(Value = "messages")>] Messages = 1
+    | [<EnumMember(Value = "messages")>] Messages = 1
     /// Verbose message tracing.
-    | [<System.Runtime.Serialization.EnumMember(Value = "verbose")>] Verbose = 2
+    | [<EnumMember(Value = "verbose")>] Verbose = 2
 
 /// Describes the content type that a client supports in various
 /// result literals like `Hover`, `ParameterInfo` or `CompletionItem`.
@@ -7216,9 +7217,9 @@ type TraceValues =
 [<JsonConverter(typeof<Converters.StringEnumConverter>)>]
 type MarkupKind =
     /// Plain text is supported as a content format
-    | [<System.Runtime.Serialization.EnumMember(Value = "plaintext")>] PlainText = 0
+    | [<EnumMember(Value = "plaintext")>] PlainText = 0
     /// Markdown is supported as a content format
-    | [<System.Runtime.Serialization.EnumMember(Value = "markdown")>] Markdown = 1
+    | [<EnumMember(Value = "markdown")>] Markdown = 1
 
 /// A set of predefined position encoding kinds.
 ///
@@ -7328,9 +7329,9 @@ type CodeActionTriggerKind =
 [<JsonConverter(typeof<Converters.StringEnumConverter>)>]
 type FileOperationPatternKind =
     /// The pattern matches a file only.
-    | [<System.Runtime.Serialization.EnumMember(Value = "file")>] file = 0
+    | [<EnumMember(Value = "file")>] file = 0
     /// The pattern matches a folder only.
-    | [<System.Runtime.Serialization.EnumMember(Value = "folder")>] folder = 1
+    | [<EnumMember(Value = "folder")>] folder = 1
 
 /// A notebook cell kind.
 ///
@@ -7344,27 +7345,27 @@ type NotebookCellKind =
 [<JsonConverter(typeof<Converters.StringEnumConverter>)>]
 type ResourceOperationKind =
     /// Supports creating new files and folders.
-    | [<System.Runtime.Serialization.EnumMember(Value = "create")>] Create = 0
+    | [<EnumMember(Value = "create")>] Create = 0
     /// Supports renaming existing files and folders.
-    | [<System.Runtime.Serialization.EnumMember(Value = "rename")>] Rename = 1
+    | [<EnumMember(Value = "rename")>] Rename = 1
     /// Supports deleting existing files and folders.
-    | [<System.Runtime.Serialization.EnumMember(Value = "delete")>] Delete = 2
+    | [<EnumMember(Value = "delete")>] Delete = 2
 
 [<JsonConverter(typeof<Converters.StringEnumConverter>)>]
 type FailureHandlingKind =
     /// Applying the workspace change is simply aborted if one of the changes provided
     /// fails. All operations executed before the failing operation stay executed.
-    | [<System.Runtime.Serialization.EnumMember(Value = "abort")>] Abort = 0
+    | [<EnumMember(Value = "abort")>] Abort = 0
     /// All operations are executed transactional. That means they either all
     /// succeed or no changes at all are applied to the workspace.
-    | [<System.Runtime.Serialization.EnumMember(Value = "transactional")>] Transactional = 1
+    | [<EnumMember(Value = "transactional")>] Transactional = 1
     /// If the workspace edit contains only textual file changes they are executed transactional.
     /// If resource changes (create, rename or delete file) are part of the change the failure
     /// handling strategy is abort.
-    | [<System.Runtime.Serialization.EnumMember(Value = "textOnlyTransactional")>] TextOnlyTransactional = 2
+    | [<EnumMember(Value = "textOnlyTransactional")>] TextOnlyTransactional = 2
     /// The client tries to undo the operations already executed. But there is no
     /// guarantee that this is succeeding.
-    | [<System.Runtime.Serialization.EnumMember(Value = "undo")>] Undo = 3
+    | [<EnumMember(Value = "undo")>] Undo = 3
 
 type PrepareSupportDefaultBehavior =
     /// The client's default behavior is to select the identifier
@@ -7373,4 +7374,4 @@ type PrepareSupportDefaultBehavior =
 
 [<JsonConverter(typeof<Converters.StringEnumConverter>)>]
 type TokenFormat =
-    | [<System.Runtime.Serialization.EnumMember(Value = "relative")>] Relative = 0
+    | [<EnumMember(Value = "relative")>] Relative = 0
