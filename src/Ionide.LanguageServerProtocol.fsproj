@@ -10,6 +10,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageProjectUrl>https://github.com/ionide/LanguageServerProtocol</PackageProjectUrl>
+    <LSPVersion>3.17.0</LSPVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- FsLibLog.fs comes verbatim from
@@ -38,4 +39,36 @@
     <PackageReference Update="FSharp.Core" Version="6.0.0" />
     <PackageReference Include="StreamJsonRpc" Version="2.16.36" />
   </ItemGroup>
+
+  <ItemGroup>
+    <_MetaModelInputs Include="$(MSBuildThisFileDirectory)../data/$(LSPVersion)/metaModel.json" />
+    <_MetaModelOutputs Include="$(MSBuildThisFileDirectory)Types.cg.fs" />
+  </ItemGroup>
+
+  <Target Name="EnsureRegeneration" Condition="'$(ForceRegenerate)' == 'true'">
+    <Delete Files="@(_MetaModelOutputs)" />
+  </Target>
+
+  <Target Name="RegenerateTypes" Inputs="@(_MetaModelInputs)" DependsOnTargets="EnsureRegeneration"
+    Outputs="@(_MetaModelOutputs)"
+    BeforeTargets="PrepareForBuild">
+    <ItemGroup>
+      <_GeneratorProject Include="../tools/MetaModelGenerator/MetaModelGenerator.fsproj" />
+    </ItemGroup>
+    <MSBuild Projects="@(_GeneratorProject)" Targets="Build">
+      <Output TaskParameter="TargetOutputs" ItemName="_GeneratorApp" />
+    </MSBuild>
+
+    <ItemGroup>
+      <_GenerateCommand Include="dotnet;@(_GeneratorApp)" />
+      <_GenerateCommand Include="types" />
+      <_GenerateCommand Include="--metamodelpath" />
+      <_GenerateCommand Include="%(_MetaModelInputs.FullPath)" />
+      <_GenerateCommand Include="--outputfilepath" />
+      <_GenerateCommand Include="%(_MetaModelOutputs.FullPath)" />
+    </ItemGroup>
+
+    <Exec
+      Command="@(_GenerateCommand, ' ')" />
+  </Target>
 </Project>
