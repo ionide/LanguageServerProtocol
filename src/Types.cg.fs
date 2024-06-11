@@ -25,6 +25,11 @@ type IWorkDoneProgressParams =
     /// An optional token that a server can use to report work done progress.
     abstract member WorkDoneToken: ProgressToken option
 
+type IPartialResultParams =
+    /// An optional token that a server can use to report partial results (e.g. streaming) to
+    /// the client.
+    abstract member PartialResultToken: ProgressToken option
+
 /// A parameter literal used in requests to pass a text document and a position inside that
 /// document.
 type ITextDocumentPositionParams =
@@ -415,6 +420,11 @@ type ImplementationParams =
         /// An optional token that a server can use to report work done progress.
         member x.WorkDoneToken = x.WorkDoneToken
 
+    interface IPartialResultParams with
+        /// An optional token that a server can use to report partial results (e.g. streaming) to
+        /// the client.
+        member x.PartialResultToken = x.PartialResultToken
+
 /// Represents a location inside a resource, such as a line
 /// inside a text file.
 type Location = { Uri: DocumentUri; Range: Range }
@@ -463,6 +473,11 @@ type TypeDefinitionParams =
     interface IWorkDoneProgressParams with
         /// An optional token that a server can use to report work done progress.
         member x.WorkDoneToken = x.WorkDoneToken
+
+    interface IPartialResultParams with
+        /// An optional token that a server can use to report partial results (e.g. streaming) to
+        /// the client.
+        member x.PartialResultToken = x.PartialResultToken
 
 type TypeDefinitionRegistrationOptions =
     {
@@ -522,6 +537,11 @@ type DocumentColorParams =
         /// An optional token that a server can use to report work done progress.
         member x.WorkDoneToken = x.WorkDoneToken
 
+    interface IPartialResultParams with
+        /// An optional token that a server can use to report partial results (e.g. streaming) to
+        /// the client.
+        member x.PartialResultToken = x.PartialResultToken
+
 /// Represents a color range from a document.
 type ColorInformation =
     {
@@ -573,6 +593,11 @@ type ColorPresentationParams =
         /// An optional token that a server can use to report work done progress.
         member x.WorkDoneToken = x.WorkDoneToken
 
+    interface IPartialResultParams with
+        /// An optional token that a server can use to report partial results (e.g. streaming) to
+        /// the client.
+        member x.PartialResultToken = x.PartialResultToken
+
 type ColorPresentation =
     {
         /// The label of this color presentation. It will be shown on the color
@@ -623,6 +648,11 @@ type FoldingRangeParams =
     interface IWorkDoneProgressParams with
         /// An optional token that a server can use to report work done progress.
         member x.WorkDoneToken = x.WorkDoneToken
+
+    interface IPartialResultParams with
+        /// An optional token that a server can use to report partial results (e.g. streaming) to
+        /// the client.
+        member x.PartialResultToken = x.PartialResultToken
 
 /// Represents a folding range. To be valid, start and end line must be bigger than zero and smaller
 /// than the number of lines in the document. Clients are free to ignore invalid ranges.
@@ -695,6 +725,11 @@ type DeclarationParams =
         /// An optional token that a server can use to report work done progress.
         member x.WorkDoneToken = x.WorkDoneToken
 
+    interface IPartialResultParams with
+        /// An optional token that a server can use to report partial results (e.g. streaming) to
+        /// the client.
+        member x.PartialResultToken = x.PartialResultToken
+
 type DeclarationRegistrationOptions =
     {
         WorkDoneProgress: bool option
@@ -734,6 +769,11 @@ type SelectionRangeParams =
     interface IWorkDoneProgressParams with
         /// An optional token that a server can use to report work done progress.
         member x.WorkDoneToken = x.WorkDoneToken
+
+    interface IPartialResultParams with
+        /// An optional token that a server can use to report partial results (e.g. streaming) to
+        /// the client.
+        member x.PartialResultToken = x.PartialResultToken
 
 /// A selection range represents a part of a selection hierarchy. A selection range
 /// may have a parent selection range that contains it.
@@ -870,6 +910,11 @@ type CallHierarchyIncomingCallsParams =
         /// An optional token that a server can use to report work done progress.
         member x.WorkDoneToken = x.WorkDoneToken
 
+    interface IPartialResultParams with
+        /// An optional token that a server can use to report partial results (e.g. streaming) to
+        /// the client.
+        member x.PartialResultToken = x.PartialResultToken
+
 /// Represents an incoming call, e.g. a caller of a method or constructor.
 ///
 /// @since 3.16.0
@@ -899,6 +944,11 @@ type CallHierarchyOutgoingCallsParams =
         /// An optional token that a server can use to report work done progress.
         member x.WorkDoneToken = x.WorkDoneToken
 
+    interface IPartialResultParams with
+        /// An optional token that a server can use to report partial results (e.g. streaming) to
+        /// the client.
+        member x.PartialResultToken = x.PartialResultToken
+
 /// Represents an outgoing call, e.g. calling a getter from a method or a method from a constructor etc.
 ///
 /// @since 3.16.0
@@ -927,6 +977,11 @@ type SemanticTokensParams =
     interface IWorkDoneProgressParams with
         /// An optional token that a server can use to report work done progress.
         member x.WorkDoneToken = x.WorkDoneToken
+
+    interface IPartialResultParams with
+        /// An optional token that a server can use to report partial results (e.g. streaming) to
+        /// the client.
+        member x.PartialResultToken = x.PartialResultToken
 
 /// @since 3.16.0
 type SemanticTokens =
@@ -1005,6 +1060,11 @@ type SemanticTokensDeltaParams =
         /// An optional token that a server can use to report work done progress.
         member x.WorkDoneToken = x.WorkDoneToken
 
+    interface IPartialResultParams with
+        /// An optional token that a server can use to report partial results (e.g. streaming) to
+        /// the client.
+        member x.PartialResultToken = x.PartialResultToken
+
 /// @since 3.16.0
 type SemanticTokensDelta =
     {
@@ -1033,6 +1093,11 @@ type SemanticTokensRangeParams =
     interface IWorkDoneProgressParams with
         /// An optional token that a server can use to report work done progress.
         member x.WorkDoneToken = x.WorkDoneToken
+
+    interface IPartialResultParams with
+        /// An optional token that a server can use to report partial results (e.g. streaming) to
+        /// the client.
+        member x.PartialResultToken = x.PartialResultToken
 
 /// Params to show a resource in the UI.
 ///
@@ -1221,6 +1286,11 @@ type MonikerParams =
         /// An optional token that a server can use to report work done progress.
         member x.WorkDoneToken = x.WorkDoneToken
 
+    interface IPartialResultParams with
+        /// An optional token that a server can use to report partial results (e.g. streaming) to
+        /// the client.
+        member x.PartialResultToken = x.PartialResultToken
+
 /// Moniker definition to match LSIF 0.5 moniker definition.
 ///
 /// @since 3.16.0
@@ -1348,6 +1418,11 @@ type TypeHierarchySupertypesParams =
         /// An optional token that a server can use to report work done progress.
         member x.WorkDoneToken = x.WorkDoneToken
 
+    interface IPartialResultParams with
+        /// An optional token that a server can use to report partial results (e.g. streaming) to
+        /// the client.
+        member x.PartialResultToken = x.PartialResultToken
+
 /// The parameter of a `typeHierarchy/subtypes` request.
 ///
 /// @since 3.17.0
@@ -1364,6 +1439,11 @@ type TypeHierarchySubtypesParams =
     interface IWorkDoneProgressParams with
         /// An optional token that a server can use to report work done progress.
         member x.WorkDoneToken = x.WorkDoneToken
+
+    interface IPartialResultParams with
+        /// An optional token that a server can use to report partial results (e.g. streaming) to
+        /// the client.
+        member x.PartialResultToken = x.PartialResultToken
 
 /// A parameter literal used in inline value requests.
 ///
@@ -1523,6 +1603,11 @@ type DocumentDiagnosticParams =
         /// An optional token that a server can use to report work done progress.
         member x.WorkDoneToken = x.WorkDoneToken
 
+    interface IPartialResultParams with
+        /// An optional token that a server can use to report partial results (e.g. streaming) to
+        /// the client.
+        member x.PartialResultToken = x.PartialResultToken
+
 /// A partial result for a document diagnostic report.
 ///
 /// @since 3.17.0
@@ -1599,6 +1684,11 @@ type WorkspaceDiagnosticParams =
     interface IWorkDoneProgressParams with
         /// An optional token that a server can use to report work done progress.
         member x.WorkDoneToken = x.WorkDoneToken
+
+    interface IPartialResultParams with
+        /// An optional token that a server can use to report partial results (e.g. streaming) to
+        /// the client.
+        member x.PartialResultToken = x.PartialResultToken
 
 /// A workspace diagnostic report.
 ///
@@ -2022,6 +2112,11 @@ type CompletionParams =
     interface IWorkDoneProgressParams with
         /// An optional token that a server can use to report work done progress.
         member x.WorkDoneToken = x.WorkDoneToken
+
+    interface IPartialResultParams with
+        /// An optional token that a server can use to report partial results (e.g. streaming) to
+        /// the client.
+        member x.PartialResultToken = x.PartialResultToken
 
 /// A completion item represents a text snippet that is
 /// proposed to complete text that is being typed.
@@ -2447,6 +2542,11 @@ type DefinitionParams =
         /// An optional token that a server can use to report work done progress.
         member x.WorkDoneToken = x.WorkDoneToken
 
+    interface IPartialResultParams with
+        /// An optional token that a server can use to report partial results (e.g. streaming) to
+        /// the client.
+        member x.PartialResultToken = x.PartialResultToken
+
 /// Registration options for a {@link DefinitionRequest}.
 type DefinitionRegistrationOptions =
     {
@@ -2492,6 +2592,11 @@ type ReferenceParams =
         /// An optional token that a server can use to report work done progress.
         member x.WorkDoneToken = x.WorkDoneToken
 
+    interface IPartialResultParams with
+        /// An optional token that a server can use to report partial results (e.g. streaming) to
+        /// the client.
+        member x.PartialResultToken = x.PartialResultToken
+
 /// Registration options for a {@link ReferencesRequest}.
 type ReferenceRegistrationOptions =
     {
@@ -2535,6 +2640,11 @@ type DocumentHighlightParams =
     interface IWorkDoneProgressParams with
         /// An optional token that a server can use to report work done progress.
         member x.WorkDoneToken = x.WorkDoneToken
+
+    interface IPartialResultParams with
+        /// An optional token that a server can use to report partial results (e.g. streaming) to
+        /// the client.
+        member x.PartialResultToken = x.PartialResultToken
 
 /// A document highlight is a range inside a text document which deserves
 /// special attention. Usually a document highlight is visualized by changing
@@ -2582,6 +2692,11 @@ type DocumentSymbolParams =
     interface IWorkDoneProgressParams with
         /// An optional token that a server can use to report work done progress.
         member x.WorkDoneToken = x.WorkDoneToken
+
+    interface IPartialResultParams with
+        /// An optional token that a server can use to report partial results (e.g. streaming) to
+        /// the client.
+        member x.PartialResultToken = x.PartialResultToken
 
 /// Represents information about programming constructs like variables, classes,
 /// interfaces etc.
@@ -2712,6 +2827,11 @@ type CodeActionParams =
     interface IWorkDoneProgressParams with
         /// An optional token that a server can use to report work done progress.
         member x.WorkDoneToken = x.WorkDoneToken
+
+    interface IPartialResultParams with
+        /// An optional token that a server can use to report partial results (e.g. streaming) to
+        /// the client.
+        member x.PartialResultToken = x.PartialResultToken
 
 /// Represents a reference to a command. Provides a title which
 /// will be used to represent a command in the UI and, optionally,
@@ -2844,6 +2964,11 @@ type WorkspaceSymbolParams =
         /// An optional token that a server can use to report work done progress.
         member x.WorkDoneToken = x.WorkDoneToken
 
+    interface IPartialResultParams with
+        /// An optional token that a server can use to report partial results (e.g. streaming) to
+        /// the client.
+        member x.PartialResultToken = x.PartialResultToken
+
 type WorkspaceSymbolLocationC2 = { Uri: DocumentUri }
 
 /// A special workspace symbol that supports locations without a range.
@@ -2929,6 +3054,11 @@ type CodeLensParams =
         /// An optional token that a server can use to report work done progress.
         member x.WorkDoneToken = x.WorkDoneToken
 
+    interface IPartialResultParams with
+        /// An optional token that a server can use to report partial results (e.g. streaming) to
+        /// the client.
+        member x.PartialResultToken = x.PartialResultToken
+
 /// A code lens represents a {@link Command command} that should be shown along with
 /// source text, like the number of references, a way to run tests, etc.
 ///
@@ -2984,6 +3114,11 @@ type DocumentLinkParams =
     interface IWorkDoneProgressParams with
         /// An optional token that a server can use to report work done progress.
         member x.WorkDoneToken = x.WorkDoneToken
+
+    interface IPartialResultParams with
+        /// An optional token that a server can use to report partial results (e.g. streaming) to
+        /// the client.
+        member x.PartialResultToken = x.PartialResultToken
 
 /// A document link is a range in a text document that links to an internal or external resource, like another
 /// text document or a web site.
@@ -3382,6 +3517,11 @@ type PartialResultParams =
         /// the client.
         PartialResultToken: ProgressToken option
     }
+
+    interface IPartialResultParams with
+        /// An optional token that a server can use to report partial results (e.g. streaming) to
+        /// the client.
+        member x.PartialResultToken = x.PartialResultToken
 
 /// Represents the connection of two locations. Provides additional metadata over normal {@link Location locations},
 /// including an origin range.

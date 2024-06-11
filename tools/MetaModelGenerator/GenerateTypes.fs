@@ -403,6 +403,7 @@ module GenerateTypes =
   let extensionsButNotReally = [
     "WorkDoneProgressParams"
     "WorkDoneProgressOptions"
+    "PartialResultParams"
   ]
 
   /// Scans all structures for use as an interface and generates the interfaces
