@@ -11,8 +11,6 @@
     <Compile Include="Benchmarks.fs" />
     <Compile Include="Shotgun.fs" />
     <Compile Include="StartWithSetup.fs" />
-    <Compile Include="GenerateTests.fs" />
-    <!-- <Compile Include="Types.cg.fs"/> -->
     <Compile Include="Tests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
