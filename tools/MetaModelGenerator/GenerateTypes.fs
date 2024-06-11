@@ -19,8 +19,16 @@ module GenerateTypes =
   open Fabulous.AST.StackAllocatedCollections
   open Newtonsoft.Json.Linq
 
+  let getIdent (x: IdentifierOrDot list) =
+    x
+    |> List.map (
+      function
+      | IdentifierOrDot.Ident i -> i.Text
+      | _ -> ""
+    )
+    |> String.concat ""
 
-  type ModuleOrNamespaceExtensions2 =
+  type ModuleOrNamespaceExtensions =
     /// Allows Anonymous Module components to be yielded directly into a Module
     /// Useful since there's no common holder of declarations or generic WidgetBuilder than can be used
     /// when yielding different types of declarations
@@ -157,7 +165,7 @@ module GenerateTypes =
           )
           |> Array.toList
 
-        let others =
+        let namedAnonRecs =
           fields
           |> Seq.collect (fun (a, b, _, d) -> d)
           |> Seq.toList
@@ -181,7 +189,7 @@ module GenerateTypes =
         Some(
           fieldTy,
           record
-          :: others
+          :: namedAnonRecs
         )
       else
         None
@@ -207,7 +215,7 @@ module GenerateTypes =
         | MetaModel.Type.OrType o ->
 
           match handleSameShapeStructuredUnions path (createField) o.Items with
-          | Some(x: WidgetBuilder<Type>, others) -> x, None, others
+          | Some(x: WidgetBuilder<Type>, namedAnonRecs) -> x, None, namedAnonRecs
           | None ->
 
             // TS types can have optional properties (myKey?: string)
@@ -230,7 +238,7 @@ module GenerateTypes =
                 )
               )
 
-            let others =
+            let namedAnonRecs =
               ts
               |> Seq.collect (fun (a, b, c) -> c)
               |> Seq.toList
@@ -246,13 +254,13 @@ module GenerateTypes =
             then
               createOption (createErasedUnion ts),
               Some(Attribute "JsonProperty(NullValueHandling = NullValueHandling.Include)"),
-              others
+              namedAnonRecs
             else
-              createErasedUnion ts, None, others
+              createErasedUnion ts, None, namedAnonRecs
 
         | MetaModel.Type.ArrayType a ->
-          let (t, _, others) = getType path a.Element
-          Array(t, 1), None, others
+          let (t, _, namedAnonRecs) = getType path a.Element
+          Array(t, 1), None, namedAnonRecs
         | MetaModel.Type.StructureLiteralType l ->
           if
             l.Value.PropertiesSafe
@@ -304,14 +312,14 @@ module GenerateTypes =
 
               LongIdent name, r
 
-            let others =
+            let namedAnonRecs =
               ts
               |> List.collect (fun fi -> fi.NamedAnonymousRecords)
 
             fieldTy,
             None,
             record
-            :: others
+            :: namedAnonRecs
 
         | MetaModel.Type.MapType m ->
           let key =
@@ -321,14 +329,14 @@ module GenerateTypes =
               |> LongIdent
             | MetaModel.MapKeyType.ReferenceType r -> LongIdent(r.Name)
 
-          let (value, _, others) = getType path m.Value
+          let (value, _, namedAnonRecs) = getType path m.Value
 
           createDictionary [
             key
             value
           ],
           None,
-          others
+          namedAnonRecs
 
         | MetaModel.Type.StringLiteralType t ->
           LongIdent("string"), Some(Attribute($"UnionKindAttribute(\"{t.Value}\")")), []
@@ -349,15 +357,15 @@ module GenerateTypes =
             |> List.map (fun (a, b, c) -> a)
             |> Tuple
 
-          let others =
+          let namedAnonRecs =
             ts
             |> List.collect (fun (a, b, c) -> c)
 
-          tuple, None, others
+          tuple, None, namedAnonRecs
 
         | _ -> failwithf $"todo Property %A{currentType}"
 
-      let (t, attribute, others) = getType path currentType
+      let (t, attribute, namedAnonRecs) = getType path currentType
       let t = if currentProperty.IsOptional then createOption t else t
       let name = currentProperty.NameAsPascalCase
 
@@ -366,7 +374,7 @@ module GenerateTypes =
         TypeInfo = t
         Attribute = attribute
         StructuredDocs = currentProperty.StructuredDocs
-        NamedAnonymousRecords = others
+        NamedAnonymousRecords = namedAnonRecs
       }
     with e ->
       raise
@@ -667,7 +675,7 @@ module GenerateTypes =
         | MetaModel.Type.BaseType b -> LongIdent(b.Name.ToDotNetType()), []
         | MetaModel.Type.OrType o ->
           match handleSameShapeStructuredUnions path (createField) o.Items with
-          | Some(x, others) -> x, others
+          | Some(x, namedAnonRecs) -> x, namedAnonRecs
           | None ->
 
             let types =
@@ -683,7 +691,7 @@ module GenerateTypes =
               types
               |> Array.map fst
 
-            let others =
+            let namedAnonRecs =
               types
               |> Seq.collect snd
 
@@ -691,10 +699,10 @@ module GenerateTypes =
               types2
               |> createErasedUnion
 
-            x, Seq.toList others
+            x, Seq.toList namedAnonRecs
         | MetaModel.Type.ArrayType a ->
-          let (types, others) = getType path a.Element
-          Array(types, 1), others
+          let (types, namedAnonRecs) = getType path a.Element
+          Array(types, 1), namedAnonRecs
         | MetaModel.Type.StructureLiteralType l when Proposed.checkProposed l.Value ->
           if
             l.Value.PropertiesSafe
@@ -739,13 +747,13 @@ module GenerateTypes =
               r.Name
               |> LongIdent
 
-          let (value, others) = getType path m.Value
+          let (value, namedAnonRecs) = getType path m.Value
 
           createDictionary [
             key
             value
           ],
-          others
+          namedAnonRecs
 
         | MetaModel.Type.StringLiteralType t -> String(), []
         | MetaModel.Type.TupleType t ->
@@ -759,7 +767,7 @@ module GenerateTypes =
                 item
             )
 
-          let others =
+          let namedAnonRecs =
             types
             |> Seq.collect snd
             |> Seq.toList
@@ -770,37 +778,29 @@ module GenerateTypes =
             |> Array.toList
             |> Tuple
 
-          tuple, others
+          tuple, namedAnonRecs
 
         | _ -> failwithf "todo Property %A" t
 
-    let (types: WidgetBuilder<Type>, others) = getType [ alias.Name ] alias.Type
+    let (types: WidgetBuilder<Type>, namedAnonRecs) = getType [ alias.Name ] alias.Type
 
-    let getIdent (x: IdentifierOrDot list) =
-      x
-      |> List.map (
-        function
-        | IdentifierOrDot.Ident i -> i.Text
-        | _ -> ""
-      )
-      |> String.concat ""
+    let (|AliasIsSameAsRecordName|_|) (alias: WidgetBuilder<Type>, namedAnonRecs) =
+      let typeAlias = Gen.mkOak alias
+
+      let nestedRecord =
+        namedAnonRecs
+        |> Seq.tryExactlyOne
+
+      match typeAlias, Option.map Gen.mkOak nestedRecord with
+      | Type.LongIdent i, Some r when (getIdent i.Content) = getIdent ((r :> ITypeDefn).TypeName.Identifier.Content) ->
+        nestedRecord
+      | _ -> None
 
     let abbrev =
-      match
-        Gen.mkOak types,
-        others
-        |> Seq.tryHead
-        |> Option.map (Gen.mkOak)
-      with
-      | Type.LongIdent i, Some r when (getIdent i.Content) = getIdent ((r :> ITypeDefn).TypeName.Identifier.Content) ->
+      match types, namedAnonRecs with
+      | AliasIsSameAsRecordName r ->
+        // If the record being emitted is the same as the type alias, ignore the type alias and just emit the record
         AnonymousModule() {
-          let r =
-            Record(alias.Name) {
-              for f in r.Fields do
-                f
-
-            }
-
           alias.StructuredDocs
           |> Option.mapOrDefault r r.xmlDocs
         }
@@ -814,7 +814,7 @@ module GenerateTypes =
 
           abbrev
 
-          for o in others do
+          for o in namedAnonRecs do
             o
         }
 
@@ -824,51 +824,51 @@ module GenerateTypes =
 
     }
 
+
   /// Creates Open or Closed Enums based on an Enumeration
   let createEnumeration (enumeration: MetaModel.Enumeration) =
     AnonymousModule() {
       match enumeration.Type.Name with
+      | MetaModel.EnumerationTypeNameValues.String when enumeration.SupportsCustomValues = Some true ->
+        // This creates an "Open" enum. Essentially these are strings well known string values but allows for custom values
+
+        let ab = Abbrev(enumeration.Name, "string")
+
+        enumeration.StructuredDocs
+        |> Option.mapOrDefault ab ab.xmlDocs
+
+        NestedModule(enumeration.Name) {
+          for v in enumeration.ValuesSafe do
+            let name = PrettyNaming.NormalizeIdentifierBackticks v.Name
+            let l = Value(ConstantPat(Constant(name)), ConstantExpr(String(v.Value))).attribute (Attribute "Literal")
+            let l = l.returnType (LongIdent enumeration.Name)
+
+            v.StructuredDocs
+            |> Option.mapOrDefault l l.xmlDocs
+
+        }
+
+
       | MetaModel.EnumerationTypeNameValues.String ->
+        // Otherwise generate a normal F# closed enum with "string" values
+        let enum =
+          Enum enumeration.Name {
+            for i, v in
+              enumeration.ValuesSafe
+              |> Array.mapi (fun i x -> i, x) do
+              let case = EnumCase(v.Name, string i)
 
-        match enumeration.SupportsCustomValues with
-        | Some true -> // This creates an "Open" enum. Essentially these are strings well known string values but allows for custom values
-
-          let ab = Abbrev(enumeration.Name, "string")
-
-          enumeration.StructuredDocs
-          |> Option.mapOrDefault ab ab.xmlDocs
-
-          NestedModule(enumeration.Name) {
-            for v in enumeration.ValuesSafe do
-              let name = PrettyNaming.NormalizeIdentifierBackticks v.Name
-              let l = Value(ConstantPat(Constant(name)), ConstantExpr(String(v.Value))).attribute (Attribute "Literal")
-              let l = l.returnType (LongIdent enumeration.Name)
+              let case = case.attribute (Attribute($"EnumMember(Value = \"{v.Value}\")"))
 
               v.StructuredDocs
-              |> Option.mapOrDefault l l.xmlDocs
-
+              |> Option.mapOrDefault case case.xmlDocs
           }
 
+        let enum =
+          enumeration.StructuredDocs
+          |> Option.mapOrDefault enum enum.xmlDocs
 
-        | _ -> // Otherwise generate a normal F# enum with "string" values
-          let enum =
-            Enum enumeration.Name {
-              for i, v in
-                enumeration.ValuesSafe
-                |> Array.mapi (fun i x -> i, x) do
-                let case = EnumCase(v.Name, string i)
-
-                let case = case.attribute (Attribute($"EnumMember(Value = \"{v.Value}\")"))
-
-                v.StructuredDocs
-                |> Option.mapOrDefault case case.xmlDocs
-            }
-
-          let enum =
-            enumeration.StructuredDocs
-            |> Option.mapOrDefault enum enum.xmlDocs
-
-          enum.attribute (Attribute("JsonConverter(typeof<Converters.StringEnumConverter>)"))
+        enum.attribute (Attribute("JsonConverter(typeof<Converters.StringEnumConverter>)"))
 
       | MetaModel.EnumerationTypeNameValues.Integer
       | MetaModel.EnumerationTypeNameValues.Uinteger -> // Create enums with number values
@@ -888,19 +888,8 @@ module GenerateTypes =
 
 
   /// The main entry point to generating types from a metaModel.json file
-  let generateType (metamodelPath: string) outputPath =
+  let generateType (parsedMetaModel : MetaModel.MetaModel) outputPath =
     async {
-      printfn "Reading in %s" metamodelPath
-
-      let! metaModel =
-        File.ReadAllTextAsync(metamodelPath)
-        |> Async.AwaitTask
-
-      printfn "Deserializing metaModel"
-
-      let parsedMetaModel =
-        JsonConvert.DeserializeObject<MetaModel.MetaModel>(metaModel, MetaModel.metaModelSerializerSettings)
-
       let documentUriDocs =
         """
 URI's are transferred as strings. The URI's format is defined in https://tools.ietf.org/html/rfc3986
@@ -965,16 +954,13 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
               else
                 createStructure s knownInterfaces parsedMetaModel
                 |> List.map (fun r ->
-                  let x = Gen.mkOak r
-                  let y: ITypeDefn = x
 
                   let name =
-                    match
-                      y.TypeName.Identifier.Content
-                      |> List.head
-                    with
-                    | IdentifierOrDot.Ident x -> x.Text
-                    | _ -> ""
+                    let x = Gen.mkOak r :> ITypeDefn
+
+                    x.TypeName.Identifier.Content
+                    |> getIdent
+
 
                   name, r
                 )

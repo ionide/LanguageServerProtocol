@@ -18,6 +18,26 @@ module Proposed =
     else
       true
 
+module Preconverts =
+  open Newtonsoft.Json
+  open Newtonsoft.Json.Linq
+
+  type SingleOrArrayConverter<'T>() =
+    inherit JsonConverter()
+
+    override x.CanConvert(tobject: System.Type) = tobject = typeof<'T array>
+
+    override _.WriteJson(writer: JsonWriter, value, serializer: JsonSerializer) : unit =
+      failwith "Should never be writing this structure, it comes from Microsoft LSP Spec"
+
+    override _.ReadJson(reader: JsonReader, objectType: System.Type, existingValue: obj, serializer: JsonSerializer) =
+      let token = JToken.Load reader
+
+      match token.Type with
+      | JTokenType.Array -> serializer.Deserialize(reader, objectType)
+      | JTokenType.Null -> null
+      | _ -> Some [| token.ToObject<'T>(serializer) |]
+
 module rec MetaModel =
   open System
   open Newtonsoft.Json.Linq
@@ -25,8 +45,74 @@ module rec MetaModel =
   open Ionide.LanguageServerProtocol
 
   type MetaData = { Version: string }
-  type Requests = { Method: string }
 
+  /// Indicates in which direction a message is sent in the protocol.
+  [<JsonConverter(typeof<Newtonsoft.Json.Converters.StringEnumConverter>)>]
+  type MessageDirection =
+    | ClientToServer = 0
+    | ServerToClient = 1
+    | Both = 2
+
+  /// Represents a LSP request
+  type Request = {
+    /// Whether the request is deprecated or not. If deprecated the property contains the deprecation message."
+    Deprecated: string option
+    /// An optional documentation;
+    Documentation: string option
+    /// An optional error data type.
+    ErrorData: Type option
+    /// The direction in which this request is sent in the protocol.
+    MessageDirection: MessageDirection
+    /// The request's method name.
+    Method: string
+    /// The parameter type(s) if any.
+    [<JsonConverter(typeof<Preconverts.SingleOrArrayConverter<Type>>)>]
+    Params: Type array option
+    /// Optional partial result type if the request supports partial result reporting.
+    PartialResult: Type option
+    /// Whether this is a proposed feature. If omitted the feature is final.",
+    Proposed: bool option
+    /// Optional a dynamic registration method if it different from the request's method."
+    RegistrationMethod: string option
+    /// Optional registration options if the request supports dynamic registration."
+    RegistrationOptions: Type option
+    /// The result type.
+    Result: Type
+    /// Since when (release number) this request is available. Is undefined if not known.",
+    Since: string option
+  } with
+
+    member x.ParamsSafe =
+      x.Params
+      |> Option.Array.toArray
+
+  /// Represents a LSP notification
+  type Notification = {
+
+    /// Whether the notification is deprecated or not. If deprecated the property contains the deprecation message."
+    Deprecated: string option
+    /// An optional documentation;
+    Documentation: string option
+    /// The direction in which this notification is sent in the protocol.
+    MessageDirection: MessageDirection
+    /// The request's method name.
+    Method: string
+    /// The parameter type(s) if any.
+    [<JsonConverter(typeof<Preconverts.SingleOrArrayConverter<Type>>)>]
+    Params: Type array option
+    /// Whether this is a proposed feature. If omitted the notification is final.",
+    Proposed: bool option
+    /// Optional a dynamic registration method if it different from the request's method."
+    RegistrationMethod: string option
+    /// Optional registration options if the notification supports dynamic registration."
+    RegistrationOptions: Type option
+    /// Since when (release number) this notification is available. Is undefined if not known.",
+    Since: string option
+  } with
+
+    member x.ParamsSafe =
+      x.Params
+      |> Option.Array.toArray
 
   [<RequireQualifiedAccess>]
   type BaseTypes =
@@ -283,7 +369,8 @@ module rec MetaModel =
 
   type MetaModel = {
     MetaData: MetaData
-    Requests: Requests array
+    Requests: Request array
+    Notifications: Notification array
     Structures: Structure array
     TypeAliases: TypeAlias array
     Enumerations: Enumeration array

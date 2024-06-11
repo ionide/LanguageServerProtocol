@@ -4,7 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-   <PackageReference Include="Argu" Version="*" />
+    <PackageReference Include="Argu" Version="*" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="Fabulous.AST" Version="[1.0.0-pre12]" />
   </ItemGroup>
@@ -13,6 +13,7 @@
     <Compile Include="PrimitiveExtensions.fs" />
     <Compile Include="MetaModel.fs" />
     <Compile Include="GenerateTypes.fs" />
+    <Compile Include="GenerateClientServer.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 </Project>
