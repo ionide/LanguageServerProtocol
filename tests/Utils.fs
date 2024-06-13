@@ -21,7 +21,7 @@ module Lsp =
 
   let internal path =
     let name = example.FullName
-    let i = name.IndexOf '+'
+    let i = name.IndexOf ".TextDocumentIdentifier"
     name.Substring(0, i + 1)
 
   module Is =
@@ -232,12 +232,12 @@ let tests =
 
           testCase "MarkedString.String is lsp"
           <| fun _ ->
-            let o = MarkedString.String "foo"
+            let o = U2.C1 "foo"
             let isLsp = o.GetType() |> isLspType []
             Expect.isTrue isLsp "MarkedString.String is lsp"
           testCase "MarkedString.String isn't direct lsp"
           <| fun _ ->
-            let o = MarkedString.String "foo"
+            let o = U2.C1 "foo"
             let isLsp = o.GetType() |> isLspType [ not << Lsp.Is.Nested ]
             Expect.isFalse isLsp "MarkedString.String is not direct lsp"
 
@@ -289,8 +289,8 @@ let tests =
           testCase "can convert in U2"
           <| fun _ ->
             let extData = createWithExtensionData ()
-            let actual: U2<int, _> = U2.Second extData
-            let expected: U2<int, _> = U2.Second { extData with AdditionalData = dict }
+            let actual: U2<int, _> = U2.C2 extData
+            let expected: U2<int, _> = U2.C2 { extData with AdditionalData = dict }
             testConvert actual expected
 
           testCase "can convert in tuple"

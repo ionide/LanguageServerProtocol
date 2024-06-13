@@ -258,19 +258,19 @@ module Example =
     let gen (rand: Random) (depth: int) =
       { BoolString =
           if rand.NextBool() then
-            U2.First true
+            U2.C1 true
           else
-            U2.Second $"U2 {depth}"
+            U2.C2 $"U2 {depth}"
         StringInt =
           if rand.NextBool() then
-            U2.First $"U2 {depth}"
+            U2.C1 $"U2 {depth}"
           else
-            U2.Second(42000 + depth)
+            U2.C2(42000 + depth)
         BoolErasedUnionData =
           if rand.NextBool() then
-            U2.First true
+            U2.C1 true
           else
-            U2.Second(ErasedUnionDataHolder.gen rand (depth - 1)) }
+            U2.C2(ErasedUnionDataHolder.gen rand (depth - 1)) }
 
   [<RequireQualifiedAccess>]
   type MyEnum =
@@ -387,8 +387,10 @@ type MultipleTypesBenchmarks() =
       RootPath = Some "/"
       RootUri = Some "file://..."
       InitializationOptions = None
+      WorkDoneToken = None
+      Trace = Some TraceValues.Off
       Capabilities =
-        Some
+        
           { Workspace =
               Some
                 { ApplyEdit = Some true
@@ -419,7 +421,10 @@ type MultipleTypesBenchmarks() =
                   WorkspaceFolders = None
                   Configuration = None
                   FileOperations = None
-                  Diagnostics = None }
+                  Diagnostics = None 
+                  
+                  }
+            NotebookDocument = None
             TextDocument =
               Some
                 { Synchronization =
@@ -439,22 +444,24 @@ type MultipleTypesBenchmarks() =
                   Hover =
                     Some
                       { DynamicRegistration = Some true
-                        ContentFormat = Some [| "markup"; "plaintext" |] }
+                        ContentFormat = Some [| MarkupKind.PlainText; MarkupKind.Markdown |] }
                   SignatureHelp =
                     Some
                       { DynamicRegistration = Some true
                         SignatureInformation =
                           Some
-                            { DocumentationFormat = None
-                              ParameterInformation = None
-                              ActiveParameterSupport = None }
+                            {  DocumentationFormat = None
+                               ParameterInformation = None
+                               ActiveParameterSupport = None }
                         ContextSupport = None }
                   Declaration = Some { DynamicRegistration = Some false; LinkSupport = Some false }
                   References = Some { DynamicRegistration = Some false }
                   DocumentHighlight = Some { DynamicRegistration = None }
                   DocumentSymbol = None
                   Formatting = Some { DynamicRegistration = Some true }
-                  RangeFormatting = Some { DynamicRegistration = Some true }
+                  RangeFormatting = Some { 
+                      DynamicRegistration = Some true 
+                    }
                   OnTypeFormatting = None
                   Definition = Some { DynamicRegistration = Some false; LinkSupport = Some false }
                   TypeDefinition = Some { DynamicRegistration = Some false; LinkSupport = Some false }
@@ -464,7 +471,7 @@ type MultipleTypesBenchmarks() =
                       { DynamicRegistration = Some true
                         CodeActionLiteralSupport =
                           Some
-                            { CodeActionKind =
+                            {  CodeActionKind =
                                 { ValueSet = [| "foo"; "bar"; "baz"; "alpha"; "beta"; "gamma"; "delta"; "x"; "y"; "z" |] } }
                         IsPreferredSupport = Some true
                         DisabledSupport = Some false
@@ -488,7 +495,7 @@ type MultipleTypesBenchmarks() =
                   SemanticTokens =
                     Some
                       { DynamicRegistration = Some false
-                        Requests = { Range = Some true; Full = Some(U2.Second { Delta = Some true }) }
+                        Requests = { Range = Some (U2.C1 true); Full = Some(U2.C2 { Delta = Some true }) }
                         TokenTypes =
                           "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Proin tortor purus platea sit eu id nisi litora libero. Neque vulputate consequat ac amet augue blandit maximus aliquet congue. Pharetra vestibulum posuere ornare faucibus fusce dictumst orci aenean eu facilisis ut volutpat commodo senectus purus himenaeos fames primis convallis nisi."
                           |> fun s -> s.Split(' ')
@@ -511,7 +518,6 @@ type MultipleTypesBenchmarks() =
             General = None
             Experimental = None
             Window = None }
-      trace = None
       WorkspaceFolders =
         Some
           [| { Uri = "..."; Name = "foo" }
@@ -521,19 +527,19 @@ type MultipleTypesBenchmarks() =
 
   let inlayHint: InlayHint =
     { Label =
-        InlayHintLabel.Parts
+        U2.C2
           [| { InlayHintLabelPart.Value = "1st label"
-               Tooltip = Some(InlayHintTooltip.String "1st label tooltip")
-               Location = Some { Uri = "1st"; Range = mkRange' (1, 2) (3, 4) }
+               Tooltip = Some(U2.C1 "1st label tooltip")
+               Location = Some { Uri = "1st"; Range = mkRange' (1u, 2u) (3u, 4u) }
                Command = None }
              { Value = "2nd label"
-               Tooltip = Some(InlayHintTooltip.String "1st label tooltip")
-               Location = Some { Uri = "2nd"; Range = mkRange' (5, 8) (10, 9) }
+               Tooltip = Some(U2.C1 "1st label tooltip")
+               Location = Some { Uri = "2nd"; Range = mkRange' (5u, 8u) (10u, 9u) }
                Command = Some { Title = "2nd command"; Command = "foo"; Arguments = None } }
              { InlayHintLabelPart.Value = "3rd label"
                Tooltip =
                  Some(
-                   InlayHintTooltip.Markup
+                   U2.C2
                      { Kind = MarkupKind.Markdown
                        Value =
                          """
@@ -543,15 +549,15 @@ type MultipleTypesBenchmarks() =
                                             * List 2
                                             """ }
                  )
-               Location = Some { Uri = "3rd"; Range = mkRange' (1, 2) (3, 4) }
+               Location = Some { Uri = "3rd"; Range = mkRange' (1u, 2u) (3u, 4u) }
                Command = None } |]
-      Position = { Line = 5; Character = 10 }
+      Position = { Line = 5u; Character = 10u }
       Kind = Some InlayHintKind.Type
       TextEdits =
         Some
-          [| { Range = mkRange' (5, 10) (6, 5); NewText = "foo bar" }
-             { Range = mkRange' (5, 0) (5, 2); NewText = "baz" } |]
-      Tooltip = Some(InlayHintTooltip.Markup { Kind = MarkupKind.PlainText; Value = "some tooltip" })
+          [| { Range = mkRange' (5u, 10u) (6u, 5u); NewText = "foo bar" }
+             { Range = mkRange' (5u, 0u) (5u, 2u); NewText = "baz" } |]
+      Tooltip = Some(U2.C2 { Kind = MarkupKind.PlainText; Value = "some tooltip" })
       PaddingLeft = Some true
       PaddingRight = Some false
       Data = Some(JToken.FromObject "some data") }

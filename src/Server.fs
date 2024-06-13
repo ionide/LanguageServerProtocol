@@ -84,11 +84,11 @@ type ILspServer =
 
   /// The go to declaration request is sent from the client to the server to resolve the declaration location
   /// of a symbol at a given text document position
-  abstract member TextDocumentDeclaration: TextDocumentPositionParams -> AsyncLspResult<GotoResult option>
+  abstract member TextDocumentDeclaration: TextDocumentPositionParams -> AsyncLspResult<Declaration option>
 
   /// The goto definition request is sent from the client to the server to resolve the definition location of
   /// a symbol at a given text document position.
-  abstract member TextDocumentDefinition: TextDocumentPositionParams -> AsyncLspResult<GotoResult option>
+  abstract member TextDocumentDefinition: TextDocumentPositionParams -> AsyncLspResult<Definition option>
 
 
   /// The references request is sent from the client to the server to resolve project-wide references for
@@ -114,12 +114,12 @@ type ILspServer =
 
   /// The goto type definition request is sent from the client to the server to resolve the type definition
   /// location of a symbol at a given text document position.
-  abstract member TextDocumentTypeDefinition: TextDocumentPositionParams -> AsyncLspResult<GotoResult option>
+  abstract member TextDocumentTypeDefinition: TextDocumentPositionParams -> AsyncLspResult<Definition option>
 
 
   /// The goto implementation request is sent from the client to the server to resolve the implementation
   /// location of a symbol at a given text document position.
-  abstract member TextDocumentImplementation: TextDocumentPositionParams -> AsyncLspResult<GotoResult option>
+  abstract member TextDocumentImplementation: TextDocumentPositionParams -> AsyncLspResult<Definition option>
 
 
   /// The code action request is sent from the client to the server to compute commands for a given text
@@ -402,7 +402,7 @@ type LspServer() =
   /// The initialized notification may only be sent once.
   abstract member Initialized: InitializedParams -> Async<unit>
 
-  default __.Initialized(_) = ignoreNotification
+  default __.Initialized() = ignoreNotification
 
   /// The shutdown request is sent from the client to the server. It asks the server to shut down, but to not
   /// exit (otherwise the response might not be delivered correctly to the client). There is a separate exit
@@ -468,18 +468,17 @@ type LspServer() =
   /// If None is returned then it is deemed that a ‘textDocument/rename’ request is not valid at the given position.
   abstract member TextDocumentPrepareRename: PrepareRenameParams -> AsyncLspResult<PrepareRenameResult option>
 
-  default __.TextDocumentPrepareRename(_) =
-    AsyncLspResult.success (Some(PrepareRenameResult.Default { DefaultBehavior = true }))
+  default __.TextDocumentPrepareRename(_) = AsyncLspResult.success (Some(U3.C3 { DefaultBehavior = true }))
 
   /// The go to declaration request is sent from the client to the server to resolve the declaration location
   /// of a symbol at a given text document position.
-  abstract member TextDocumentDeclaration: TextDocumentPositionParams -> AsyncLspResult<GotoResult option>
+  abstract member TextDocumentDeclaration: TextDocumentPositionParams -> AsyncLspResult<Declaration option>
 
   default __.TextDocumentDeclaration(_) = notImplemented
 
   /// The goto definition request is sent from the client to the server to resolve the definition location of
   /// a symbol at a given text document position.
-  abstract member TextDocumentDefinition: TextDocumentPositionParams -> AsyncLspResult<GotoResult option>
+  abstract member TextDocumentDefinition: TextDocumentPositionParams -> AsyncLspResult<Definition option>
 
   default __.TextDocumentDefinition(_) = notImplemented
 
@@ -509,13 +508,13 @@ type LspServer() =
 
   /// The goto type definition request is sent from the client to the server to resolve the type definition
   /// location of a symbol at a given text document position.
-  abstract member TextDocumentTypeDefinition: TextDocumentPositionParams -> AsyncLspResult<GotoResult option>
+  abstract member TextDocumentTypeDefinition: TextDocumentPositionParams -> AsyncLspResult<Definition option>
 
   default __.TextDocumentTypeDefinition(_) = notImplemented
 
   /// The goto implementation request is sent from the client to the server to resolve the implementation
   /// location of a symbol at a given text document position.
-  abstract member TextDocumentImplementation: TextDocumentPositionParams -> AsyncLspResult<GotoResult option>
+  abstract member TextDocumentImplementation: TextDocumentPositionParams -> AsyncLspResult<Definition option>
 
   default __.TextDocumentImplementation(_) = notImplemented
 
@@ -848,7 +847,7 @@ type LspServer() =
   interface ILspServer with
     member this.Dispose() = this.Dispose()
     member this.Initialize(p: InitializeParams) = this.Initialize(p)
-    member this.Initialized(p: InitializedParams) = this.Initialized(p)
+    member this.Initialized() = this.Initialized()
     member this.Shutdown() = this.Shutdown()
     member this.Exit() = this.Exit()
     member this.TextDocumentHover(p: TextDocumentPositionParams) = this.TextDocumentHover(p)

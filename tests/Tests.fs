@@ -493,52 +493,52 @@ let private serializationTests =
         "U2"
         [ testCase "can (de)serialize U2<int,string>.First"
           <| fun _ ->
-            let input: U2<int, string> = U2.First 42
+            let input: U2<int, string> = U2.C1 42
             testThereAndBackAgain input
           testCase "can (de)serialize U2<int,string>.Second"
           <| fun _ ->
-            let input: U2<int, string> = U2.Second "foo"
+            let input: U2<int, string> = U2.C2 "foo"
             testThereAndBackAgain input
           testCase "deserialize to first type match"
           <| fun _ ->
             // Cannot distinguish between same type -> pick first
-            let input: U2<int, int> = U2.Second 42
+            let input: U2<int, int> = U2.C2 42
             let output = thereAndBackAgain input
             Expect.notEqual output input "First matching type gets matched"
           testCase "deserialize Second int to first float"
           <| fun _ ->
             // Cannot distinguish between float and int
-            let input: U2<float, int> = U2.Second 42
+            let input: U2<float, int> = U2.C2 42
             let output = thereAndBackAgain input
             Expect.notEqual output input "First matching type gets matched"
 
           testCase "can (de)serialize Record1 in U2<Record1, int>"
           <| fun _ ->
-            let input: U2<Record1, int> = U2.First { Record1.Name = "foo"; Value = 42 }
+            let input: U2<Record1, int> = U2.C1 { Record1.Name = "foo"; Value = 42 }
             testThereAndBackAgain input
 
           testCase "can (de)serialize Record1 in U2<int, Record1>"
           <| fun _ ->
-            let input: U2<int, Record1> = U2.Second { Record1.Name = "foo"; Value = 42 }
+            let input: U2<int, Record1> = U2.C2 { Record1.Name = "foo"; Value = 42 }
             testThereAndBackAgain input
 
           testCase "can (de)serialize Record1 in U2<Record1, Record2>"
           <| fun _ ->
-            let input: U2<Record1, Record2> = U2.First { Record1.Name = "foo"; Value = 42 }
+            let input: U2<Record1, Record2> = U2.C1 { Record1.Name = "foo"; Value = 42 }
             testThereAndBackAgain input
 
           testCase "can deserialize to correct record"
           <| fun _ ->
             // Note: only possible because Records aren't compatible with each other.
             // If Record2.Position optional -> gets deserialized to `Record2` because first match
-            let input: U2<Record2, Record1> = U2.Second { Record1.Name = "foo"; Value = 42 }
+            let input: U2<Record2, Record1> = U2.C2 { Record1.Name = "foo"; Value = 42 }
             testThereAndBackAgain input
           testList
             "optional"
             [ testCase "doesn't emit optional missing member"
               <| fun _ ->
                 let input: U2<string, OneOptional> =
-                  U2.Second { OneOptional.RequiredName = "foo"; OptionalValue = None }
+                  U2.C2 { OneOptional.RequiredName = "foo"; OptionalValue = None }
 
                 let json = serialize input :?> JObject
                 Expect.hasLength (json.Properties()) 1 "There should be just one property"
@@ -548,13 +548,13 @@ let private serializationTests =
               testCase "can deserialize with optional missing member"
               <| fun _ ->
                 let input: U2<string, OneOptional> =
-                  U2.Second { OneOptional.RequiredName = "foo"; OptionalValue = None }
+                  U2.C2 { OneOptional.RequiredName = "foo"; OptionalValue = None }
 
                 testThereAndBackAgain input
               testCase "can deserialize with optional existing member"
               <| fun _ ->
                 let input: U2<string, OneOptional> =
-                  U2.Second { OneOptional.RequiredName = "foo"; OptionalValue = Some 42 }
+                  U2.C2 { OneOptional.RequiredName = "foo"; OptionalValue = Some 42 }
 
                 testThereAndBackAgain input
               testCase "fails with missing required value"
@@ -571,59 +571,59 @@ let private serializationTests =
             "string vs int"
             [ testCase "can deserialize int to U2<int,string>"
               <| fun _ ->
-                let input: U2<int, string> = U2.First 42
+                let input: U2<int, string> = U2.C1 42
                 testThereAndBackAgain input
               testCase "can deserialize string to U2<int,string>"
               <| fun _ ->
-                let input: U2<int, string> = U2.Second "foo"
+                let input: U2<int, string> = U2.C2 "foo"
                 testThereAndBackAgain input
               testCase "can deserialize 42 string to U2<int,string>"
               <| fun _ ->
-                let input: U2<int, string> = U2.Second "42"
+                let input: U2<int, string> = U2.C2 "42"
                 testThereAndBackAgain input
 
               testCase "can deserialize int to U2<string, int>"
               <| fun _ ->
-                let input: U2<string, int> = U2.Second 42
+                let input: U2<string, int> = U2.C2 42
                 testThereAndBackAgain input
               testCase "can deserialize string to U2<string, string>"
               <| fun _ ->
-                let input: U2<string, int> = U2.First "foo"
+                let input: U2<string, int> = U2.C1 "foo"
                 testThereAndBackAgain input
               testCase "can deserialize 42 string to U2<string,int>"
               <| fun _ ->
-                let input: U2<string, int> = U2.First "42"
+                let input: U2<string, int> = U2.C1 "42"
                 testThereAndBackAgain input ]
           testList
             "string vs bool"
             [ testCase "can deserialize bool to U2<bool,string>"
               <| fun _ ->
-                let input: U2<bool, string> = U2.First true
+                let input: U2<bool, string> = U2.C1 true
                 testThereAndBackAgain input
               testCase "can deserialize string to U2<bool,string>"
               <| fun _ ->
-                let input: U2<bool, string> = U2.Second "foo"
+                let input: U2<bool, string> = U2.C2 "foo"
                 testThereAndBackAgain input
               testCase "can deserialize true string to U2<bool,string>"
               <| fun _ ->
-                let input: U2<bool, string> = U2.Second "true"
+                let input: U2<bool, string> = U2.C2 "true"
                 testThereAndBackAgain input
 
               testCase "can deserialize bool true to U2<string, bool>"
               <| fun _ ->
-                let input: U2<string, bool> = U2.Second true
+                let input: U2<string, bool> = U2.C2 true
                 testThereAndBackAgain input
               testCase "can deserialize bool false to U2<string, bool>"
               <| fun _ ->
-                let input: U2<string, bool> = U2.Second false
+                let input: U2<string, bool> = U2.C2 false
                 testThereAndBackAgain input
               testCase "can deserialize string to U2<string, string>"
               <| fun _ ->
-                let input: U2<string, bool> = U2.First "foo"
+                let input: U2<string, bool> = U2.C1 "foo"
                 testThereAndBackAgain input
               testCase "can deserialize true string to U2<string,bool>"
               <| fun _ ->
-                let input: U2<string, bool> = U2.First "true"
+                let input: U2<string, bool> = U2.C1 "true"
                 testThereAndBackAgain input ] ]
 
       testList
@@ -748,8 +748,8 @@ let private serializationTests =
           testCase "can (de)serialize minimal InlayHint"
           <| fun _ ->
             let theInlayHint: InlayHint =
-              { Label = InlayHintLabel.String "test"
-                Position = { Line = 0; Character = 0 }
+              { Label = U2.C1 "test"
+                Position = { Line = 0u; Character = 0u }
                 Kind = None
                 TextEdits = None
                 Tooltip = None
@@ -761,16 +761,16 @@ let private serializationTests =
           testCase "can roundtrip InlayHint with all fields (simple)"
           <| fun _ ->
             let theInlayHint: InlayHint =
-              { Label = InlayHintLabel.String "test"
-                Position = { Line = 5; Character = 10 }
+              { Label = U2.C1 "test"
+                Position = { Line = 5u; Character = 10u }
                 Kind = Some InlayHintKind.Parameter
                 TextEdits =
                   Some
-                    [| { Range = { Start = { Line = 5; Character = 10 }; End = { Line = 6; Character = 5 } }
+                    [| { Range = { Start = { Line = 5u; Character = 10u }; End = { Line = 6u; Character = 5u } }
                          NewText = "foo bar" }
-                       { Range = { Start = { Line = 4; Character = 0 }; End = { Line = 5; Character = 2 } }
+                       { Range = { Start = { Line = 4u; Character = 0u }; End = { Line = 5u; Character = 2u } }
                          NewText = "baz" } |]
-                Tooltip = Some(InlayHintTooltip.String "tooltipping")
+                Tooltip = Some(U2.C1 "tooltipping")
                 PaddingLeft = Some true
                 PaddingRight = Some false
                 Data = Some(JToken.FromObject "some data") }
@@ -782,11 +782,11 @@ let private serializationTests =
             // -> Expecto equal check fails even when same content in complex JToken
             let data =
               { InlayHintData.TextDocument = { Uri = "..." }
-                Range = { Start = { Line = 5; Character = 7 }; End = { Line = 5; Character = 10 } } }
+                Range = { Start = { Line = 5u; Character = 7u }; End = { Line = 5u; Character = 10u } } }
 
             let theInlayHint: InlayHint =
-              { Label = InlayHintLabel.String "test"
-                Position = { Line = 0; Character = 0 }
+              { Label = U2.C1 "test"
+                Position = { Line = 0u; Character = 0u }
                 Kind = None
                 TextEdits = None
                 Tooltip = None
@@ -805,19 +805,19 @@ let private serializationTests =
           <| fun _ ->
             let theInlayHint: InlayHint =
               { Label =
-                  InlayHintLabel.Parts
+                  U2.C2
                     [| { InlayHintLabelPart.Value = "1st label"
-                         Tooltip = Some(InlayHintTooltip.String "1st label tooltip")
-                         Location = Some { Uri = "1st"; Range = mkRange' (1, 2) (3, 4) }
+                         Tooltip = Some(U2.C1 "1st label tooltip")
+                         Location = Some { Uri = "1st"; Range = mkRange' (1u, 2u) (3u, 4u) }
                          Command = None }
                        { Value = "2nd label"
-                         Tooltip = Some(InlayHintTooltip.String "1st label tooltip")
-                         Location = Some { Uri = "2nd"; Range = mkRange' (5, 8) (10, 9) }
+                         Tooltip = Some(U2.C1 "1st label tooltip")
+                         Location = Some { Uri = "2nd"; Range = mkRange' (5u, 8u) (10u, 9u) }
                          Command = Some { Title = "2nd command"; Command = "foo"; Arguments = None } }
                        { InlayHintLabelPart.Value = "3rd label"
                          Tooltip =
                            Some(
-                             InlayHintTooltip.Markup
+                             U2.C2
                                { Kind = MarkupKind.Markdown
                                  Value =
                                    """
@@ -827,15 +827,15 @@ let private serializationTests =
                                                           * List 2
                                                           """ }
                            )
-                         Location = Some { Uri = "3rd"; Range = mkRange' (1, 2) (3, 4) }
+                         Location = Some { Uri = "3rd"; Range = mkRange' (1u, 2u) (3u, 4u) }
                          Command = None } |]
-                Position = { Line = 5; Character = 10 }
+                Position = { Line = 5u; Character = 10u }
                 Kind = Some InlayHintKind.Type
                 TextEdits =
                   Some
-                    [| { Range = mkRange' (5, 10) (6, 5); NewText = "foo bar" }
-                       { Range = mkRange' (5, 0) (5, 2); NewText = "baz" } |]
-                Tooltip = Some(InlayHintTooltip.Markup { Kind = MarkupKind.PlainText; Value = "some tooltip" })
+                    [| { Range = mkRange' (5u, 10u) (6u, 5u); NewText = "foo bar" }
+                       { Range = mkRange' (5u, 0u) (5u, 2u); NewText = "baz" } |]
+                Tooltip = Some(U2.C2 { Kind = MarkupKind.PlainText; Value = "some tooltip" })
                 PaddingLeft = Some true
                 PaddingRight = Some false
                 Data = Some(JToken.FromObject "some data") }
@@ -851,24 +851,24 @@ let private serializationTests =
           testCase "can roundtrip InlineValue with all fields (simple)"
           <| fun _ ->
             let theInlineValue: InlineValue =
-              { InlineValueText.Range = { Start = { Line = 5; Character = 7 }; End = { Line = 5; Character = 10 } }
+              { InlineValueText.Range = { Start = { Line = 5u; Character = 7u }; End = { Line = 5u; Character = 10u } }
                 Text = "test" }
-              |> InlineValue.InlineValueText
+              |> U3.C1
 
             testThereAndBackAgain theInlineValue ]
 
       testList
-        (nameof HierarchyItem)
+        (nameof TypeHierarchyItem)
         [ testCase "can roundtrip HierarchyItem with all fields (simple)"
           <| fun _ ->
-            let item: HierarchyItem =
+            let item: TypeHierarchyItem =
               { Name = "test"
                 Kind = SymbolKind.Function
                 Tags = None
                 Detail = None
                 Uri = "..."
-                Range = mkRange' (1, 2) (3, 4)
-                SelectionRange = mkRange' (1, 2) (1, 4)
+                Range = mkRange' (1u, 2u) (3u, 4u)
+                SelectionRange = mkRange' (1u, 2u) (1u, 4u)
                 Data = None }
 
             testThereAndBackAgain item ]

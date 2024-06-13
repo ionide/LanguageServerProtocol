@@ -7,6 +7,10 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Ionide.LanguageServerProtoc
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Ionide.LanguageServerProtocol.Tests", "tests\Ionide.LanguageServerProtocol.Tests.fsproj", "{8E54FA2A-C7E4-4D70-AF23-7F8D56EB6B9C}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{47733741-07EF-431B-A1DC-2A22E4090CCC}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "MetaModelGenerator", "tools\MetaModelGenerator\MetaModelGenerator.fsproj", "{4BA36C85-8414-4965-AAA3-B6D8EDE14B7D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +28,12 @@ Global
 		{8E54FA2A-C7E4-4D70-AF23-7F8D56EB6B9C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8E54FA2A-C7E4-4D70-AF23-7F8D56EB6B9C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8E54FA2A-C7E4-4D70-AF23-7F8D56EB6B9C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4BA36C85-8414-4965-AAA3-B6D8EDE14B7D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4BA36C85-8414-4965-AAA3-B6D8EDE14B7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4BA36C85-8414-4965-AAA3-B6D8EDE14B7D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4BA36C85-8414-4965-AAA3-B6D8EDE14B7D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{4BA36C85-8414-4965-AAA3-B6D8EDE14B7D} = {47733741-07EF-431B-A1DC-2A22E4090CCC}
 	EndGlobalSection
 EndGlobal
