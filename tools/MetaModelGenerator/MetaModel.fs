@@ -9,7 +9,7 @@ module StructuredDocs =
     |> Array.toList
 
 module Proposed =
-  let skipProposed = true
+  let skipProposed = false
 
   let inline checkProposed x =
     if skipProposed then

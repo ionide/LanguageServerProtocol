@@ -114,6 +114,7 @@ module Extensions =
       InlineValueProvider = None
       InlayHintProvider = None
       DiagnosticProvider = None
+      InlineCompletionProvider = None
     }
 
 
@@ -183,7 +184,7 @@ module Extensions =
           edit.Edits
           |> Array.choose (
             function
-            | U2.C1 x -> Some x
+            | U3.C1 x -> Some x
             | _ -> None
           )
 

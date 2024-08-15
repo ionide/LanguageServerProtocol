@@ -388,7 +388,7 @@ type MultipleTypesBenchmarks() =
       RootUri = Some "file://..."
       InitializationOptions = None
       WorkDoneToken = None
-      Trace = Some TraceValues.Off
+      Trace = Some TraceValue.Off
       Capabilities =
         
           { Workspace =
@@ -404,7 +404,10 @@ type MultipleTypesBenchmarks() =
                                ResourceOperationKind.Delete |]
                         FailureHandling = Some FailureHandlingKind.Abort
                         NormalizesLineEndings = None
-                        ChangeAnnotationSupport = Some { GroupsOnLabel = Some false } }
+                        ChangeAnnotationSupport = Some { GroupsOnLabel = Some false } 
+                        MetadataSupport = None 
+                        SnippetEditSupport = None
+                        }
                   DidChangeConfiguration = None
                   DidChangeWatchedFiles = None
                   Symbol =
@@ -422,6 +425,7 @@ type MultipleTypesBenchmarks() =
                   Configuration = None
                   FileOperations = None
                   Diagnostics = None 
+                  FoldingRange = None
                   
                   }
             NotebookDocument = None
@@ -432,7 +436,8 @@ type MultipleTypesBenchmarks() =
                       { DynamicRegistration = Some true
                         WillSave = Some true
                         WillSaveWaitUntil = Some false
-                        DidSave = Some true }
+                        DidSave = Some true 
+                        }
                   PublishDiagnostics =
                     Some
                       { RelatedInformation = None
@@ -452,7 +457,8 @@ type MultipleTypesBenchmarks() =
                           Some
                             {  DocumentationFormat = None
                                ParameterInformation = None
-                               ActiveParameterSupport = None }
+                               ActiveParameterSupport = None 
+                               NoActiveParameterSupport = None}
                         ContextSupport = None }
                   Declaration = Some { DynamicRegistration = Some false; LinkSupport = Some false }
                   References = Some { DynamicRegistration = Some false }
@@ -461,6 +467,7 @@ type MultipleTypesBenchmarks() =
                   Formatting = Some { DynamicRegistration = Some true }
                   RangeFormatting = Some { 
                       DynamicRegistration = Some true 
+                      RangesSupport = None
                     }
                   OnTypeFormatting = None
                   Definition = Some { DynamicRegistration = Some false; LinkSupport = Some false }
@@ -477,8 +484,9 @@ type MultipleTypesBenchmarks() =
                         DisabledSupport = Some false
                         DataSupport = None
                         ResolveSupport = Some { Properties = [| "foo"; "bar"; "baz" |] }
-                        HonorsChangeAnnotations = Some false }
-                  CodeLens = Some { DynamicRegistration = Some true }
+                        HonorsChangeAnnotations = Some false
+                        DocumentationSupport = None }
+                  CodeLens = Some { DynamicRegistration = Some true; ResolveSupport = None }
                   DocumentLink = Some { DynamicRegistration = Some true; TooltipSupport = None }
                   ColorProvider = Some { DynamicRegistration = Some true }
                   Rename = None
@@ -514,7 +522,8 @@ type MultipleTypesBenchmarks() =
                     Some
                       { DynamicRegistration = Some true
                         ResolveSupport = Some { Properties = [| "Tooltip"; "Position"; "TextEdits" |] } }
-                  Diagnostic = Some { DynamicRegistration = None; RelatedDocumentSupport = None } }
+                  Diagnostic = Some { DynamicRegistration = None; RelatedDocumentSupport = None; RelatedInformation = None ; TagSupport = None; CodeDescriptionSupport = None; DataSupport= None } 
+                  InlineCompletion = None}
             General = None
             Experimental = None
             Window = None }
@@ -535,7 +544,7 @@ type MultipleTypesBenchmarks() =
              { Value = "2nd label"
                Tooltip = Some(U2.C1 "1st label tooltip")
                Location = Some { Uri = "2nd"; Range = mkRange' (5u, 8u) (10u, 9u) }
-               Command = Some { Title = "2nd command"; Command = "foo"; Arguments = None } }
+               Command = Some { Title = "2nd command"; Command = "foo"; Arguments = None ; Tooltip = None } }
              { InlayHintLabelPart.Value = "3rd label"
                Tooltip =
                  Some(
