@@ -10,7 +10,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageProjectUrl>https://github.com/ionide/LanguageServerProtocol</PackageProjectUrl>
-    <LSPVersion>3.17.0</LSPVersion>
+    <LSPVersion>3.18.0</LSPVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- FsLibLog.fs comes verbatim from
