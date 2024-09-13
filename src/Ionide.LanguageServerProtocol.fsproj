@@ -24,6 +24,7 @@
     <Compile Include="Types.fs" />
     <Compile Include="Types.cg.fs" />
     <Compile Include="TypeDefaults.fs" />
+    <Compile Include="ClientServer.cg.fs" />
     <Compile Include="Client.fs" />
     <Compile Include="Server.fs" />
     <Compile Include="OptionConverter.fs" />
@@ -43,6 +44,7 @@
   <ItemGroup>
     <_MetaModelInputs Include="$(MSBuildThisFileDirectory)../data/$(LSPVersion)/metaModel.json" />
     <_MetaModelOutputs Include="$(MSBuildThisFileDirectory)Types.cg.fs" />
+    <_MetaModelClientServerOutputs Include="$(MSBuildThisFileDirectory)ClientServer.cg.fs" />
   </ItemGroup>
 
   <Target Name="EnsureRegeneration" Condition="'$(ForceRegenerate)' == 'true'">
@@ -50,7 +52,7 @@
   </Target>
 
   <Target Name="RegenerateTypes" Inputs="@(_MetaModelInputs)" DependsOnTargets="EnsureRegeneration"
-    Outputs="@(_MetaModelOutputs)"
+    Outputs="@(_MetaModelOutputs); @(_MetaModelClientServerOutputs)"
     BeforeTargets="PrepareForBuild">
     <ItemGroup>
       <_GeneratorProject Include="../tools/MetaModelGenerator/MetaModelGenerator.fsproj" />
@@ -70,5 +72,18 @@
 
     <Exec
       Command="@(_GenerateCommand, ' ')" />
+
+      <ItemGroup>
+        <_GenerateCommand2 Include="dotnet;@(_GeneratorApp)" />
+        <_GenerateCommand2 Include="clientserver" />
+        <_GenerateCommand2 Include="--metamodelpath" />
+        <_GenerateCommand2 Include="%(_MetaModelInputs.FullPath)" />
+        <_GenerateCommand2 Include="--outputfilepath" />
+        <_GenerateCommand2 Include="%(_MetaModelClientServerOutputs.FullPath)" />
+      </ItemGroup>
+  
+      <Exec
+        Command="@(_GenerateCommand2, ' ')" />
+
   </Target>
 </Project>

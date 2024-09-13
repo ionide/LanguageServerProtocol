@@ -26,12 +26,12 @@ module Main =
   
   type CommandArgs =
   | [<CliPrefix(CliPrefix.None)>] Types of ParseResults<TypeArgs>
-  // | [<CliPrefix(CliPrefix.None)>] ClientServer of ParseResults<ClientServerArgs>
+  | [<CliPrefix(CliPrefix.None)>] ClientServer of ParseResults<ClientServerArgs>
     interface IArgParserTemplate with
       member this.Usage =
         match this with
         | Types _ -> "Generates Types from metaModel.json."
-        // | ClientServer _ -> "Generates Client/Server"
+        | ClientServer _ -> "Generates Client/Server"
   let readMetaModel metamodelPath = async {
 
       printfn "Reading in %s" metamodelPath
@@ -63,12 +63,12 @@ module Main =
       let metaModel = readMetaModel metaModelPath |> Async.RunSynchronously
       GenerateTypes.generateType metaModel OutputFilePath |> Async.RunSynchronously
     
-    // | ClientServer r ->
+    | ClientServer r ->
 
-      // let metaModelPath = r.GetResult <@ ClientServerArgs.MetaModelPath @>
-      // let OutputFilePath = r.GetResult <@ ClientServerArgs.OutputFilePath @>
-      // let metaModel = readMetaModel metaModelPath |> Async.RunSynchronously
-
+      let metaModelPath = r.GetResult <@ ClientServerArgs.MetaModelPath @>
+      let OutputFilePath = r.GetResult <@ ClientServerArgs.OutputFilePath @>
+      let metaModel = readMetaModel metaModelPath |> Async.RunSynchronously
+      GenerateTypes.generateClientServer metaModel OutputFilePath |> Async.RunSynchronously
       // let requests =
       //   metaModel.Requests 
       //   |> Array.groupBy(fun x ->x.MessageDirection)

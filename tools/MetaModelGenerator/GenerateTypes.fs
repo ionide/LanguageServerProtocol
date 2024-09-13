@@ -982,3 +982,159 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
         |> writeToFile outputPath
         |> Async.AwaitTask
     }
+
+
+  let generateClientServer (parsedMetaModel : MetaModel.MetaModel) outputPath =
+    async {
+      printfn "Writing to %s" outputPath
+      let writeToFile path contents = File.WriteAllTextAsync(path, contents)
+
+
+      let requests =
+        parsedMetaModel.Requests 
+        |> Array.filter Proposed.checkProposed
+        |> Array.groupBy(fun x ->x.MessageDirection)
+        |> Map
+      let notifications =
+        parsedMetaModel.Notifications
+        |> Array.filter Proposed.checkProposed
+        |> Array.groupBy(fun x -> x.MessageDirection)
+        |> Map
+
+
+      let serverRequests = [
+        yield! requests |> Map.tryFind MetaModel.MessageDirection.ClientToServer |> Option.defaultValue [||]
+        yield! requests |> Map.tryFind MetaModel.MessageDirection.Both |> Option.defaultValue [||]
+      ]
+
+      let serverNotifications = [
+        yield! notifications |> Map.tryFind MetaModel.MessageDirection.ClientToServer |> Option.defaultValue [||]
+        yield! notifications |> Map.tryFind MetaModel.MessageDirection.Both |> Option.defaultValue [||]
+      ]
+
+      
+      let normalizeMethod (s : string) =
+        let parts = s.Split("/", StringSplitOptions.RemoveEmptyEntries ||| StringSplitOptions.TrimEntries)
+        parts 
+        |> Array.filter (fun x -> x <> "$")
+        |> Array.map (fun x -> (string x.[0]).ToUpper() + x.[1..]) |> String.concat ""
+
+      let oak = 
+        Ast.Oak () {
+          Namespace("Ionide.LanguageServerProtocol") {
+            Open("Ionide.LanguageServerProtocol.Types")
+            TypeDefn("ILSPServer") {
+              let notificationComment =
+                  SyntaxOak.TriviaNode(SyntaxOak.CommentOnSingleLine("// Notifications"), Fantomas.FCS.Text.Range.Zero)
+
+              let mutable writtenNotificationComment = false
+              
+              for n in serverNotifications do
+                let methodName = normalizeMethod n.Method
+                let parameters = [
+                  match n.Params with
+                  | None -> yield (None, "unit")
+                  | Some ps ->
+                    for p in ps do
+                      match p with
+                      | MetaModel.Type.ReferenceType r -> yield (None, r.Name)
+                      | _ -> ()
+                ]
+                let returnType = "Async<unit>"
+
+                
+
+                let wb = AbstractSlot(methodName, parameters, returnType)
+
+                let widget = wb |> Gen.mkOak
+                if not writtenNotificationComment then
+                  widget.AddBefore(notificationComment)
+                  writtenNotificationComment <- true
+
+                EscapeHatch(widget)
+              let requestComment =
+                  SyntaxOak.TriviaNode(SyntaxOak.CommentOnSingleLine("// Requests"), Fantomas.FCS.Text.Range.Zero)
+
+              let mutable writtenRequestComment = false
+              
+              
+              for r in serverRequests do
+                let methodName = normalizeMethod r.Method
+                let parameters = [
+                  match r.Params with
+                  | None -> yield (None, "unit")
+                  | Some ps ->
+                    for p in ps do
+                      match p with
+                      | MetaModel.Type.ReferenceType r -> yield (None, r.Name)
+                      | _ -> ()
+                ]
+                let returnType = 
+                    let rec returnType (ty: MetaModel.Type) =
+                      // TODO: Don't use strings
+                      match ty with
+                      | MetaModel.Type.ReferenceType r ->  r.Name 
+                      | MetaModel.Type.BaseType b ->
+                        match b.Name with
+                        | MetaModel.BaseTypes.Null -> "unit"
+                        | MetaModel.BaseTypes.Boolean -> "bool"
+                        | MetaModel.BaseTypes.Integer -> "int"
+                        | MetaModel.BaseTypes.Decimal -> "float"
+                        | MetaModel.BaseTypes.String -> "string"
+                        | _ -> "JToken"
+                      | MetaModel.Type.OrType o ->
+                        // TS types can have optional properties (myKey?: string)
+                        // and unions with null (string | null)
+                        // we need to handle both cases
+                        let isOptional, items =
+                          if Array.exists isNullableType o.Items then
+                            true,
+                            o.Items
+                            |> Array.filter (fun x -> not (isNullableType x))
+                          else
+                            false, o.Items
+                            
+                        let types = items |> Array.map returnType
+                        let retType =
+                          if types.Length > 1 then
+                            let duType = $"U{types.Length}"
+                            let inner = String.Join(",",  types)
+                            $"{duType}<{inner}>"
+                          else
+                            types.[0]
+                        if isOptional then
+                          $"Option<{retType}>"
+                        else
+                          retType
+                      | MetaModel.Type.ArrayType a -> 
+                        $"{returnType a.Element} array"
+                      | _ -> "Async<unit>"
+                    
+                    returnType r.Result
+
+
+                let wb = AbstractSlot(methodName, parameters, returnType)
+                
+                let widget = wb |> Gen.mkOak
+                if not writtenRequestComment then
+                  widget.AddBefore(requestComment)
+                  writtenRequestComment <- true
+
+                EscapeHatch(widget)
+
+            }
+          }
+        }
+
+
+      let! formattedText =
+        oak
+        |> Gen.mkOak
+        |> CodeFormatter.FormatOakAsync
+
+      do!
+        formattedText
+        |> writeToFile outputPath
+        |> Async.AwaitTask
+
+    }
