@@ -874,7 +874,7 @@ module GenerateTypes =
 
 
   /// The main entry point to generating types from a metaModel.json file
-  let generateType (parsedMetaModel : MetaModel.MetaModel) outputPath =
+  let generateType (parsedMetaModel: MetaModel.MetaModel) outputPath =
     async {
       let documentUriDocs =
         """
@@ -984,104 +984,171 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
     }
 
 
-  let generateClientServer (parsedMetaModel : MetaModel.MetaModel) outputPath =
+  let generateClientServer (parsedMetaModel: MetaModel.MetaModel) outputPath =
     async {
       printfn "Writing to %s" outputPath
       let writeToFile path contents = File.WriteAllTextAsync(path, contents)
 
 
       let requests =
-        parsedMetaModel.Requests 
+        parsedMetaModel.Requests
         |> Array.filter Proposed.checkProposed
-        |> Array.groupBy(fun x ->x.MessageDirection)
+        |> Array.groupBy (fun x -> x.MessageDirection)
         |> Map
+
       let notifications =
         parsedMetaModel.Notifications
         |> Array.filter Proposed.checkProposed
-        |> Array.groupBy(fun x -> x.MessageDirection)
+        |> Array.groupBy (fun x -> x.MessageDirection)
         |> Map
 
 
       let serverRequests = [
-        yield! requests |> Map.tryFind MetaModel.MessageDirection.ClientToServer |> Option.defaultValue [||]
-        yield! requests |> Map.tryFind MetaModel.MessageDirection.Both |> Option.defaultValue [||]
+        yield!
+          requests
+          |> Map.tryFind MetaModel.MessageDirection.ClientToServer
+          |> Option.defaultValue [||]
+        yield!
+          requests
+          |> Map.tryFind MetaModel.MessageDirection.Both
+          |> Option.defaultValue [||]
       ]
 
       let serverNotifications = [
-        yield! notifications |> Map.tryFind MetaModel.MessageDirection.ClientToServer |> Option.defaultValue [||]
-        yield! notifications |> Map.tryFind MetaModel.MessageDirection.Both |> Option.defaultValue [||]
+        yield!
+          notifications
+          |> Map.tryFind MetaModel.MessageDirection.ClientToServer
+          |> Option.defaultValue [||]
+        yield!
+          notifications
+          |> Map.tryFind MetaModel.MessageDirection.Both
+          |> Option.defaultValue [||]
       ]
 
-      
-      let normalizeMethod (s : string) =
-        let parts = s.Split("/", StringSplitOptions.RemoveEmptyEntries ||| StringSplitOptions.TrimEntries)
-        parts 
+
+      let clientRequests = [
+        yield!
+          requests
+          |> Map.tryFind MetaModel.MessageDirection.ServerToClient
+          |> Option.defaultValue [||]
+        yield!
+          requests
+          |> Map.tryFind MetaModel.MessageDirection.Both
+          |> Option.defaultValue [||]
+      ]
+
+      let clientNotifications = [
+        yield!
+          notifications
+          |> Map.tryFind MetaModel.MessageDirection.ServerToClient
+          |> Option.defaultValue [||]
+        yield!
+          notifications
+          |> Map.tryFind MetaModel.MessageDirection.Both
+          |> Option.defaultValue [||]
+      ]
+
+      let normalizeMethod (s: string) =
+        let parts =
+          s.Split(
+            "/",
+            StringSplitOptions.RemoveEmptyEntries
+            ||| StringSplitOptions.TrimEntries
+          )
+
+        parts
         |> Array.filter (fun x -> x <> "$")
-        |> Array.map (fun x -> (string x.[0]).ToUpper() + x.[1..]) |> String.concat ""
+        |> Array.map (fun x ->
+          (string x.[0]).ToUpper()
+          + x.[1..]
+        )
+        |> String.concat ""
 
-      let oak = 
-        Ast.Oak () {
-          Namespace("Ionide.LanguageServerProtocol") {
-            Open("Ionide.LanguageServerProtocol.Types")
-            TypeDefn("ILSPServer") {
-              let notificationComment =
-                  SyntaxOak.TriviaNode(SyntaxOak.CommentOnSingleLine("// Notifications"), Fantomas.FCS.Text.Range.Zero)
+      let oak =
+        Ast.Oak() {
+          Namespace "Ionide.LanguageServerProtocol" {
+            Open "Ionide.LanguageServerProtocol.Types"
 
-              let mutable writtenNotificationComment = false
-              
-              for n in serverNotifications do
-                let methodName = normalizeMethod n.Method
-                let parameters = [
-                  match n.Params with
-                  | None -> yield (None, "unit")
-                  | Some ps ->
-                    for p in ps do
-                      match p with
-                      | MetaModel.Type.ReferenceType r -> yield (None, r.Name)
-                      | _ -> ()
-                ]
-                let returnType = "Async<unit>"
+            let generateInterface
+              name
+              (notifications: list<MetaModel.Notification>)
+              (requests: list<MetaModel.Request>)
+              =
 
-                
 
-                let wb = AbstractSlot(methodName, parameters, returnType)
+              TypeDefn name {
+                let notificationComment =
+                  SyntaxOak.TriviaNode(SyntaxOak.CommentOnSingleLine "// Notifications", Fantomas.FCS.Text.Range.Zero)
 
-                let widget = wb |> Gen.mkOak
-                if not writtenNotificationComment then
-                  widget.AddBefore(notificationComment)
-                  writtenNotificationComment <- true
+                let mutable writtenNotificationComment = false
 
-                EscapeHatch(widget)
-              let requestComment =
-                  SyntaxOak.TriviaNode(SyntaxOak.CommentOnSingleLine("// Requests"), Fantomas.FCS.Text.Range.Zero)
+                for n in notifications do
+                  let methodName = normalizeMethod n.Method
 
-              let mutable writtenRequestComment = false
-              
-              
-              for r in serverRequests do
-                let methodName = normalizeMethod r.Method
-                let parameters = [
-                  match r.Params with
-                  | None -> yield (None, "unit")
-                  | Some ps ->
-                    for p in ps do
-                      match p with
-                      | MetaModel.Type.ReferenceType r -> yield (None, r.Name)
-                      | _ -> ()
-                ]
-                let returnType = 
+                  let parameters = [
+                    match n.Params with
+                    | None -> yield None, "unit"
+                    | Some ps ->
+                      for p in ps do
+                        match p with
+                        | MetaModel.Type.ReferenceType r -> yield None, r.Name
+                        | _ -> ()
+                  ]
+
+                  let returnType = "Async<unit>"
+
+
+                  let wb = AbstractSlot(methodName, parameters, returnType)
+
+                  let wb =
+                    n.StructuredDocs
+                    |> Option.mapOrDefault wb wb.xmlDocs
+
+                  let widget =
+                    wb
+                    |> Gen.mkOak
+
+                  if not writtenNotificationComment then
+                    widget.AddBefore(notificationComment)
+                    writtenNotificationComment <- true
+
+                  EscapeHatch(widget)
+
+                let requestComment =
+                  SyntaxOak.TriviaNode(SyntaxOak.CommentOnSingleLine "// Requests", Fantomas.FCS.Text.Range.Zero)
+
+                let mutable writtenRequestComment = false
+
+
+                for r in requests do
+                  let methodName = normalizeMethod r.Method
+
+                  let parameters = [
+                    match r.Params with
+                    | None -> yield None, "unit"
+                    | Some ps ->
+                      for p in ps do
+                        match p with
+                        | MetaModel.Type.ReferenceType r -> yield (None, r.Name)
+                        | _ -> ()
+                  ]
+
+                  let returnType =
                     let rec returnType (ty: MetaModel.Type) =
                       // TODO: Don't use strings
                       match ty with
-                      | MetaModel.Type.ReferenceType r ->  r.Name 
+                      | MetaModel.Type.ReferenceType r -> r.Name
                       | MetaModel.Type.BaseType b ->
                         match b.Name with
                         | MetaModel.BaseTypes.Null -> "unit"
                         | MetaModel.BaseTypes.Boolean -> "bool"
                         | MetaModel.BaseTypes.Integer -> "int"
+                        | MetaModel.BaseTypes.Uinteger -> "uint"
                         | MetaModel.BaseTypes.Decimal -> "float"
                         | MetaModel.BaseTypes.String -> "string"
-                        | _ -> "JToken"
+                        | MetaModel.BaseTypes.DocumentUri -> "DocumentUri"
+                        | MetaModel.BaseTypes.Uri -> "Uri"
+                        | MetaModel.BaseTypes.RegExp -> "RegExp"
                       | MetaModel.Type.OrType o ->
                         // TS types can have optional properties (myKey?: string)
                         // and unions with null (string | null)
@@ -1093,36 +1160,44 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
                             |> Array.filter (fun x -> not (isNullableType x))
                           else
                             false, o.Items
-                            
-                        let types = items |> Array.map returnType
+
+                        let types =
+                          items
+                          |> Array.map returnType
+
                         let retType =
                           if types.Length > 1 then
                             let duType = $"U{types.Length}"
-                            let inner = String.Join(",",  types)
+                            let inner = String.Join(",", types)
                             $"{duType}<{inner}>"
                           else
                             types.[0]
-                        if isOptional then
-                          $"Option<{retType}>"
-                        else
-                          retType
-                      | MetaModel.Type.ArrayType a -> 
-                        $"{returnType a.Element} array"
-                      | _ -> "Async<unit>"
-                    
-                    returnType r.Result
+
+                        if isOptional then $"{retType} option" else retType
+                      | MetaModel.Type.ArrayType a -> $"{returnType a.Element} array"
+                      | _ -> "Unsupported Type"
+
+                    $"AsyncLspResult<{returnType r.Result}>"
 
 
-                let wb = AbstractSlot(methodName, parameters, returnType)
-                
-                let widget = wb |> Gen.mkOak
-                if not writtenRequestComment then
-                  widget.AddBefore(requestComment)
-                  writtenRequestComment <- true
+                  let wb = AbstractSlot(methodName, parameters, returnType)
 
-                EscapeHatch(widget)
+                  let wb =
+                    r.StructuredDocs
+                    |> Option.mapOrDefault wb wb.xmlDocs
 
-            }
+                  let widget = Gen.mkOak wb
+
+                  if not writtenRequestComment then
+                    widget.AddBefore requestComment
+                    writtenRequestComment <- true
+
+                  EscapeHatch widget
+              }
+
+            generateInterface "ILSPServer" serverNotifications serverRequests
+            generateInterface "ILspClient" clientNotifications clientRequests
+
           }
         }
 

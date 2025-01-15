@@ -86,6 +86,10 @@ module rec MetaModel =
       x.Params
       |> Option.Array.toArray
 
+    member x.StructuredDocs =
+      x.Documentation
+      |> Option.map StructuredDocs.parse
+
   /// Represents a LSP notification
   type Notification = {
 
@@ -113,6 +117,10 @@ module rec MetaModel =
     member x.ParamsSafe =
       x.Params
       |> Option.Array.toArray
+
+    member x.StructuredDocs =
+      x.Documentation
+      |> Option.map StructuredDocs.parse
 
   [<RequireQualifiedAccess>]
   type BaseTypes =
