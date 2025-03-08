@@ -20,9 +20,9 @@
     repo.
     -->
     <Compile Include="FsLibLog.fs" />
-    <Compile Include="JsonRpc.fs" />
     <Compile Include="Types.fs" />
     <Compile Include="Types.cg.fs" />
+    <Compile Include="JsonRpc.fs" />
     <Compile Include="TypeDefaults.fs" />
     <Compile Include="ClientServer.cg.fs" />
     <Compile Include="Client.fs" />
@@ -73,17 +73,17 @@
     <Exec
       Command="@(_GenerateCommand, ' ')" />
 
-      <ItemGroup>
-        <_GenerateCommand2 Include="dotnet;@(_GeneratorApp)" />
-        <_GenerateCommand2 Include="clientserver" />
-        <_GenerateCommand2 Include="--metamodelpath" />
-        <_GenerateCommand2 Include="%(_MetaModelInputs.FullPath)" />
-        <_GenerateCommand2 Include="--outputfilepath" />
-        <_GenerateCommand2 Include="%(_MetaModelClientServerOutputs.FullPath)" />
-      </ItemGroup>
-  
-      <Exec
-        Command="@(_GenerateCommand2, ' ')" />
+    <ItemGroup>
+      <_GenerateCommand2 Include="dotnet;@(_GeneratorApp)" />
+      <_GenerateCommand2 Include="clientserver" />
+      <_GenerateCommand2 Include="--metamodelpath" />
+      <_GenerateCommand2 Include="%(_MetaModelInputs.FullPath)" />
+      <_GenerateCommand2 Include="--outputfilepath" />
+      <_GenerateCommand2 Include="%(_MetaModelClientServerOutputs.FullPath)" />
+    </ItemGroup>
+
+    <Exec
+      Command="@(_GenerateCommand2, ' ')" />
 
   </Target>
 </Project>

@@ -90,37 +90,3 @@ type U4<'T1, 'T2, 'T3, 'T4> =
     | C2 c -> string c
     | C3 c -> string 3
     | C4 c -> string 3
-
-
-/// Result type composed of a success value or an error of type JsonRpc.Error
-type LspResult<'t> = Result<'t, JsonRpc.Error>
-/// Async Result type composed of a success value or an error of type JsonRpc.Error
-type AsyncLspResult<'t> = Async<LspResult<'t>>
-
-
-module LspResult =
-
-  let success x : LspResult<_> = Result.Ok x
-
-  let invalidParams s : LspResult<_> = Result.Error(JsonRpc.Error.Create(JsonRpc.ErrorCodes.invalidParams, s))
-
-  let internalError<'a> (s: string) : LspResult<'a> =
-    Result.Error(JsonRpc.Error.Create(JsonRpc.ErrorCodes.internalError, s))
-
-  let notImplemented<'a> : LspResult<'a> = Result.Error(JsonRpc.Error.MethodNotFound)
-
-  let requestCancelled<'a> : LspResult<'a> = Result.Error(JsonRpc.Error.RequestCancelled)
-
-module AsyncLspResult =
-
-  let success x : AsyncLspResult<_> = async.Return(Result.Ok x)
-
-  let invalidParams s : AsyncLspResult<_> =
-    async.Return(Result.Error(JsonRpc.Error.Create(JsonRpc.ErrorCodes.invalidParams, s)))
-
-  let internalError s : AsyncLspResult<_> =
-    async.Return(Result.Error(JsonRpc.Error.Create(JsonRpc.ErrorCodes.internalError, s)))
-
-  let notImplemented<'a> : AsyncLspResult<'a> = async.Return(Result.Error(JsonRpc.Error.MethodNotFound))
-
-  let requestCancelled<'a> : AsyncLspResult<'a> = async.Return(Result.Error(JsonRpc.Error.RequestCancelled))

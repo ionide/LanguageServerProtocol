@@ -361,15 +361,11 @@ module Server =
       "workspace/executeCommand", requestHandling (fun s p -> s.WorkspaceExecuteCommand(p))
       "window/workDoneProgress/cancel",
       requestHandling (fun s p ->
-        s.WorkDoneProgressCancel(p)
+        s.WindowWorkDoneProgressCancel(p)
         |> notificationSuccess
       )
       "workspace/diagnostic", requestHandling (fun s p -> s.WorkspaceDiagnostic(p))
-      "shutdown",
-      requestHandling (fun s () ->
-        s.Shutdown()
-        |> notificationSuccess
-      )
+      "shutdown", requestHandling (fun s () -> s.Shutdown())
       "exit",
       requestHandling (fun s () ->
         s.Exit()
@@ -629,13 +625,15 @@ module Client =
         | Some handling ->
           try
             match notification.Params with
-            | None -> return Result.Error(JsonRpc.Error.InvalidParams)
+            | None -> return Result.Error(JsonRpc.Error.InvalidParams())
             | Some prms ->
               let! result = handling.Run prms
               return Result.Ok()
           with ex ->
-            return Result.Error(JsonRpc.Error.Create(JsonRpc.ErrorCodes.internalError, ex.ToString()))
-        | None -> return Result.Error(JsonRpc.Error.MethodNotFound)
+            return
+              JsonRpc.Error.InternalError(ex.ToString())
+              |> Result.Error
+        | None -> return Result.Error(JsonRpc.Error.MethodNotFound())
       }
 
     let messageHandler str =

@@ -1,8 +1,10 @@
 namespace Ionide.LanguageServerProtocol
 
 open Ionide.LanguageServerProtocol.Types
+open Ionide.LanguageServerProtocol.JsonRpc
 
-type ILSPServer =
+type ILspServer =
+  inherit System.IDisposable
   // Notifications
   /// The `workspace/didChangeWorkspaceFolders` notification is sent from the client to the server when the workspace
   /// folder configuration changes.
@@ -344,6 +346,7 @@ type ILSPServer =
   abstract member WorkspaceExecuteCommand: ExecuteCommandParams -> AsyncLspResult<LSPAny option>
 
 type ILspClient =
+  inherit System.IDisposable
   // Notifications
   /// The show message notification is sent from a server to a client to ask
   /// the client to display a particular message in the user interface.

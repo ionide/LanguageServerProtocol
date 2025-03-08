@@ -1068,6 +1068,7 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
         Ast.Oak() {
           Namespace "Ionide.LanguageServerProtocol" {
             Open "Ionide.LanguageServerProtocol.Types"
+            Open "Ionide.LanguageServerProtocol.JsonRpc"
 
             let generateInterface
               name
@@ -1077,6 +1078,9 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
 
 
               TypeDefn name {
+
+                Inherit "System.IDisposable"
+
                 let notificationComment =
                   SyntaxOak.TriviaNode(SyntaxOak.CommentOnSingleLine "// Notifications", Fantomas.FCS.Text.Range.Zero)
 
@@ -1193,9 +1197,11 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
                     writtenRequestComment <- true
 
                   EscapeHatch widget
+
+
               }
 
-            generateInterface "ILSPServer" serverNotifications serverRequests
+            generateInterface "ILspServer" serverNotifications serverRequests
             generateInterface "ILspClient" clientNotifications clientRequests
 
           }
