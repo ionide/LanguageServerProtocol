@@ -42,7 +42,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <_MetaModelInputs Include="$(MSBuildThisFileDirectory)../data/$(LSPVersion)/metaModel.json" />
+    <_MetaModelInputs
+      Include="$(MSBuildThisFileDirectory)../data/$(LSPVersion)/metaModel.json" />
+    <_GenerationInputs
+      Include="$(MSBuildThisFileDirectory)../tools/**/*.fs;$(MSBuildThisFileDirectory)../tools/**/*.fsproj" />
+    <Watch Include="@(_MetaModelInputs)" />
+    <Watch Include="@(_GenerationInputs)" />
     <_MetaModelOutputs Include="$(MSBuildThisFileDirectory)Types.cg.fs" />
     <_MetaModelClientServerOutputs Include="$(MSBuildThisFileDirectory)ClientServer.cg.fs" />
   </ItemGroup>
@@ -51,7 +56,8 @@
     <Delete Files="@(_MetaModelOutputs)" />
   </Target>
 
-  <Target Name="RegenerateTypes" Inputs="@(_MetaModelInputs)" DependsOnTargets="EnsureRegeneration"
+  <Target Name="RegenerateTypes" Inputs="@(_MetaModelInputs);@(_GenerationInputs)"
+    DependsOnTargets="EnsureRegeneration"
     Outputs="@(_MetaModelOutputs); @(_MetaModelClientServerOutputs)"
     BeforeTargets="PrepareForBuild">
     <ItemGroup>
