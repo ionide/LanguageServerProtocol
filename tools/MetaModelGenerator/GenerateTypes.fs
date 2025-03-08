@@ -1,5 +1,63 @@
 namespace MetaModelGenerator
 
+
+module FileWriters =
+  open System.IO
+
+  let writeIfChanged outputPath text =
+    async {
+      let writeToFile path contents = File.WriteAllTextAsync(path, contents)
+
+      let! existingFile =
+        async {
+          if File.Exists(outputPath) then
+            let! file =
+              File.ReadAllTextAsync(outputPath)
+              |> Async.AwaitTask
+
+            return Some file
+          else
+            return None
+        }
+
+      printfn "Writing to %s" outputPath
+
+      match existingFile with
+      | Some existingFile when existingFile = text -> printfn "No changes"
+      | _ ->
+        do!
+          text
+          |> writeToFile outputPath
+          |> Async.AwaitTask
+    }
+
+
+module Widgets =
+  [<Literal>]
+  let UriString = "URI"
+
+  [<Literal>]
+  let DocumentUriString = "DocumentUri"
+
+  [<Literal>]
+  let RegExpString = "RegExp"
+
+
+[<AutoOpen>]
+module TypeAnonBuilders =
+  open Fabulous.AST
+  open Fantomas.Core.SyntaxOak
+
+  type Ast with
+
+    static member LspUri() = Ast.LongIdent Widgets.DocumentUriString
+    static member DocumentUri() = Ast.LongIdent Widgets.DocumentUriString
+    static member LspRegExp() = Ast.LongIdent Widgets.DocumentUriString
+
+    static member AsyncPrefix(t: WidgetBuilder<Type>) = Ast.AppPrefix(Ast.LongIdent "Async", [ t ])
+
+    static member AsyncLspResultPrefix(t: WidgetBuilder<Type>) = Ast.AppPrefix(Ast.LongIdent "AsyncLspResult", [ t ])
+
 module GenerateTypes =
 
   open System.Runtime.CompilerServices
@@ -903,19 +961,19 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
             Open("Newtonsoft.Json.Linq")
 
             // Simple aliases for types that are not in dotnet
-            Abbrev("URI", "string")
+            Abbrev(Widgets.UriString, "string")
               .xmlDocs (
                 documentUriDocs
                 |> StructuredDocs.parse
               )
 
-            Abbrev("DocumentUri", "string")
+            Abbrev(Widgets.DocumentUriString, "string")
               .xmlDocs (
                 documentUriDocs
                 |> StructuredDocs.parse
               )
 
-            Abbrev("RegExp", "string")
+            Abbrev(Widgets.RegExpString, "string")
               .xmlDocs (
                 regexpDocs
                 |> StructuredDocs.parse
@@ -969,25 +1027,18 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
         }
 
 
-      printfn "Writing to %s" outputPath
-      let writeToFile path contents = File.WriteAllTextAsync(path, contents)
-
       let! formattedText =
         oak
         |> Gen.mkOak
         |> CodeFormatter.FormatOakAsync
 
-      do!
-        formattedText
-        |> writeToFile outputPath
-        |> Async.AwaitTask
+      do! FileWriters.writeIfChanged outputPath formattedText
     }
 
 
   let generateClientServer (parsedMetaModel: MetaModel.MetaModel) outputPath =
     async {
-      printfn "Writing to %s" outputPath
-      let writeToFile path contents = File.WriteAllTextAsync(path, contents)
+      printfn "Generating generateClientServer"
 
 
       let requests =
@@ -1081,8 +1132,8 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
 
                 Inherit "System.IDisposable"
 
-                let notificationComment =
-                  SyntaxOak.TriviaNode(SyntaxOak.CommentOnSingleLine "// Notifications", Fantomas.FCS.Text.Range.Zero)
+                let notificationComment = SingleLine "Notifications"
+                // SyntaxOak.TriviaNode(SyntaxOak.CommentOnSingleLine "// Notifications", Fantomas.FCS.Text.Range.Zero)
 
                 let mutable writtenNotificationComment = false
 
@@ -1091,15 +1142,15 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
 
                   let parameters = [
                     match n.Params with
-                    | None -> yield "unit"
+                    | None -> yield Unit()
                     | Some ps ->
                       for p in ps do
                         match p with
-                        | MetaModel.Type.ReferenceType r -> yield r.Name
+                        | MetaModel.Type.ReferenceType r -> yield LongIdent r.Name
                         | _ -> ()
                   ]
 
-                  let returnType = "Async<unit>"
+                  let returnType = AsyncPrefix(Unit())
 
 
                   let wb = AbstractMember(methodName, parameters, returnType)
@@ -1108,18 +1159,16 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
                     n.StructuredDocs
                     |> Option.mapOrDefault wb wb.xmlDocs
 
-                  let widget =
-                    wb
-                    |> Gen.mkOak
+                  let wb =
+                    if not writtenNotificationComment then
+                      writtenNotificationComment <- true
+                      wb.triviaBefore notificationComment
+                    else
+                      wb
 
-                  if not writtenNotificationComment then
-                    widget.AddBefore(notificationComment)
-                    writtenNotificationComment <- true
+                  wb
 
-                  EscapeHatch(widget)
-
-                let requestComment =
-                  SyntaxOak.TriviaNode(SyntaxOak.CommentOnSingleLine "// Requests", Fantomas.FCS.Text.Range.Zero)
+                let requestComment = SingleLine "Requests"
 
                 let mutable writtenRequestComment = false
 
@@ -1129,11 +1178,11 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
 
                   let parameters = [
                     match r.Params with
-                    | None -> yield "unit"
+                    | None -> yield Unit()
                     | Some ps ->
                       for p in ps do
                         match p with
-                        | MetaModel.Type.ReferenceType r -> yield (r.Name)
+                        | MetaModel.Type.ReferenceType r -> yield (LongIdent r.Name)
                         | _ -> ()
                   ]
 
@@ -1149,9 +1198,9 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
                         | MetaModel.BaseTypes.Uinteger -> UInt32()
                         | MetaModel.BaseTypes.Decimal -> Float()
                         | MetaModel.BaseTypes.String -> String()
-                        | MetaModel.BaseTypes.DocumentUri -> LongIdent "DocumentUri"
-                        | MetaModel.BaseTypes.Uri -> LongIdent "Uri"
-                        | MetaModel.BaseTypes.RegExp -> LongIdent "RegExp"
+                        | MetaModel.BaseTypes.DocumentUri -> DocumentUri()
+                        | MetaModel.BaseTypes.Uri -> LspUri()
+                        | MetaModel.BaseTypes.RegExp -> LspRegExp()
                       | MetaModel.Type.OrType o ->
                         // TS types can have optional properties (myKey?: string)
                         // and unions with null (string | null)
@@ -1180,8 +1229,7 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
                       | MetaModel.Type.ArrayType a -> ArrayPrefix(returnType a.Element)
                       | _ -> LongIdent "Unsupported Type"
 
-                    AppPrefix("AsyncLspResult", [ returnType r.Result ])
-
+                    AsyncLspResultPrefix(returnType r.Result)
 
                   let wb = AbstractMember(methodName, parameters, returnType)
 
@@ -1189,15 +1237,14 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
                     r.StructuredDocs
                     |> Option.mapOrDefault wb wb.xmlDocs
 
-                  let widget = Gen.mkOak wb
+                  let wb =
+                    if not writtenRequestComment then
+                      writtenRequestComment <- true
+                      wb.triviaBefore (requestComment)
+                    else
+                      wb
 
-                  if not writtenRequestComment then
-                    widget.AddBefore requestComment
-                    writtenRequestComment <- true
-
-                  EscapeHatch widget
-
-
+                  wb
               }
 
             generateInterface "ILspServer" serverNotifications serverRequests
@@ -1212,9 +1259,6 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
         |> Gen.mkOak
         |> CodeFormatter.FormatOakAsync
 
-      do!
-        formattedText
-        |> writeToFile outputPath
-        |> Async.AwaitTask
+      do! FileWriters.writeIfChanged outputPath formattedText
 
     }
