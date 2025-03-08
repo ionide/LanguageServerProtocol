@@ -188,4 +188,4 @@ type LspClient() =
     member this.Progress(p: ProgressParams) = this.Progress(p)
     member this.CancelRequest(p: CancelParams) : Async<unit> = this.CancelRequest(p)
     member this.LogTrace(p: LogTraceParams) : Async<unit> = this.LogTrace(p)
-    member this.Dispose() : unit = failwith "Not Implemented"
+    member this.Dispose() : unit = ()

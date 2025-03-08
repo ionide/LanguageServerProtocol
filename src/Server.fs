@@ -929,15 +929,13 @@ type LspServer() =
     member this.TypeHierarchySubtypes(p: TypeHierarchySubtypesParams) = this.TypeHierarchySubtypes(p)
     member this.TextDocumentDiagnostic(p: DocumentDiagnosticParams) = this.TextDocumentDiagnostic(p)
     member this.WorkspaceDiagnostic(p: WorkspaceDiagnosticParams) = this.WorkspaceDiagnostic(p)
-    member this.CancelRequest(arg1: CancelParams) : Async<unit> = failwith "Not Implemented"
+    member this.CancelRequest(arg1: CancelParams) : Async<unit> = ignoreNotification
 
-    member this.NotebookDocumentDidChange(arg1: DidChangeNotebookDocumentParams) : Async<unit> =
-      failwith "Not Implemented"
+    member this.NotebookDocumentDidChange(arg1: DidChangeNotebookDocumentParams) : Async<unit> = ignoreNotification
 
-    member this.NotebookDocumentDidClose(arg1: DidCloseNotebookDocumentParams) : Async<unit> =
-      failwith "Not Implemented"
+    member this.NotebookDocumentDidClose(arg1: DidCloseNotebookDocumentParams) : Async<unit> = ignoreNotification
 
-    member this.NotebookDocumentDidOpen(arg1: DidOpenNotebookDocumentParams) : Async<unit> = failwith "Not Implemented"
-    member this.NotebookDocumentDidSave(arg1: DidSaveNotebookDocumentParams) : Async<unit> = failwith "Not Implemented"
-    member this.Progress(arg1: ProgressParams) : Async<unit> = failwith "Not Implemented"
-    member this.SetTrace(arg1: SetTraceParams) : Async<unit> = failwith "Not Implemented"
+    member this.NotebookDocumentDidOpen(arg1: DidOpenNotebookDocumentParams) : Async<unit> = ignoreNotification
+    member this.NotebookDocumentDidSave(arg1: DidSaveNotebookDocumentParams) : Async<unit> = ignoreNotification
+    member this.Progress(arg1: ProgressParams) : Async<unit> = ignoreNotification
+    member this.SetTrace(arg1: SetTraceParams) : Async<unit> = ignoreNotification

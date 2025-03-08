@@ -1133,7 +1133,6 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
                 Inherit "System.IDisposable"
 
                 let notificationComment = SingleLine "Notifications"
-                // SyntaxOak.TriviaNode(SyntaxOak.CommentOnSingleLine "// Notifications", Fantomas.FCS.Text.Range.Zero)
 
                 let mutable writtenNotificationComment = false
 
