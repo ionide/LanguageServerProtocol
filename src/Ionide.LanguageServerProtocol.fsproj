@@ -21,10 +21,10 @@
     -->
     <Compile Include="FsLibLog.fs" />
     <Compile Include="Types.fs" />
-    <Compile Include="Types.cg.fs" />
+    <Compile Include="Types.cg.fs" Watch="false" />
     <Compile Include="JsonRpc.fs" />
     <Compile Include="TypeDefaults.fs" />
-    <Compile Include="ClientServer.cg.fs" />
+    <Compile Include="ClientServer.cg.fs" Watch="false" />
     <Compile Include="Client.fs" />
     <Compile Include="Server.fs" />
     <Compile Include="OptionConverter.fs" />
@@ -51,7 +51,7 @@
     <_MetaModelOutputs Include="$(MSBuildThisFileDirectory)Types.cg.fs" />
     <_MetaModelClientServerOutputs Include="$(MSBuildThisFileDirectory)ClientServer.cg.fs" />
 
-    <Watch Remove="@(_MetaModelOutputs);@(__MetaModelClientServerOutputs)" />
+    <Watch Remove="@(_MetaModelOutputs);@(_MetaModelClientServerOutputs)" />
   </ItemGroup>
 
   <Target Name="EnsureRegeneration" Condition="'$(ForceRegenerate)' == 'true'">
