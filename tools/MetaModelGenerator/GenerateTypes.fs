@@ -50,7 +50,7 @@ module GenerateTypes =
   module DebuggerDisplay =
     let range_debuggerDisplay (r: WidgetBuilder<TypeDefnRecordNode>) =
       r.attribute(Attribute("DebuggerDisplay(\"{DebuggerDisplay}\")")).members () {
-        Property("x.DebuggerDisplay", "$\"{x.Start.DebuggerDisplay}-{x.End.DebuggerDisplay}\"")
+        Member("x.DebuggerDisplay", "$\"{x.Start.DebuggerDisplay}-{x.End.DebuggerDisplay}\"")
           .attributes (
             [
               Attribute("DebuggerBrowsable(DebuggerBrowsableState.Never)")
@@ -61,7 +61,7 @@ module GenerateTypes =
 
     let position_debuggerDisplay (r: WidgetBuilder<TypeDefnRecordNode>) =
       r.attribute(Attribute("DebuggerDisplay(\"{DebuggerDisplay}\")")).members () {
-        Property("x.DebuggerDisplay", "$\"({x.Line},{x.Character})\"")
+        Member("x.DebuggerDisplay", "$\"({x.Line},{x.Character})\"")
           .attributes (
             [
               Attribute("DebuggerBrowsable(DebuggerBrowsableState.Never)")
@@ -72,7 +72,7 @@ module GenerateTypes =
 
     let diagnostic_debuggerDisplay (r: WidgetBuilder<TypeDefnRecordNode>) =
       r.attribute(Attribute("DebuggerDisplay(\"{DebuggerDisplay}\")")).members () {
-        Property(
+        Member(
           "x.DebuggerDisplay",
           "$\"[{defaultArg x.Severity DiagnosticSeverity.Error}] ({x.Range.DebuggerDisplay}) {x.Message} ({Option.map string x.Code |> Option.defaultValue String.Empty})\""
         )
@@ -438,7 +438,7 @@ module GenerateTypes =
                 p.Type
                 p
 
-            let ap = AbstractSlot(fi.Name, fi.TypeInfo)
+            let ap = AbstractMember(fi.Name, fi.TypeInfo)
 
             yield
               fi.StructuredDocs
@@ -562,10 +562,10 @@ module GenerateTypes =
         |> Option.map (fun s ->
           let interfaceName = Ast.LongIdent($"I{s.Name}")
 
-          InterfaceMember(interfaceName) {
+          InterfaceWith(interfaceName) {
             for p in s.PropertiesSafe do
               let name = Constant($"x.{p.NameAsPascalCase}")
-              let outp = Property(ConstantPat(name), ConstantExpr(name))
+              let outp = Member(ConstantPat(name), ConstantExpr(name))
 
               p.StructuredDocs
               |> Option.mapOrDefault outp outp.xmlDocs
@@ -823,7 +823,7 @@ module GenerateTypes =
         enumeration.StructuredDocs
         |> Option.mapOrDefault ab ab.xmlDocs
 
-        NestedModule(enumeration.Name) {
+        Module(enumeration.Name) {
           for v in enumeration.ValuesSafe do
             let name = PrettyNaming.NormalizeIdentifierBackticks v.Name
             let l = Value(ConstantPat(Constant(name)), ConstantExpr(String(v.Value))).attribute (Attribute "Literal")
@@ -1091,18 +1091,18 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
 
                   let parameters = [
                     match n.Params with
-                    | None -> yield None, "unit"
+                    | None -> yield "unit"
                     | Some ps ->
                       for p in ps do
                         match p with
-                        | MetaModel.Type.ReferenceType r -> yield None, r.Name
+                        | MetaModel.Type.ReferenceType r -> yield r.Name
                         | _ -> ()
                   ]
 
                   let returnType = "Async<unit>"
 
 
-                  let wb = AbstractSlot(methodName, parameters, returnType)
+                  let wb = AbstractMember(methodName, parameters, returnType)
 
                   let wb =
                     n.StructuredDocs
@@ -1129,11 +1129,11 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
 
                   let parameters = [
                     match r.Params with
-                    | None -> yield None, "unit"
+                    | None -> yield "unit"
                     | Some ps ->
                       for p in ps do
                         match p with
-                        | MetaModel.Type.ReferenceType r -> yield (None, r.Name)
+                        | MetaModel.Type.ReferenceType r -> yield (r.Name)
                         | _ -> ()
                   ]
 
@@ -1184,7 +1184,7 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
                     $"AsyncLspResult<{returnType r.Result}>"
 
 
-                  let wb = AbstractSlot(methodName, parameters, returnType)
+                  let wb = AbstractMember(methodName, parameters, returnType)
 
                   let wb =
                     r.StructuredDocs

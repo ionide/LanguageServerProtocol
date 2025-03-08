@@ -19,30 +19,30 @@ type DocumentUri = string
 type RegExp = string
 
 type IWorkDoneProgressOptions =
-    abstract member WorkDoneProgress: bool option
+    abstract WorkDoneProgress: bool option
 
 type IWorkDoneProgressParams =
     /// An optional token that a server can use to report work done progress.
-    abstract member WorkDoneToken: ProgressToken option
+    abstract WorkDoneToken: ProgressToken option
 
 type IPartialResultParams =
     /// An optional token that a server can use to report partial results (e.g. streaming) to
     /// the client.
-    abstract member PartialResultToken: ProgressToken option
+    abstract PartialResultToken: ProgressToken option
 
 /// A parameter literal used in requests to pass a text document and a position inside that
 /// document.
 type ITextDocumentPositionParams =
     /// The text document.
-    abstract member TextDocument: TextDocumentIdentifier
+    abstract TextDocument: TextDocumentIdentifier
     /// The position inside the text document.
-    abstract member Position: Position
+    abstract Position: Position
 
 /// General text document registration options.
 type ITextDocumentRegistrationOptions =
     /// A document selector to identify the scope of the registration. If set to null
     /// the document selector provided on the client side will be used.
-    abstract member DocumentSelector: DocumentSelector option
+    abstract DocumentSelector: DocumentSelector option
 
 type IImplementationOptions =
     inherit IWorkDoneProgressOptions
@@ -71,12 +71,12 @@ type ICallHierarchyOptions =
 /// @since 3.16.0
 type ISemanticTokensOptions =
     /// The legend used by the server
-    abstract member Legend: SemanticTokensLegend
+    abstract Legend: SemanticTokensLegend
     /// Server supports providing semantic tokens for a specific range
     /// of a document.
-    abstract member Range: U2<bool, JToken> option
+    abstract Range: U2<bool, JToken> option
     /// Server supports providing semantic tokens for a full document.
-    abstract member Full: U2<bool, SemanticTokensOptionsFullC2> option
+    abstract Full: U2<bool, SemanticTokensOptionsFullC2> option
     inherit IWorkDoneProgressOptions
 
 type ILinkedEditingRangeOptions =
@@ -103,7 +103,7 @@ type IInlineValueOptions =
 type IInlayHintOptions =
     /// The server provides support to resolve additional
     /// information for an inlay hint item.
-    abstract member ResolveProvider: bool option
+    abstract ResolveProvider: bool option
     inherit IWorkDoneProgressOptions
 
 /// Diagnostic options.
@@ -112,14 +112,14 @@ type IInlayHintOptions =
 type IDiagnosticOptions =
     /// An optional identifier under which the diagnostics are
     /// managed by the client.
-    abstract member Identifier: string option
+    abstract Identifier: string option
     /// Whether the language has inter file dependencies meaning that
     /// editing code in one file can result in a different diagnostic
     /// set in another file. Inter file dependencies are common for
     /// most programming languages and typically uncommon for linters.
-    abstract member InterFileDependencies: bool
+    abstract InterFileDependencies: bool
     /// The server provides support for workspace diagnostics as well.
-    abstract member WorkspaceDiagnostics: bool
+    abstract WorkspaceDiagnostics: bool
     inherit IWorkDoneProgressOptions
 
 /// The initialize parameters
@@ -129,11 +129,11 @@ type I_InitializeParams =
     ///
     /// Is `null` if the process has not been started by another process.
     /// If the parent process is not alive then the server should exit.
-    abstract member ProcessId: int32 option
+    abstract ProcessId: int32 option
     /// Information about the client
     ///
     /// @since 3.15.0
-    abstract member ClientInfo: _InitializeParamsClientInfo option
+    abstract ClientInfo: _InitializeParamsClientInfo option
     /// The locale the client is currently showing the user interface
     /// in. This must not necessarily be the locale of the operating
     /// system.
@@ -142,24 +142,24 @@ type I_InitializeParams =
     /// (See https://en.wikipedia.org/wiki/IETF_language_tag)
     ///
     /// @since 3.16.0
-    abstract member Locale: string option
+    abstract Locale: string option
     /// The rootPath of the workspace. Is null
     /// if no folder is open.
     ///
     /// @deprecated in favour of rootUri.
-    abstract member RootPath: string option
+    abstract RootPath: string option
     /// The rootUri of the workspace. Is null if no
     /// folder is open. If both `rootPath` and `rootUri` are set
     /// `rootUri` wins.
     ///
     /// @deprecated in favour of workspaceFolders.
-    abstract member RootUri: DocumentUri option
+    abstract RootUri: DocumentUri option
     /// The capabilities provided by the client (editor or tool)
-    abstract member Capabilities: ClientCapabilities
+    abstract Capabilities: ClientCapabilities
     /// User provided initialization options.
-    abstract member InitializationOptions: LSPAny option
+    abstract InitializationOptions: LSPAny option
     /// The initial trace setting. If omitted trace is disabled ('off').
-    abstract member Trace: TraceValues option
+    abstract Trace: TraceValues option
     inherit IWorkDoneProgressParams
 
 type IWorkspaceFoldersInitializeParams =
@@ -170,12 +170,12 @@ type IWorkspaceFoldersInitializeParams =
     /// configured.
     ///
     /// @since 3.6.0
-    abstract member WorkspaceFolders: WorkspaceFolder[] option
+    abstract WorkspaceFolders: WorkspaceFolder[] option
 
 /// Save options.
 type ISaveOptions =
     /// The client is supposed to include the content on save.
-    abstract member IncludeText: bool option
+    abstract IncludeText: bool option
 
 /// Completion options.
 type ICompletionOptions =
@@ -187,7 +187,7 @@ type ICompletionOptions =
     ///
     /// If code complete should automatically be trigger on characters not being valid inside
     /// an identifier (for example `.` in JavaScript) list them in `triggerCharacters`.
-    abstract member TriggerCharacters: string[] option
+    abstract TriggerCharacters: string[] option
     /// The list of all possible characters that commit a completion. This field can be used
     /// if clients don't support individual commit characters per completion item. See
     /// `ClientCapabilities.textDocument.completion.completionItem.commitCharactersSupport`
@@ -196,15 +196,15 @@ type ICompletionOptions =
     /// completion item the ones on the completion item win.
     ///
     /// @since 3.2.0
-    abstract member AllCommitCharacters: string[] option
+    abstract AllCommitCharacters: string[] option
     /// The server provides support to resolve additional
     /// information for a completion item.
-    abstract member ResolveProvider: bool option
+    abstract ResolveProvider: bool option
     /// The server supports the following `CompletionItem` specific
     /// capabilities.
     ///
     /// @since 3.17.0
-    abstract member CompletionItem: CompletionOptionsCompletionItem option
+    abstract CompletionItem: CompletionOptionsCompletionItem option
     inherit IWorkDoneProgressOptions
 
 /// Hover options.
@@ -214,14 +214,14 @@ type IHoverOptions =
 /// Server Capabilities for a {@link SignatureHelpRequest}.
 type ISignatureHelpOptions =
     /// List of characters that trigger signature help automatically.
-    abstract member TriggerCharacters: string[] option
+    abstract TriggerCharacters: string[] option
     /// List of characters that re-trigger signature help.
     ///
     /// These trigger characters are only active when signature help is already showing. All trigger characters
     /// are also counted as re-trigger characters.
     ///
     /// @since 3.15.0
-    abstract member RetriggerCharacters: string[] option
+    abstract RetriggerCharacters: string[] option
     inherit IWorkDoneProgressOptions
 
 /// Server Capabilities for a {@link DefinitionRequest}.
@@ -239,18 +239,18 @@ type IDocumentHighlightOptions =
 /// A base for all symbol information.
 type IBaseSymbolInformation =
     /// The name of this symbol.
-    abstract member Name: string
+    abstract Name: string
     /// The kind of this symbol.
-    abstract member Kind: SymbolKind
+    abstract Kind: SymbolKind
     /// Tags for this symbol.
     ///
     /// @since 3.16.0
-    abstract member Tags: SymbolTag[] option
+    abstract Tags: SymbolTag[] option
     /// The name of the symbol containing this symbol. This information is for
     /// user interface purposes (e.g. to render a qualifier in the user interface
     /// if necessary). It can't be used to re-infer a hierarchy for the document
     /// symbols.
-    abstract member ContainerName: string option
+    abstract ContainerName: string option
 
 /// Provider options for a {@link DocumentSymbolRequest}.
 type IDocumentSymbolOptions =
@@ -258,7 +258,7 @@ type IDocumentSymbolOptions =
     /// are shown for the same document.
     ///
     /// @since 3.16.0
-    abstract member Label: string option
+    abstract Label: string option
     inherit IWorkDoneProgressOptions
 
 /// Provider options for a {@link CodeActionRequest}.
@@ -267,12 +267,12 @@ type ICodeActionOptions =
     ///
     /// The list of kinds may be generic, such as `CodeActionKind.Refactor`, or the server
     /// may list out every specific kind they provide.
-    abstract member CodeActionKinds: CodeActionKind[] option
+    abstract CodeActionKinds: CodeActionKind[] option
     /// The server provides support to resolve additional
     /// information for a code action.
     ///
     /// @since 3.16.0
-    abstract member ResolveProvider: bool option
+    abstract ResolveProvider: bool option
     inherit IWorkDoneProgressOptions
 
 /// Server capabilities for a {@link WorkspaceSymbolRequest}.
@@ -281,19 +281,19 @@ type IWorkspaceSymbolOptions =
     /// information for a workspace symbol.
     ///
     /// @since 3.17.0
-    abstract member ResolveProvider: bool option
+    abstract ResolveProvider: bool option
     inherit IWorkDoneProgressOptions
 
 /// Code Lens provider options of a {@link CodeLensRequest}.
 type ICodeLensOptions =
     /// Code lens has a resolve provider as well.
-    abstract member ResolveProvider: bool option
+    abstract ResolveProvider: bool option
     inherit IWorkDoneProgressOptions
 
 /// Provider options for a {@link DocumentLinkRequest}.
 type IDocumentLinkOptions =
     /// Document links have a resolve provider as well.
-    abstract member ResolveProvider: bool option
+    abstract ResolveProvider: bool option
     inherit IWorkDoneProgressOptions
 
 /// Provider options for a {@link DocumentFormattingRequest}.
@@ -307,45 +307,45 @@ type IDocumentRangeFormattingOptions =
 /// Provider options for a {@link DocumentOnTypeFormattingRequest}.
 type IDocumentOnTypeFormattingOptions =
     /// A character on which formatting should be triggered, like `{`.
-    abstract member FirstTriggerCharacter: string
+    abstract FirstTriggerCharacter: string
     /// More trigger characters.
-    abstract member MoreTriggerCharacter: string[] option
+    abstract MoreTriggerCharacter: string[] option
 
 /// Provider options for a {@link RenameRequest}.
 type IRenameOptions =
     /// Renames should be checked and tested before being executed.
     ///
     /// @since version 3.12.0
-    abstract member PrepareProvider: bool option
+    abstract PrepareProvider: bool option
     inherit IWorkDoneProgressOptions
 
 /// The server capabilities of a {@link ExecuteCommandRequest}.
 type IExecuteCommandOptions =
     /// The commands to be executed on the server
-    abstract member Commands: string[]
+    abstract Commands: string[]
     inherit IWorkDoneProgressOptions
 
 /// A generic resource operation.
 type IResourceOperation =
     /// The resource operation kind.
-    abstract member Kind: string
+    abstract Kind: string
     /// An optional annotation identifier describing the operation.
     ///
     /// @since 3.16.0
-    abstract member AnnotationId: ChangeAnnotationIdentifier option
+    abstract AnnotationId: ChangeAnnotationIdentifier option
 
 /// A diagnostic report with a full set of problems.
 ///
 /// @since 3.17.0
 type IFullDocumentDiagnosticReport =
     /// A full document diagnostic report.
-    abstract member Kind: string
+    abstract Kind: string
     /// An optional result id. If provided it will
     /// be sent on the next diagnostic request for the
     /// same document.
-    abstract member ResultId: string option
+    abstract ResultId: string option
     /// The actual items.
-    abstract member Items: Diagnostic[]
+    abstract Items: Diagnostic[]
 
 /// A diagnostic report indicating that the last returned
 /// report is still accurate.
@@ -356,24 +356,24 @@ type IUnchangedDocumentDiagnosticReport =
     /// no changes to the last result. A server can
     /// only return `unchanged` if result ids are
     /// provided.
-    abstract member Kind: string
+    abstract Kind: string
     /// A result id which will be sent on the next
     /// diagnostic request for the same document.
-    abstract member ResultId: string
+    abstract ResultId: string
 
 /// A literal to identify a text document in the client.
 type ITextDocumentIdentifier =
     /// The text document's uri.
-    abstract member Uri: DocumentUri
+    abstract Uri: DocumentUri
 
 /// A text edit applicable to a text document.
 type ITextEdit =
     /// The range of the text document to be manipulated. To insert
     /// text into a document create a range where start === end.
-    abstract member Range: Range
+    abstract Range: Range
     /// The string to be inserted. For delete operations use an
     /// empty string.
-    abstract member NewText: string
+    abstract NewText: string
 
 /// Options specific to a notebook plus its cells
 /// to be synced to the server.
@@ -390,10 +390,10 @@ type ITextEdit =
 /// @since 3.17.0
 type INotebookDocumentSyncOptions =
     /// The notebooks to be synced
-    abstract member NotebookSelector: NotebookDocumentSyncOptionsNotebookSelector[]
+    abstract NotebookSelector: NotebookDocumentSyncOptionsNotebookSelector[]
     /// Whether save notification should be forwarded to
     /// the server. Will only be honored if mode === `notebook`.
-    abstract member Save: bool option
+    abstract Save: bool option
 
 type InitializedParams = unit
 
