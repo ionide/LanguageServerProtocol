@@ -88,72 +88,75 @@ type ILspServer =
     /// document position. The request's parameter is of type {@link TextDocumentPositionParams}
     /// the response is of type {@link Definition} or a Thenable that resolves to such.
     abstract TextDocumentImplementation:
-        ImplementationParams -> AsyncLspResult<U2<Definition,DefinitionLink array> option>
+        ImplementationParams -> AsyncLspResult<option<U2<Definition, array<DefinitionLink>>>>
 
     /// A request to resolve the type definition locations of a symbol at a given text
     /// document position. The request's parameter is of type {@link TextDocumentPositionParams}
     /// the response is of type {@link Definition} or a Thenable that resolves to such.
     abstract TextDocumentTypeDefinition:
-        TypeDefinitionParams -> AsyncLspResult<U2<Definition,DefinitionLink array> option>
+        TypeDefinitionParams -> AsyncLspResult<option<U2<Definition, array<DefinitionLink>>>>
 
     /// A request to list all color symbols found in a given text document. The request's
     /// parameter is of type {@link DocumentColorParams} the
     /// response is of type {@link ColorInformation ColorInformation[]} or a Thenable
     /// that resolves to such.
-    abstract TextDocumentDocumentColor: DocumentColorParams -> AsyncLspResult<ColorInformation array>
+    abstract TextDocumentDocumentColor: DocumentColorParams -> AsyncLspResult<array<ColorInformation>>
     /// A request to list all presentation for a color. The request's
     /// parameter is of type {@link ColorPresentationParams} the
     /// response is of type {@link ColorInformation ColorInformation[]} or a Thenable
     /// that resolves to such.
-    abstract TextDocumentColorPresentation: ColorPresentationParams -> AsyncLspResult<ColorPresentation array>
+    abstract TextDocumentColorPresentation: ColorPresentationParams -> AsyncLspResult<array<ColorPresentation>>
     /// A request to provide folding ranges in a document. The request's
     /// parameter is of type {@link FoldingRangeParams}, the
     /// response is of type {@link FoldingRangeList} or a Thenable
     /// that resolves to such.
-    abstract TextDocumentFoldingRange: FoldingRangeParams -> AsyncLspResult<FoldingRange array option>
+    abstract TextDocumentFoldingRange: FoldingRangeParams -> AsyncLspResult<option<array<FoldingRange>>>
+
     /// A request to resolve the type definition locations of a symbol at a given text
     /// document position. The request's parameter is of type {@link TextDocumentPositionParams}
     /// the response is of type {@link Declaration} or a typed array of {@link DeclarationLink}
     /// or a Thenable that resolves to such.
-    abstract TextDocumentDeclaration: DeclarationParams -> AsyncLspResult<U2<Declaration,DeclarationLink array> option>
+    abstract TextDocumentDeclaration:
+        DeclarationParams -> AsyncLspResult<option<U2<Declaration, array<DeclarationLink>>>>
+
     /// A request to provide selection ranges in a document. The request's
     /// parameter is of type {@link SelectionRangeParams}, the
     /// response is of type {@link SelectionRange SelectionRange[]} or a Thenable
     /// that resolves to such.
-    abstract TextDocumentSelectionRange: SelectionRangeParams -> AsyncLspResult<SelectionRange array option>
+    abstract TextDocumentSelectionRange: SelectionRangeParams -> AsyncLspResult<option<array<SelectionRange>>>
 
     /// A request to result a `CallHierarchyItem` in a document at a given position.
     /// Can be used as an input to an incoming or outgoing call hierarchy.
     ///
     /// @since 3.16.0
     abstract TextDocumentPrepareCallHierarchy:
-        CallHierarchyPrepareParams -> AsyncLspResult<CallHierarchyItem array option>
+        CallHierarchyPrepareParams -> AsyncLspResult<option<array<CallHierarchyItem>>>
 
     /// A request to resolve the incoming calls for a given `CallHierarchyItem`.
     ///
     /// @since 3.16.0
     abstract CallHierarchyIncomingCalls:
-        CallHierarchyIncomingCallsParams -> AsyncLspResult<CallHierarchyIncomingCall array option>
+        CallHierarchyIncomingCallsParams -> AsyncLspResult<option<array<CallHierarchyIncomingCall>>>
 
     /// A request to resolve the outgoing calls for a given `CallHierarchyItem`.
     ///
     /// @since 3.16.0
     abstract CallHierarchyOutgoingCalls:
-        CallHierarchyOutgoingCallsParams -> AsyncLspResult<CallHierarchyOutgoingCall array option>
+        CallHierarchyOutgoingCallsParams -> AsyncLspResult<option<array<CallHierarchyOutgoingCall>>>
 
     /// @since 3.16.0
-    abstract TextDocumentSemanticTokensFull: SemanticTokensParams -> AsyncLspResult<SemanticTokens option>
+    abstract TextDocumentSemanticTokensFull: SemanticTokensParams -> AsyncLspResult<option<SemanticTokens>>
 
     /// @since 3.16.0
     abstract TextDocumentSemanticTokensFullDelta:
-        SemanticTokensDeltaParams -> AsyncLspResult<U2<SemanticTokens,SemanticTokensDelta> option>
+        SemanticTokensDeltaParams -> AsyncLspResult<option<U2<SemanticTokens, SemanticTokensDelta>>>
 
     /// @since 3.16.0
-    abstract TextDocumentSemanticTokensRange: SemanticTokensRangeParams -> AsyncLspResult<SemanticTokens option>
+    abstract TextDocumentSemanticTokensRange: SemanticTokensRangeParams -> AsyncLspResult<option<SemanticTokens>>
     /// A request to provide ranges that can be edited together.
     ///
     /// @since 3.16.0
-    abstract TextDocumentLinkedEditingRange: LinkedEditingRangeParams -> AsyncLspResult<LinkedEditingRanges option>
+    abstract TextDocumentLinkedEditingRange: LinkedEditingRangeParams -> AsyncLspResult<option<LinkedEditingRanges>>
     /// The will create files request is sent from the client to the server before files are actually
     /// created as long as the creation is triggered from within the client.
     ///
@@ -162,49 +165,49 @@ type ILspServer =
     /// to be created.
     ///
     /// @since 3.16.0
-    abstract WorkspaceWillCreateFiles: CreateFilesParams -> AsyncLspResult<WorkspaceEdit option>
+    abstract WorkspaceWillCreateFiles: CreateFilesParams -> AsyncLspResult<option<WorkspaceEdit>>
     /// The will rename files request is sent from the client to the server before files are actually
     /// renamed as long as the rename is triggered from within the client.
     ///
     /// @since 3.16.0
-    abstract WorkspaceWillRenameFiles: RenameFilesParams -> AsyncLspResult<WorkspaceEdit option>
+    abstract WorkspaceWillRenameFiles: RenameFilesParams -> AsyncLspResult<option<WorkspaceEdit>>
     /// The did delete files notification is sent from the client to the server when
     /// files were deleted from within the client.
     ///
     /// @since 3.16.0
-    abstract WorkspaceWillDeleteFiles: DeleteFilesParams -> AsyncLspResult<WorkspaceEdit option>
+    abstract WorkspaceWillDeleteFiles: DeleteFilesParams -> AsyncLspResult<option<WorkspaceEdit>>
     /// A request to get the moniker of a symbol at a given text document position.
     /// The request parameter is of type {@link TextDocumentPositionParams}.
     /// The response is of type {@link Moniker Moniker[]} or `null`.
-    abstract TextDocumentMoniker: MonikerParams -> AsyncLspResult<Moniker array option>
+    abstract TextDocumentMoniker: MonikerParams -> AsyncLspResult<option<array<Moniker>>>
 
     /// A request to result a `TypeHierarchyItem` in a document at a given position.
     /// Can be used as an input to a subtypes or supertypes type hierarchy.
     ///
     /// @since 3.17.0
     abstract TextDocumentPrepareTypeHierarchy:
-        TypeHierarchyPrepareParams -> AsyncLspResult<TypeHierarchyItem array option>
+        TypeHierarchyPrepareParams -> AsyncLspResult<option<array<TypeHierarchyItem>>>
 
     /// A request to resolve the supertypes for a given `TypeHierarchyItem`.
     ///
     /// @since 3.17.0
-    abstract TypeHierarchySupertypes: TypeHierarchySupertypesParams -> AsyncLspResult<TypeHierarchyItem array option>
+    abstract TypeHierarchySupertypes: TypeHierarchySupertypesParams -> AsyncLspResult<option<array<TypeHierarchyItem>>>
     /// A request to resolve the subtypes for a given `TypeHierarchyItem`.
     ///
     /// @since 3.17.0
-    abstract TypeHierarchySubtypes: TypeHierarchySubtypesParams -> AsyncLspResult<TypeHierarchyItem array option>
+    abstract TypeHierarchySubtypes: TypeHierarchySubtypesParams -> AsyncLspResult<option<array<TypeHierarchyItem>>>
     /// A request to provide inline values in a document. The request's parameter is of
     /// type {@link InlineValueParams}, the response is of type
     /// {@link InlineValue InlineValue[]} or a Thenable that resolves to such.
     ///
     /// @since 3.17.0
-    abstract TextDocumentInlineValue: InlineValueParams -> AsyncLspResult<InlineValue array option>
+    abstract TextDocumentInlineValue: InlineValueParams -> AsyncLspResult<option<array<InlineValue>>>
     /// A request to provide inlay hints in a document. The request's parameter is of
     /// type {@link InlayHintsParams}, the response is of type
     /// {@link InlayHint InlayHint[]} or a Thenable that resolves to such.
     ///
     /// @since 3.17.0
-    abstract TextDocumentInlayHint: InlayHintParams -> AsyncLspResult<InlayHint array option>
+    abstract TextDocumentInlayHint: InlayHintParams -> AsyncLspResult<option<array<InlayHint>>>
     /// A request to resolve additional properties for an inlay hint.
     /// The request's parameter is of type {@link InlayHint}, the response is
     /// of type {@link InlayHint} or a Thenable that resolves to such.
@@ -236,7 +239,8 @@ type ILspServer =
     /// clients might drop results if computing the text edits took too long or if a
     /// server constantly fails on this request. This is done to keep the save fast and
     /// reliable.
-    abstract TextDocumentWillSaveWaitUntil: WillSaveTextDocumentParams -> AsyncLspResult<TextEdit array option>
+    abstract TextDocumentWillSaveWaitUntil: WillSaveTextDocumentParams -> AsyncLspResult<option<array<TextEdit>>>
+
     /// Request to request completion at a given text document position. The request's
     /// parameter is of type {@link TextDocumentPosition} the response
     /// is of type {@link CompletionItem CompletionItem[]} or {@link CompletionList}
@@ -246,7 +250,9 @@ type ILspServer =
     /// and {@link CompletionItem.documentation `documentation`} properties to the `completionItem/resolve`
     /// request. However, properties that are needed for the initial sorting and filtering, like `sortText`,
     /// `filterText`, `insertText`, and `textEdit`, must not be changed during resolve.
-    abstract TextDocumentCompletion: CompletionParams -> AsyncLspResult<U2<CompletionItem array,CompletionList> option>
+    abstract TextDocumentCompletion:
+        CompletionParams -> AsyncLspResult<option<U2<array<CompletionItem>, CompletionList>>>
+
     /// Request to resolve additional information for a given completion item.The request's
     /// parameter is of type {@link CompletionItem} the response
     /// is of type {@link CompletionItem} or a Thenable that resolves to such.
@@ -254,33 +260,33 @@ type ILspServer =
     /// Request to request hover information at a given text document position. The request's
     /// parameter is of type {@link TextDocumentPosition} the response is of
     /// type {@link Hover} or a Thenable that resolves to such.
-    abstract TextDocumentHover: HoverParams -> AsyncLspResult<Hover option>
-    abstract TextDocumentSignatureHelp: SignatureHelpParams -> AsyncLspResult<SignatureHelp option>
+    abstract TextDocumentHover: HoverParams -> AsyncLspResult<option<Hover>>
+    abstract TextDocumentSignatureHelp: SignatureHelpParams -> AsyncLspResult<option<SignatureHelp>>
     /// A request to resolve the definition location of a symbol at a given text
     /// document position. The request's parameter is of type {@link TextDocumentPosition}
     /// the response is of either type {@link Definition} or a typed array of
     /// {@link DefinitionLink} or a Thenable that resolves to such.
-    abstract TextDocumentDefinition: DefinitionParams -> AsyncLspResult<U2<Definition,DefinitionLink array> option>
+    abstract TextDocumentDefinition: DefinitionParams -> AsyncLspResult<option<U2<Definition, array<DefinitionLink>>>>
     /// A request to resolve project-wide references for the symbol denoted
     /// by the given text document position. The request's parameter is of
     /// type {@link ReferenceParams} the response is of type
     /// {@link Location Location[]} or a Thenable that resolves to such.
-    abstract TextDocumentReferences: ReferenceParams -> AsyncLspResult<Location array option>
+    abstract TextDocumentReferences: ReferenceParams -> AsyncLspResult<option<array<Location>>>
     /// Request to resolve a {@link DocumentHighlight} for a given
     /// text document position. The request's parameter is of type {@link TextDocumentPosition}
     /// the request response is an array of type {@link DocumentHighlight}
     /// or a Thenable that resolves to such.
-    abstract TextDocumentDocumentHighlight: DocumentHighlightParams -> AsyncLspResult<DocumentHighlight array option>
+    abstract TextDocumentDocumentHighlight: DocumentHighlightParams -> AsyncLspResult<option<array<DocumentHighlight>>>
 
     /// A request to list all symbols found in a given text document. The request's
     /// parameter is of type {@link TextDocumentIdentifier} the
     /// response is of type {@link SymbolInformation SymbolInformation[]} or a Thenable
     /// that resolves to such.
     abstract TextDocumentDocumentSymbol:
-        DocumentSymbolParams -> AsyncLspResult<U2<SymbolInformation array,DocumentSymbol array> option>
+        DocumentSymbolParams -> AsyncLspResult<option<U2<array<SymbolInformation>, array<DocumentSymbol>>>>
 
     /// A request to provide commands for the given text document and range.
-    abstract TextDocumentCodeAction: CodeActionParams -> AsyncLspResult<U2<Command,CodeAction> array option>
+    abstract TextDocumentCodeAction: CodeActionParams -> AsyncLspResult<option<array<U2<Command, CodeAction>>>>
     /// Request to resolve additional information for a given code action.The request's
     /// parameter is of type {@link CodeAction} the response
     /// is of type {@link CodeAction} or a Thenable that resolves to such.
@@ -295,7 +301,7 @@ type ILspServer =
     ///  need to advertise support for WorkspaceSymbols via the client capability
     ///  `workspace.symbol.resolveSupport`.
     abstract WorkspaceSymbol:
-        WorkspaceSymbolParams -> AsyncLspResult<U2<SymbolInformation array,WorkspaceSymbol array> option>
+        WorkspaceSymbolParams -> AsyncLspResult<option<U2<array<SymbolInformation>, array<WorkspaceSymbol>>>>
 
     /// A request to resolve the range inside the workspace
     /// symbol's location.
@@ -303,30 +309,30 @@ type ILspServer =
     /// @since 3.17.0
     abstract WorkspaceSymbolResolve: WorkspaceSymbol -> AsyncLspResult<WorkspaceSymbol>
     /// A request to provide code lens for the given text document.
-    abstract TextDocumentCodeLens: CodeLensParams -> AsyncLspResult<CodeLens array option>
+    abstract TextDocumentCodeLens: CodeLensParams -> AsyncLspResult<option<array<CodeLens>>>
     /// A request to resolve a command for a given code lens.
     abstract CodeLensResolve: CodeLens -> AsyncLspResult<CodeLens>
     /// A request to provide document links
-    abstract TextDocumentDocumentLink: DocumentLinkParams -> AsyncLspResult<DocumentLink array option>
+    abstract TextDocumentDocumentLink: DocumentLinkParams -> AsyncLspResult<option<array<DocumentLink>>>
     /// Request to resolve additional information for a given document link. The request's
     /// parameter is of type {@link DocumentLink} the response
     /// is of type {@link DocumentLink} or a Thenable that resolves to such.
     abstract DocumentLinkResolve: DocumentLink -> AsyncLspResult<DocumentLink>
     /// A request to format a whole document.
-    abstract TextDocumentFormatting: DocumentFormattingParams -> AsyncLspResult<TextEdit array option>
+    abstract TextDocumentFormatting: DocumentFormattingParams -> AsyncLspResult<option<array<TextEdit>>>
     /// A request to format a range in a document.
-    abstract TextDocumentRangeFormatting: DocumentRangeFormattingParams -> AsyncLspResult<TextEdit array option>
+    abstract TextDocumentRangeFormatting: DocumentRangeFormattingParams -> AsyncLspResult<option<array<TextEdit>>>
     /// A request to format a document on type.
-    abstract TextDocumentOnTypeFormatting: DocumentOnTypeFormattingParams -> AsyncLspResult<TextEdit array option>
+    abstract TextDocumentOnTypeFormatting: DocumentOnTypeFormattingParams -> AsyncLspResult<option<array<TextEdit>>>
     /// A request to rename a symbol.
-    abstract TextDocumentRename: RenameParams -> AsyncLspResult<WorkspaceEdit option>
+    abstract TextDocumentRename: RenameParams -> AsyncLspResult<option<WorkspaceEdit>>
     /// A request to test and perform the setup necessary for a rename.
     ///
     /// @since 3.16 - support for default behavior
-    abstract TextDocumentPrepareRename: PrepareRenameParams -> AsyncLspResult<PrepareRenameResult option>
+    abstract TextDocumentPrepareRename: PrepareRenameParams -> AsyncLspResult<option<PrepareRenameResult>>
     /// A request send from the client to the server to execute a command. The request might return
     /// a workspace edit which the client will apply to the workspace.
-    abstract WorkspaceExecuteCommand: ExecuteCommandParams -> AsyncLspResult<LSPAny option>
+    abstract WorkspaceExecuteCommand: ExecuteCommandParams -> AsyncLspResult<option<LSPAny>>
 
 type ILspClient =
     inherit System.IDisposable
@@ -348,7 +354,7 @@ type ILspClient =
     abstract Progress: ProgressParams -> Async<unit>
     // Requests
     /// The `workspace/workspaceFolders` is sent from the server to the client to fetch the open workspace folders.
-    abstract WorkspaceWorkspaceFolders: unit -> AsyncLspResult<WorkspaceFolder array option>
+    abstract WorkspaceWorkspaceFolders: unit -> AsyncLspResult<option<array<WorkspaceFolder>>>
     /// The 'workspace/configuration' request is sent from the server to the client to fetch a certain
     /// configuration setting.
     ///
@@ -356,7 +362,7 @@ type ILspClient =
     /// event. If the server still needs to react to configuration changes (since the server caches the
     /// result of `workspace/configuration` requests) the server should register for an empty configuration
     /// change event and empty the cache if such an event is received.
-    abstract WorkspaceConfiguration: ConfigurationParams -> AsyncLspResult<LSPAny array>
+    abstract WorkspaceConfiguration: ConfigurationParams -> AsyncLspResult<array<LSPAny>>
     /// The `window/workDoneProgress/create` request is sent from the server to the client to initiate progress
     /// reporting from the server.
     abstract WindowWorkDoneProgressCreate: WorkDoneProgressCreateParams -> AsyncLspResult<unit>
@@ -385,7 +391,7 @@ type ILspClient =
     abstract ClientUnregisterCapability: UnregistrationParams -> AsyncLspResult<unit>
     /// The show message request is sent from the server to the client to show a message
     /// and a set of options actions to the user.
-    abstract WindowShowMessageRequest: ShowMessageRequestParams -> AsyncLspResult<MessageActionItem option>
+    abstract WindowShowMessageRequest: ShowMessageRequestParams -> AsyncLspResult<option<MessageActionItem>>
     /// A request to refresh all code actions
     ///
     /// @since 3.16.0

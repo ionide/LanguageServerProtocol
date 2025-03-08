@@ -1139,20 +1139,19 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
 
                   let returnType =
                     let rec returnType (ty: MetaModel.Type) =
-                      // TODO: Don't use strings
                       match ty with
-                      | MetaModel.Type.ReferenceType r -> r.Name
+                      | MetaModel.Type.ReferenceType r -> LongIdent r.Name
                       | MetaModel.Type.BaseType b ->
                         match b.Name with
-                        | MetaModel.BaseTypes.Null -> "unit"
-                        | MetaModel.BaseTypes.Boolean -> "bool"
-                        | MetaModel.BaseTypes.Integer -> "int"
-                        | MetaModel.BaseTypes.Uinteger -> "uint"
-                        | MetaModel.BaseTypes.Decimal -> "float"
-                        | MetaModel.BaseTypes.String -> "string"
-                        | MetaModel.BaseTypes.DocumentUri -> "DocumentUri"
-                        | MetaModel.BaseTypes.Uri -> "Uri"
-                        | MetaModel.BaseTypes.RegExp -> "RegExp"
+                        | MetaModel.BaseTypes.Null -> Unit()
+                        | MetaModel.BaseTypes.Boolean -> Boolean()
+                        | MetaModel.BaseTypes.Integer -> Int()
+                        | MetaModel.BaseTypes.Uinteger -> UInt32()
+                        | MetaModel.BaseTypes.Decimal -> Float()
+                        | MetaModel.BaseTypes.String -> String()
+                        | MetaModel.BaseTypes.DocumentUri -> LongIdent "DocumentUri"
+                        | MetaModel.BaseTypes.Uri -> LongIdent "Uri"
+                        | MetaModel.BaseTypes.RegExp -> LongIdent "RegExp"
                       | MetaModel.Type.OrType o ->
                         // TS types can have optional properties (myKey?: string)
                         // and unions with null (string | null)
@@ -1168,20 +1167,20 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
                         let types =
                           items
                           |> Array.map returnType
+                          |> Array.toList
 
                         let retType =
                           if types.Length > 1 then
                             let duType = $"U{types.Length}"
-                            let inner = String.Join(",", types)
-                            $"{duType}<{inner}>"
+                            AppPrefix(duType, types)
                           else
                             types.[0]
 
-                        if isOptional then $"{retType} option" else retType
-                      | MetaModel.Type.ArrayType a -> $"{returnType a.Element} array"
-                      | _ -> "Unsupported Type"
+                        if isOptional then OptionPrefix retType else retType
+                      | MetaModel.Type.ArrayType a -> ArrayPrefix(returnType a.Element)
+                      | _ -> LongIdent "Unsupported Type"
 
-                    $"AsyncLspResult<{returnType r.Result}>"
+                    AppPrefix("AsyncLspResult", [ returnType r.Result ])
 
 
                   let wb = AbstractMember(methodName, parameters, returnType)

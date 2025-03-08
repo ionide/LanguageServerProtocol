@@ -50,6 +50,8 @@
     <Watch Include="@(_GenerationInputs)" />
     <_MetaModelOutputs Include="$(MSBuildThisFileDirectory)Types.cg.fs" />
     <_MetaModelClientServerOutputs Include="$(MSBuildThisFileDirectory)ClientServer.cg.fs" />
+
+    <Watch Remove="@(_MetaModelOutputs);@(__MetaModelClientServerOutputs)" />
   </ItemGroup>
 
   <Target Name="EnsureRegeneration" Condition="'$(ForceRegenerate)' == 'true'">
