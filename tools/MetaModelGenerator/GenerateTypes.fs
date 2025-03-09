@@ -48,6 +48,9 @@ module TypeAnonBuilders =
   open Fabulous.AST
   open Fantomas.Core.SyntaxOak
 
+  let pipe (right: WidgetBuilder<Expr>) (left: WidgetBuilder<Expr>) = Ast.InfixAppExpr(left, "|>", right)
+
+
   type Ast with
 
     static member LspUri() = Ast.LongIdent Widgets.DocumentUriString
@@ -1249,22 +1252,48 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
             generateInterface "ILspServer" serverNotifications serverRequests
             generateInterface "ILspClient" clientNotifications clientRequests
 
-            Module "Mappings" {
-
-
+            let generateServerRequestHandlingRecord =
               let serverTypeArg = "'server"
 
               Record "ServerRequestHandling" { Field("Run", Funs([ serverTypeArg ], "System.Delegate")) }
               |> _.typeParams(PostfixList(TyparDecl(serverTypeArg), SubtypeOf(serverTypeArg, LongIdent("ILspServer"))))
 
-              let pipe (right: WidgetBuilder<Expr>) (left: WidgetBuilder<Expr>) = InfixAppExpr(left, "|>", right)
+            let generateRoutes =
 
               let body =
-                CompExprBodyExpr [
+                let generateRoute requestParams (method: string) configureValue =
+                  let callWith =
+                    if Array.isEmpty requestParams then
+                      ParenExpr ""
+                    else
+                      ParenExpr "request"
+
+                  TupleExpr [
+
+                    ConstantExpr(String method)
+
+                    AppWithLambdaExpr(
+                      ConstantExpr "serverRequestHandling",
+                      [
+                        ConstantPat "server"
+                        ConstantPat "request"
+                      ],
+                      AppLongIdentAndSingleParenArgExpr(
+                        [
+                          "server"
+                          normalizeMethod method
+                        ],
+                        callWith
+                      )
+                      |> configureValue
+                    )
+                  ]
+
+                let generateRouteHandler =
                   LetOrUseExpr(
                     Function(
                       "serverRequestHandling",
-                      NamedPat("run"),
+                      NamedPat "run",
                       RecordExpr [
                         RecordFieldExpr(
                           "Run",
@@ -1277,61 +1306,20 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
                       ]
                     )
                   )
+
+                CompExprBodyExpr [
+                  generateRouteHandler
                   OtherExpr(
                     ListExpr [
                       for serverRequest in serverRequests do
-                        let callWith =
-                          if Array.isEmpty serverRequest.ParamsSafe then
-                            ParenExpr ""
-                          else
-                            ParenExpr "request"
-
-                        TupleExpr [
-
-                          ConstantExpr(String serverRequest.Method)
-
-                          AppWithLambdaExpr(
-                            ConstantExpr "serverRequestHandling",
-                            [
-                              ConstantPat "server"
-                              ConstantPat "request"
-                            ],
-                            AppLongIdentAndSingleParenArgExpr(
-                              [
-                                "server"
-                                normalizeMethod serverRequest.Method
-                              ],
-                              callWith
-                            )
-                          )
-                        ]
+                        generateRoute serverRequest.ParamsSafe serverRequest.Method id
 
                       for serverNotification in serverNotifications do
-                        let callWith =
-                          if Array.isEmpty serverNotification.ParamsSafe then
-                            ParenExpr ""
-                          else
-                            ParenExpr "request"
+                        generateRoute
+                          serverNotification.ParamsSafe
+                          serverNotification.Method
+                          (pipe (ConstantExpr "Requests.notificationSuccess"))
 
-                        TupleExpr [
-                          ConstantExpr(String serverNotification.Method)
-
-                          AppWithLambdaExpr(
-                            ConstantExpr "serverRequestHandling",
-                            [
-                              ConstantPat "server"
-                              ConstantPat "request"
-                            ],
-                            AppLongIdentAndSingleParenArgExpr(
-                              [
-                                "server"
-                                normalizeMethod serverNotification.Method
-                              ],
-                              callWith
-                            )
-                            |> pipe (ConstantExpr "Requests.notificationSuccess")
-                          )
-                        ]
 
                     ]
                   )
@@ -1339,6 +1327,12 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
 
 
               Function("routeMappings", [ UnitPat() ], body)
+
+            Module "Mappings" {
+
+
+              generateServerRequestHandlingRecord
+              generateRoutes
 
             }
 
