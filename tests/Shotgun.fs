@@ -22,15 +22,25 @@ type Gens =
       Arb.Default.Derive<'T>()
     else
       Arb.Default.Derive<'T>()
-      |> Arb.filter (fun v -> (box v) <> null)
+      |> Arb.filter (fun v ->
+        (box v)
+        <> null
+      )
 
   static member JToken() : Arbitrary<JToken> =
     // actual value doesn't matter -> handled by user
     // and complexer JTokens cannot be directly compared with `=`
-    JToken.FromObject(123) |> Gen.constant |> Arb.fromGen
+    JToken.FromObject(123)
+    |> Gen.constant
+    |> Arb.fromGen
 
-  static member String() : Arbitrary<string> = Arb.Default.String() |> Arb.filter (fun s -> not (isNull s))
-  static member Float() : Arbitrary<float> = Arb.Default.NormalFloat() |> Arb.convert float NormalFloat
+  static member String() : Arbitrary<string> =
+    Arb.Default.String()
+    |> Arb.filter (fun s -> not (isNull s))
+
+  static member Float() : Arbitrary<float> =
+    Arb.Default.NormalFloat()
+    |> Arb.convert float NormalFloat
 
   static member Uri() : Arbitrary<Uri> =
     // actual value doesn't matter -> always use example uri
@@ -39,31 +49,54 @@ type Gens =
     |> Arb.fromGen
 
   static member CreateFile() : Arbitrary<CreateFile> =
-    let create annotationId uri options : CreateFile = { AnnotationId = annotationId; Uri = uri; Options = options ; Kind = "create" }
-    Gen.map3 create Arb.generate Arb.generate Arb.generate |> Arb.fromGen
+    let create annotationId uri options : CreateFile = {
+      AnnotationId = annotationId
+      Uri = uri
+      Options = options
+      Kind = "create"
+    }
+
+    Gen.map3 create Arb.generate Arb.generate Arb.generate
+    |> Arb.fromGen
 
   static member RenameFile() : Arbitrary<RenameFile> =
-    let create annotationId oldUri newUri options : RenameFile = { AnnotationId = annotationId; OldUri = oldUri; NewUri = newUri; Options = options ; Kind = "rename" }
-    Gen.map4 create Arb.generate Arb.generate Arb.generate Arb.generate |> Arb.fromGen
+    let create annotationId oldUri newUri options : RenameFile = {
+      AnnotationId = annotationId
+      OldUri = oldUri
+      NewUri = newUri
+      Options = options
+      Kind = "rename"
+    }
+
+    Gen.map4 create Arb.generate Arb.generate Arb.generate Arb.generate
+    |> Arb.fromGen
 
   static member DeleteFile() : Arbitrary<DeleteFile> =
-    let create annotationId uri options : DeleteFile = { AnnotationId = annotationId; Uri = uri; Options = options ; Kind = "delete" }
-    Gen.map3 create Arb.generate Arb.generate Arb.generate |> Arb.fromGen
+    let create annotationId uri options : DeleteFile = {
+      AnnotationId = annotationId
+      Uri = uri
+      Options = options
+      Kind = "delete"
+    }
+
+    Gen.map3 create Arb.generate Arb.generate Arb.generate
+    |> Arb.fromGen
 
   static member DocumentSymbol() : Arbitrary<DocumentSymbol> =
     // DocumentSymbol is recursive -> Stack overflow when default generation
     // https://fscheck.github.io/FsCheck/TestData.html#Generating-recursive-data-types
     let maxDepth = 5
 
-    let create name detail kind range selectionRange children =
-      { Name = name
-        Detail = detail
-        Kind = kind
-        Tags = None
-        Deprecated = None
-        Range = range
-        SelectionRange = selectionRange
-        Children = children }
+    let create name detail kind range selectionRange children = {
+      Name = name
+      Detail = detail
+      Kind = kind
+      Tags = None
+      Deprecated = None
+      Range = range
+      SelectionRange = selectionRange
+      Children = children
+    }
 
     let genDocSymbol = Gen.map6 create Arb.generate Arb.generate Arb.generate Arb.generate Arb.generate
     // Children is still open
@@ -71,12 +104,22 @@ type Gens =
       let size = min size maxDepth
 
       if size <= 0 then
-        genDocSymbol (Gen.oneof [ Gen.constant (None); Gen.constant (Some [||]) ])
+        genDocSymbol (
+          Gen.oneof [
+            Gen.constant (None)
+            Gen.constant (Some [||])
+          ]
+        )
       else
-        let children = gen (size - 1) |> Gen.arrayOf |> Gen.optionOf
+        let children =
+          gen (size - 1)
+          |> Gen.arrayOf
+          |> Gen.optionOf
+
         genDocSymbol children
 
-    Gen.sized gen |> Arb.fromGen
+    Gen.sized gen
+    |> Arb.fromGen
 
   static member SelectionRange() : Arbitrary<SelectionRange> =
     let maxDepth = 5
@@ -89,15 +132,22 @@ type Gens =
       if size <= 0 then
         genSelectionRange (Gen.constant None)
       else
-        let parent = gen (size - 1) |> Gen.optionOf
+        let parent =
+          gen (size - 1)
+          |> Gen.optionOf
+
         genSelectionRange parent
 
-    Gen.sized gen |> Arb.fromGen
+    Gen.sized gen
+    |> Arb.fromGen
 
 let private fsCheckConfig = { FsCheckConfig.defaultConfig with arbitrary = [ typeof<Gens> ] }
 
 type private Roundtripper =
-  static member ThereAndBackAgain(input: 'a) = input |> serialize |> deserialize<'a>
+  static member ThereAndBackAgain(input: 'a) =
+    input
+    |> serialize
+    |> deserialize<'a>
 
   static member TestThereAndBackAgain(input: 'a) =
     let output = Roundtripper.ThereAndBackAgain input
@@ -111,38 +161,50 @@ type private Roundtripper =
     testPropertyWithConfig fsCheckConfig name (Roundtripper.TestThereAndBackAgain<'a>)
 
 let tests =
-  testList
-    "shotgun"
-    [
-      // Type Abbreviations get erased
-      // -> not available as type and don't get pick up below
-      // -> specify manual
-      let abbrevTys =
-        [| nameof DocumentUri, typeof<DocumentUri>
-           nameof DocumentSelector, typeof<DocumentSelector>
-           nameof TextDocumentCodeActionResult, typeof<TextDocumentCodeActionResult> 
-           
-           |]
+  testList "shotgun" [
+    // Type Abbreviations get erased
+    // -> not available as type and don't get pick up below
+    // -> specify manual
+    let abbrevTys = [|
+      nameof DocumentUri, typeof<DocumentUri>
+      nameof DocumentSelector, typeof<DocumentSelector>
+      nameof TextDocumentCodeActionResult, typeof<TextDocumentCodeActionResult>
 
-      let tys =
-        let shouldTestType (t: Type) = 
-          Utils.isLspType [ not << Lsp.Is.Generic; not << Lsp.Is.Nested ] t
-          && t.Name = "ApplyWorkspaceEditParams"
+    |]
+
+    let tys =
+      let shouldTestType (t: Type) =
+        Utils.isLspType
+          [
+            not
+            << Lsp.Is.Generic
+            not
+            << Lsp.Is.Nested
+          ]
+          t
+        && t.Name = "ApplyWorkspaceEditParams"
 
 
-        let example = typeof<Ionide.LanguageServerProtocol.Types.TextDocumentIdentifier>
-        let ass = example.Assembly
+      let example = typeof<Ionide.LanguageServerProtocol.Types.TextDocumentIdentifier>
+      let ass = example.Assembly
 
-        ass.GetTypes()
-        |> Array.filter shouldTestType
-        |> Array.map (fun t -> t.Name, t)
-        |> Array.append abbrevTys
-        |> Array.sortBy fst
+      ass.GetTypes()
+      |> Array.filter shouldTestType
+      |> Array.map (fun t -> t.Name, t)
+      |> Array.append abbrevTys
+      |> Array.sortBy fst
 
-      let propTester =
-        typeof<Roundtripper>
-          .GetMethod(nameof (Roundtripper.TestProperty), BindingFlags.Static ||| BindingFlags.NonPublic)
+    let propTester =
+      typeof<Roundtripper>
+        .GetMethod(
+          nameof (Roundtripper.TestProperty),
+          BindingFlags.Static
+          ||| BindingFlags.NonPublic
+        )
 
-      for (name, ty) in tys do
-        let m = propTester.MakeGenericMethod([| ty |])
-        m.Invoke(null, [| name |]) |> unbox<Test> ]
+    for (name, ty) in tys do
+      let m = propTester.MakeGenericMethod([| ty |])
+
+      m.Invoke(null, [| name |])
+      |> unbox<Test>
+  ]

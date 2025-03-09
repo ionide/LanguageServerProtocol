@@ -63,8 +63,6 @@ type OptionAndCamelCasePropertyNamesContractResolver() as this =
       prop
 
 
-
-
 /// Newtonsoft.Json parses parses a number inside quotations as number too:
 /// `"42"` -> can be parsed to `42: int`
 /// This converter prevents that. `"42"` cannot be parsed to `int` (or `float`) any more
@@ -74,7 +72,9 @@ type StrictNumberConverter() =
 
   static let defaultSerializer = JsonSerializer()
 
-  override _.CanConvert(t) = t |> Type.isNumeric
+  override _.CanConvert(t) =
+    t
+    |> Type.isNumeric
 
   override __.ReadJson(reader, t, _, serializer) =
     match reader.TokenType with
@@ -93,7 +93,9 @@ type StrictNumberConverter() =
 type StrictStringConverter() =
   inherit JsonConverter()
 
-  override _.CanConvert(t) = t |> Type.isString
+  override _.CanConvert(t) =
+    t
+    |> Type.isString
 
   override __.ReadJson(reader, t, _, serializer) =
     match reader.TokenType with
@@ -110,7 +112,9 @@ type StrictStringConverter() =
 type StrictBoolConverter() =
   inherit JsonConverter()
 
-  override _.CanConvert(t) = t |> Type.isBool
+  override _.CanConvert(t) =
+    t
+    |> Type.isBool
 
   override __.ReadJson(reader, t, _, serializer) =
     match reader.TokenType with
@@ -132,7 +136,8 @@ type ErasedUnionConverter() =
       t.GetCustomAttributes(typedefof<ErasedUnionAttribute>, false).Length > 0
       ||
       // Case
-      t.BaseType.GetCustomAttributes(typedefof<ErasedUnionAttribute>, false).Length > 0))
+      t.BaseType.GetCustomAttributes(typedefof<ErasedUnionAttribute>, false).Length > 0)
+    )
 
   override __.CanConvert(t) = canConvert t
 
@@ -150,47 +155,73 @@ type ErasedUnionConverter() =
     let tryReadPrimitive (json: JToken) (targetType: Type) =
       if Type.isString targetType then
         if json.Type = JTokenType.String then
-          reader.Value |> Some
+          reader.Value
+          |> Some
         else
           None
       elif Type.isBool targetType then
         if json.Type = JTokenType.Boolean then
-          reader.Value |> Some
+          reader.Value
+          |> Some
         else
           None
       elif Type.isNumeric targetType then
         match json.Type with
         | JTokenType.Integer
-        | JTokenType.Float -> json.ToObject(targetType, serializer) |> Some
+        | JTokenType.Float ->
+          json.ToObject(targetType, serializer)
+          |> Some
         | _ -> None
       else
         None
-    let tryReadUnionKind (json: JToken) (targetType: Type) =
-        try
-          let fields = 
-            json.Children<JProperty>()
-          let props = 
-            targetType.GetProperties()
 
-          match fields |> Seq.tryFind(fun f -> f.Name.ToLowerInvariant() = "kind"), 
-                props |> Seq.tryFind (fun p -> p.Name.ToLowerInvariant() = "kind") with
-          | Some f, Some p ->
-            match p.GetCustomAttribute(typeof<UnionKindAttribute>) |> Option.ofObj with
-            | Some (:? UnionKindAttribute as k) when k.Value = string f.Value -> 
-              json.ToObject(targetType, serializer) |> Some
-            | _ -> None
+    let tryReadUnionKind (json: JToken) (targetType: Type) =
+      try
+        let fields = json.Children<JProperty>()
+        let props = targetType.GetProperties()
+
+        match
+          fields
+          |> Seq.tryFind (fun f -> f.Name.ToLowerInvariant() = "kind"),
+          props
+          |> Seq.tryFind (fun p -> p.Name.ToLowerInvariant() = "kind")
+        with
+        | Some f, Some p ->
+          match
+            p.GetCustomAttribute(typeof<UnionKindAttribute>)
+            |> Option.ofObj
+          with
+          | Some(:? UnionKindAttribute as k) when k.Value = string f.Value ->
+            json.ToObject(targetType, serializer)
+            |> Some
           | _ -> None
-        with _ -> None
+        | _ -> None
+      with _ ->
+        None
+
     let tryReadAllMatchingFields (json: JToken) (targetType: Type) =
-        try
-            let fields = json.Children<JProperty>()  |> Seq.map (fun f -> f.Name.ToLowerInvariant())
-            let props = targetType.GetProperties() |> Seq.map(fun p -> p.Name.ToLowerInvariant())
-            if fields |> Seq.forall (fun f -> props |> Seq.contains f) then
-              json.ToObject(targetType, serializer) |> Some
-            else
-              None
-        with _ ->
+      try
+        let fields =
+          json.Children<JProperty>()
+          |> Seq.map (fun f -> f.Name.ToLowerInvariant())
+
+        let props =
+          targetType.GetProperties()
+          |> Seq.map (fun p -> p.Name.ToLowerInvariant())
+
+        if
+          fields
+          |> Seq.forall (fun f ->
+            props
+            |> Seq.contains f
+          )
+        then
+          json.ToObject(targetType, serializer)
+          |> Some
+        else
           None
+      with _ ->
+        None
 
     let union = UnionInfo.get t
     let json = JToken.ReadFrom reader
@@ -202,18 +233,23 @@ type ErasedUnionConverter() =
 
         match tryReadValue json ty with
         | None -> None
-        | Some value -> case.Create [| value |] |> Some
+        | Some value ->
+          case.Create [| value |]
+          |> Some
       | fields ->
         failwith
           $"Expected union {case.Info.DeclaringType.Name} to have exactly one field in each case, but case {case.Info.Name} has {fields.Length} fields"
 
-    let c = 
-      union.Cases |> Array.tryPick (tryMakeUnionCase tryReadPrimitive json)
+    let c =
+      union.Cases
+      |> Array.tryPick (tryMakeUnionCase tryReadPrimitive json)
       |> Option.orElseWith (fun () ->
-        union.Cases |> Array.tryPick (tryMakeUnionCase tryReadUnionKind json)
+        union.Cases
+        |> Array.tryPick (tryMakeUnionCase tryReadUnionKind json)
       )
       |> Option.orElseWith (fun () ->
-        union.Cases |> Array.tryPick (tryMakeUnionCase tryReadAllMatchingFields json)
+        union.Cases
+        |> Array.tryPick (tryMakeUnionCase tryReadAllMatchingFields json)
       )
 
     match c with
@@ -231,7 +267,8 @@ type SingleCaseUnionConverter() =
     memoriseByHash (fun t ->
       FSharpType.IsUnion t
       && allCases t
-         |> Array.forall (fun c -> c.GetFields().Length = 0))
+         |> Array.forall (fun c -> c.GetFields().Length = 0)
+    )
 
   override _.CanConvert t = canConvert t
 
