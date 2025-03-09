@@ -12,6 +12,7 @@
     <Compile Include="../../src/OptionConverter.fs" />
     <Compile Include="PrimitiveExtensions.fs" />
     <Compile Include="MetaModel.fs" />
+    <Compile Include="Common.fs" />
     <Compile Include="GenerateTypes.fs" />
     <Compile Include="GenerateClientServer.fs" />
     <Compile Include="Program.fs" />
