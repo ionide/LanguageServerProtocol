@@ -6,7 +6,7 @@ module FileWriters =
 
   let writeIfChanged outputPath text =
     async {
-      let writeToFile path contents = File.WriteAllTextAsync(path, contents)
+      let writeToFile (path: string) (contents: string) = File.WriteAllTextAsync(path, contents)
 
       let! existingFile =
         async {
