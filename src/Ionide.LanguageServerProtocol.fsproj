@@ -66,6 +66,15 @@
     <ItemGroup>
       <_GeneratorProject Include="../tools/MetaModelGenerator/MetaModelGenerator.fsproj" />
     </ItemGroup>
+
+    <!-- 
+          yes Restore has to be separate because the problem is that MSBuild has an XML file cache, 
+          so if you happen to read some content during a Restore, that content won't be re-read during a
+          subsequent Build  
+      -->
+    <MSBuild Projects="@(_GeneratorProject)" Targets="Restore">
+      <Output TaskParameter="TargetOutputs" ItemName="_GeneratorApp" />
+    </MSBuild>
     <MSBuild Projects="@(_GeneratorProject)" Targets="Build">
       <Output TaskParameter="TargetOutputs" ItemName="_GeneratorApp" />
     </MSBuild>
