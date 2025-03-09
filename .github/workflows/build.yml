@@ -31,5 +31,5 @@ jobs:
       - name: Upload NuGet packages
         uses: actions/upload-artifact@v4
         with:
-          name: packages
+          name: packages-${{ matrix.os }}
           path: release/
