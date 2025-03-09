@@ -39,7 +39,9 @@ let tests =
 
       let server1 =
         async {
-          let result = (startWithSetup setupEndpoints inputClientPipe1 outputServerPipe1 TestLspClient defaultRpc)
+          let result =
+            startWithSetup setupEndpoints inputClientPipe1 outputServerPipe1 (fun x -> new TestLspClient(x)) defaultRpc
+
           Expect.equal (int result) 0 "server startup failed"
         }
 
@@ -54,7 +56,9 @@ let tests =
 
       let server2 =
         async {
-          let result = (startWithSetup setupEndpoints inputClientPipe2 outputServerPipe2 TestLspClient defaultRpc)
+          let result =
+            (startWithSetup setupEndpoints inputClientPipe2 outputServerPipe2 (fun x -> new TestLspClient(x)) defaultRpc)
+
           Expect.equal (int result) 0 "server startup failed"
         }
 
