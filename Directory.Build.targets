@@ -21,6 +21,9 @@ https://learn.microsoft.com/en-us/visualstudio/msbuild/customize-by-directory?vi
       StandardOutputImportance="High" StandardErrorImportance="High" />
     <MakeDir Directories="$(_BuildProjBaseIntermediateOutputPath)" />
     <Touch Files="$(_DotnetToolRestoreOutputFile)" AlwaysCreate="True" ForceTouch="True" />
+    <ItemGroup>
+      <FileWrites Include="@(_DotnetToolRestoreOutputFile)" />
+    </ItemGroup>
   </Target>
 
   <!-- Make sure that files are formatted before building -->
@@ -31,6 +34,9 @@ https://learn.microsoft.com/en-us/visualstudio/msbuild/customize-by-directory?vi
       StandardErrorImportance="High" WorkingDirectory="$(MSBuildThisFileDirectory)"
       ContinueOnError="WarnAndContinue" />
     <Touch Files="$(_DotnetFantomasOutputFile)" AlwaysCreate="True" ForceTouch="True" />
+    <ItemGroup>
+      <FileWrites Include="@(_DotnetFantomasOutputFile)" />
+    </ItemGroup>
   </Target>
 
 </Project>
