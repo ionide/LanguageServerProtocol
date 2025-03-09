@@ -59,6 +59,7 @@
   </Target>
 
   <Target Name="RegenerateTypes" Inputs="@(_MetaModelInputs);@(_GenerationInputs)"
+    Condition="'$(DesignTimeBuild)' != 'True'"
     DependsOnTargets="EnsureRegeneration"
     Outputs="@(_MetaModelOutputs); @(_MetaModelClientServerOutputs)"
     BeforeTargets="PrepareForBuild">
