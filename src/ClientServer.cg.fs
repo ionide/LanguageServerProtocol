@@ -398,3 +398,156 @@ type ILspClient =
     abstract WorkspaceCodeLensRefresh: unit -> AsyncLspResult<unit>
     /// A request sent from the server to the client to modified certain resources.
     abstract WorkspaceApplyEdit: ApplyWorkspaceEditParams -> AsyncLspResult<ApplyWorkspaceEditResult>
+
+module Mappings =
+    type ServerRequestHandling<'server when 'server :> ILspServer> = { Run: 'server -> System.Delegate }
+
+    let routeMappings () =
+        let serverRequestHandling run =
+            { Run = fun server -> run server |> JsonRpc.Requests.requestHandling }
+
+        [ "textDocument/implementation",
+          serverRequestHandling (fun server request -> server.TextDocumentImplementation(request))
+          "textDocument/typeDefinition",
+          serverRequestHandling (fun server request -> server.TextDocumentTypeDefinition(request))
+          "textDocument/documentColor",
+          serverRequestHandling (fun server request -> server.TextDocumentDocumentColor(request))
+          "textDocument/colorPresentation",
+          serverRequestHandling (fun server request -> server.TextDocumentColorPresentation(request))
+          "textDocument/foldingRange",
+          serverRequestHandling (fun server request -> server.TextDocumentFoldingRange(request))
+          "textDocument/declaration",
+          serverRequestHandling (fun server request -> server.TextDocumentDeclaration(request))
+          "textDocument/selectionRange",
+          serverRequestHandling (fun server request -> server.TextDocumentSelectionRange(request))
+          "textDocument/prepareCallHierarchy",
+          serverRequestHandling (fun server request -> server.TextDocumentPrepareCallHierarchy(request))
+          "callHierarchy/incomingCalls",
+          serverRequestHandling (fun server request -> server.CallHierarchyIncomingCalls(request))
+          "callHierarchy/outgoingCalls",
+          serverRequestHandling (fun server request -> server.CallHierarchyOutgoingCalls(request))
+          "textDocument/semanticTokens/full",
+          serverRequestHandling (fun server request -> server.TextDocumentSemanticTokensFull(request))
+          "textDocument/semanticTokens/full/delta",
+          serverRequestHandling (fun server request -> server.TextDocumentSemanticTokensFullDelta(request))
+          "textDocument/semanticTokens/range",
+          serverRequestHandling (fun server request -> server.TextDocumentSemanticTokensRange(request))
+          "textDocument/linkedEditingRange",
+          serverRequestHandling (fun server request -> server.TextDocumentLinkedEditingRange(request))
+          "workspace/willCreateFiles",
+          serverRequestHandling (fun server request -> server.WorkspaceWillCreateFiles(request))
+          "workspace/willRenameFiles",
+          serverRequestHandling (fun server request -> server.WorkspaceWillRenameFiles(request))
+          "workspace/willDeleteFiles",
+          serverRequestHandling (fun server request -> server.WorkspaceWillDeleteFiles(request))
+          "textDocument/moniker", serverRequestHandling (fun server request -> server.TextDocumentMoniker(request))
+          "textDocument/prepareTypeHierarchy",
+          serverRequestHandling (fun server request -> server.TextDocumentPrepareTypeHierarchy(request))
+          "typeHierarchy/supertypes",
+          serverRequestHandling (fun server request -> server.TypeHierarchySupertypes(request))
+          "typeHierarchy/subtypes", serverRequestHandling (fun server request -> server.TypeHierarchySubtypes(request))
+          "textDocument/inlineValue",
+          serverRequestHandling (fun server request -> server.TextDocumentInlineValue(request))
+          "textDocument/inlayHint", serverRequestHandling (fun server request -> server.TextDocumentInlayHint(request))
+          "inlayHint/resolve", serverRequestHandling (fun server request -> server.InlayHintResolve(request))
+          "textDocument/diagnostic",
+          serverRequestHandling (fun server request -> server.TextDocumentDiagnostic(request))
+          "workspace/diagnostic", serverRequestHandling (fun server request -> server.WorkspaceDiagnostic(request))
+          "initialize", serverRequestHandling (fun server request -> server.Initialize(request))
+          "shutdown", serverRequestHandling (fun server request -> server.Shutdown())
+          "textDocument/willSaveWaitUntil",
+          serverRequestHandling (fun server request -> server.TextDocumentWillSaveWaitUntil(request))
+          "textDocument/completion",
+          serverRequestHandling (fun server request -> server.TextDocumentCompletion(request))
+          "completionItem/resolve", serverRequestHandling (fun server request -> server.CompletionItemResolve(request))
+          "textDocument/hover", serverRequestHandling (fun server request -> server.TextDocumentHover(request))
+          "textDocument/signatureHelp",
+          serverRequestHandling (fun server request -> server.TextDocumentSignatureHelp(request))
+          "textDocument/definition",
+          serverRequestHandling (fun server request -> server.TextDocumentDefinition(request))
+          "textDocument/references",
+          serverRequestHandling (fun server request -> server.TextDocumentReferences(request))
+          "textDocument/documentHighlight",
+          serverRequestHandling (fun server request -> server.TextDocumentDocumentHighlight(request))
+          "textDocument/documentSymbol",
+          serverRequestHandling (fun server request -> server.TextDocumentDocumentSymbol(request))
+          "textDocument/codeAction",
+          serverRequestHandling (fun server request -> server.TextDocumentCodeAction(request))
+          "codeAction/resolve", serverRequestHandling (fun server request -> server.CodeActionResolve(request))
+          "workspace/symbol", serverRequestHandling (fun server request -> server.WorkspaceSymbol(request))
+          "workspaceSymbol/resolve",
+          serverRequestHandling (fun server request -> server.WorkspaceSymbolResolve(request))
+          "textDocument/codeLens", serverRequestHandling (fun server request -> server.TextDocumentCodeLens(request))
+          "codeLens/resolve", serverRequestHandling (fun server request -> server.CodeLensResolve(request))
+          "textDocument/documentLink",
+          serverRequestHandling (fun server request -> server.TextDocumentDocumentLink(request))
+          "documentLink/resolve", serverRequestHandling (fun server request -> server.DocumentLinkResolve(request))
+          "textDocument/formatting",
+          serverRequestHandling (fun server request -> server.TextDocumentFormatting(request))
+          "textDocument/rangeFormatting",
+          serverRequestHandling (fun server request -> server.TextDocumentRangeFormatting(request))
+          "textDocument/onTypeFormatting",
+          serverRequestHandling (fun server request -> server.TextDocumentOnTypeFormatting(request))
+          "textDocument/rename", serverRequestHandling (fun server request -> server.TextDocumentRename(request))
+          "textDocument/prepareRename",
+          serverRequestHandling (fun server request -> server.TextDocumentPrepareRename(request))
+          "workspace/executeCommand",
+          serverRequestHandling (fun server request -> server.WorkspaceExecuteCommand(request))
+          "workspace/didChangeWorkspaceFolders",
+          serverRequestHandling (fun server request ->
+              server.WorkspaceDidChangeWorkspaceFolders(request)
+              |> Requests.notificationSuccess)
+          "window/workDoneProgress/cancel",
+          serverRequestHandling (fun server request ->
+              server.WindowWorkDoneProgressCancel(request) |> Requests.notificationSuccess)
+          "workspace/didCreateFiles",
+          serverRequestHandling (fun server request ->
+              server.WorkspaceDidCreateFiles(request) |> Requests.notificationSuccess)
+          "workspace/didRenameFiles",
+          serverRequestHandling (fun server request ->
+              server.WorkspaceDidRenameFiles(request) |> Requests.notificationSuccess)
+          "workspace/didDeleteFiles",
+          serverRequestHandling (fun server request ->
+              server.WorkspaceDidDeleteFiles(request) |> Requests.notificationSuccess)
+          "notebookDocument/didOpen",
+          serverRequestHandling (fun server request ->
+              server.NotebookDocumentDidOpen(request) |> Requests.notificationSuccess)
+          "notebookDocument/didChange",
+          serverRequestHandling (fun server request ->
+              server.NotebookDocumentDidChange(request) |> Requests.notificationSuccess)
+          "notebookDocument/didSave",
+          serverRequestHandling (fun server request ->
+              server.NotebookDocumentDidSave(request) |> Requests.notificationSuccess)
+          "notebookDocument/didClose",
+          serverRequestHandling (fun server request ->
+              server.NotebookDocumentDidClose(request) |> Requests.notificationSuccess)
+          "initialized",
+          serverRequestHandling (fun server request -> server.Initialized(request) |> Requests.notificationSuccess)
+          "exit", serverRequestHandling (fun server request -> server.Exit() |> Requests.notificationSuccess)
+          "workspace/didChangeConfiguration",
+          serverRequestHandling (fun server request ->
+              server.WorkspaceDidChangeConfiguration(request) |> Requests.notificationSuccess)
+          "textDocument/didOpen",
+          serverRequestHandling (fun server request ->
+              server.TextDocumentDidOpen(request) |> Requests.notificationSuccess)
+          "textDocument/didChange",
+          serverRequestHandling (fun server request ->
+              server.TextDocumentDidChange(request) |> Requests.notificationSuccess)
+          "textDocument/didClose",
+          serverRequestHandling (fun server request ->
+              server.TextDocumentDidClose(request) |> Requests.notificationSuccess)
+          "textDocument/didSave",
+          serverRequestHandling (fun server request ->
+              server.TextDocumentDidSave(request) |> Requests.notificationSuccess)
+          "textDocument/willSave",
+          serverRequestHandling (fun server request ->
+              server.TextDocumentWillSave(request) |> Requests.notificationSuccess)
+          "workspace/didChangeWatchedFiles",
+          serverRequestHandling (fun server request ->
+              server.WorkspaceDidChangeWatchedFiles(request) |> Requests.notificationSuccess)
+          "$/setTrace",
+          serverRequestHandling (fun server request -> server.SetTrace(request) |> Requests.notificationSuccess)
+          "$/cancelRequest",
+          serverRequestHandling (fun server request -> server.CancelRequest(request) |> Requests.notificationSuccess)
+          "$/progress",
+          serverRequestHandling (fun server request -> server.Progress(request) |> Requests.notificationSuccess) ]

@@ -403,7 +403,7 @@ type LspServer() =
   /// The initialized notification may only be sent once.
   abstract member Initialized: InitializedParams -> Async<unit>
 
-  default __.Initialized() = ignoreNotification
+  default __.Initialized(_) = ignoreNotification
 
   /// The shutdown request is sent from the client to the server. It asks the server to shut down, but to not
   /// exit (otherwise the response might not be delivered correctly to the client). There is a separate exit
@@ -851,7 +851,7 @@ type LspServer() =
   interface ILspServer with
     member this.Dispose() = this.Dispose()
     member this.Initialize(p: InitializeParams) = this.Initialize(p)
-    member this.Initialized() = this.Initialized()
+    member this.Initialized(p: InitializedParams) = this.Initialized(p)
     member this.Shutdown() = this.Shutdown()
     member this.Exit() = this.Exit()
     member this.TextDocumentHover(p: HoverParams) = this.TextDocumentHover(p)

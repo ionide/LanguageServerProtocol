@@ -994,7 +994,7 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
 
             for s in structures do
               if isUnitStructure s then
-                Abbrev(s.Name, "unit")
+                Abbrev(s.Name, "obj")
               else
                 createStructure s knownInterfaces parsedMetaModel
                 |> List.map (fun r ->
@@ -1248,6 +1248,99 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
 
             generateInterface "ILspServer" serverNotifications serverRequests
             generateInterface "ILspClient" clientNotifications clientRequests
+
+            Module "Mappings" {
+
+
+              let serverTypeArg = "'server"
+
+              Record "ServerRequestHandling" { Field("Run", Funs([ serverTypeArg ], "System.Delegate")) }
+              |> _.typeParams(PostfixList(TyparDecl(serverTypeArg), SubtypeOf(serverTypeArg, LongIdent("ILspServer"))))
+
+              let pipe (right: WidgetBuilder<Expr>) (left: WidgetBuilder<Expr>) = InfixAppExpr(left, "|>", right)
+
+              let body =
+                CompExprBodyExpr [
+                  LetOrUseExpr(
+                    Function(
+                      "serverRequestHandling",
+                      NamedPat("run"),
+                      RecordExpr [
+                        RecordFieldExpr(
+                          "Run",
+                          LambdaExpr(
+                            [ ParameterPat "server" ],
+                            AppLongIdentAndSingleParenArgExpr([ "run" ], ConstantExpr "server")
+                            |> pipe (ConstantExpr "JsonRpc.Requests.requestHandling")
+                          )
+                        )
+                      ]
+                    )
+                  )
+                  OtherExpr(
+                    ListExpr [
+                      for serverRequest in serverRequests do
+                        let callWith =
+                          if Array.isEmpty serverRequest.ParamsSafe then
+                            ParenExpr ""
+                          else
+                            ParenExpr "request"
+
+                        TupleExpr [
+
+                          ConstantExpr(String serverRequest.Method)
+
+                          AppWithLambdaExpr(
+                            ConstantExpr "serverRequestHandling",
+                            [
+                              ConstantPat "server"
+                              ConstantPat "request"
+                            ],
+                            AppLongIdentAndSingleParenArgExpr(
+                              [
+                                "server"
+                                normalizeMethod serverRequest.Method
+                              ],
+                              callWith
+                            )
+                          )
+                        ]
+
+                      for serverNotification in serverNotifications do
+                        let callWith =
+                          if Array.isEmpty serverNotification.ParamsSafe then
+                            ParenExpr ""
+                          else
+                            ParenExpr "request"
+
+                        TupleExpr [
+                          ConstantExpr(String serverNotification.Method)
+
+                          AppWithLambdaExpr(
+                            ConstantExpr "serverRequestHandling",
+                            [
+                              ConstantPat "server"
+                              ConstantPat "request"
+                            ],
+                            AppLongIdentAndSingleParenArgExpr(
+                              [
+                                "server"
+                                normalizeMethod serverNotification.Method
+                              ],
+                              callWith
+                            )
+                            |> pipe (ConstantExpr "Requests.notificationSuccess")
+                          )
+                        ]
+
+                    ]
+                  )
+                ]
+
+
+              Function("routeMappings", [ UnitPat() ], body)
+
+            }
 
           }
         }

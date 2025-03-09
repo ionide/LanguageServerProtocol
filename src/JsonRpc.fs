@@ -153,3 +153,46 @@ module AsyncLspResult =
   let notImplemented<'a> : AsyncLspResult<'a> = async.Return LspResult.notImplemented
 
   let requestCancelled<'a> : AsyncLspResult<'a> = async.Return LspResult.requestCancelled
+
+
+module Requests =
+  open StreamJsonRpc
+  open System
+  open System.Threading
+  open System.Threading.Tasks
+
+  let requestHandling<'param, 'result> (run: 'param -> AsyncLspResult<'result>) : Delegate =
+    let runAsTask param ct =
+      // Execute non-async portion of `run` before forking the async portion into a task.
+      // This is needed to avoid reordering of messages from a client.
+      let asyncLspResult = run param
+
+      let asyncContinuation =
+        async {
+          let! lspResult = asyncLspResult
+
+          return
+            match lspResult with
+            | Ok result -> result
+            | Error error ->
+              let rpcException = LocalRpcException(error.Message)
+              rpcException.ErrorCode <- error.Code
+
+              rpcException.ErrorData <-
+                error.Data
+                |> Option.defaultValue null
+
+              raise rpcException
+        }
+
+      Async.StartAsTask(asyncContinuation, cancellationToken = ct)
+
+    Func<'param, CancellationToken, Task<'result>>(runAsTask) :> Delegate
+
+  /// Notifications don't generate a response or error, but to unify things we consider them as always successful.
+  /// They will still not send any response because their ID is null.
+  let internal notificationSuccess (response: Async<unit>) =
+    async {
+      do! response
+      return Result.Ok()
+    }

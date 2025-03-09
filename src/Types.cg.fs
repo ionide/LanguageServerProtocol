@@ -395,7 +395,7 @@ type INotebookDocumentSyncOptions =
     /// the server. Will only be honored if mode === `notebook`.
     abstract Save: bool option
 
-type InitializedParams = unit
+type InitializedParams = obj
 
 type ImplementationParams =
     {
