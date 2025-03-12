@@ -15,8 +15,10 @@ jobs:
     steps:
       - name: Set tag version
         id: get_version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\/v/}
-        shell: bash
+        run: |
+          VERSION=${GITHUB_REF_NAME#v} #This removes the 'v' from the tag
+          echo Version: $VERSION
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - uses: actions/checkout@v3
 
