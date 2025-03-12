@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 11.03.2025
+
+### Changed
+
+* BREAKING: [Generate Client and Server interfaces from LSP spec](https://github.com/ionide/LanguageServerProtocol/pull/67) (Thanks @TheAngryByrd). The Client and Server interfaces will reflect 3.17 the LSP spec.
+
 ## [0.6.0] - 12.06.2024
 
 ### Changed
