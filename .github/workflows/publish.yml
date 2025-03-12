@@ -52,7 +52,7 @@ jobs:
         with:
           tag_name: ${{ github.ref }}
           release_name: ${{ github.ref }}
-          body: ${{ steps.changelog_reader.outputs.log_entry }}
+          body: ${{ steps.changelog_reader.outputs.changes }}
           draft: false
           prerelease: false
 
