@@ -7,32 +7,39 @@ module Main =
   open System.IO
 
   type TypeArgs =
-  | MetaModelPath of string
-  | OutputFilePath of string
+    | MetaModelPath of string
+    | OutputFilePath of string
+
     interface IArgParserTemplate with
-        member this.Usage: string = 
-            match this with
-            | MetaModelPath _ -> "The path to metaModel.json. See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#metaModel"
-            | OutputFilePath _ -> "The path to the output file. Should end with .fs"
-  
+      member this.Usage: string =
+        match this with
+        | MetaModelPath _ ->
+          "The path to metaModel.json. See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#metaModel"
+        | OutputFilePath _ -> "The path to the output file. Should end with .fs"
+
   type ClientServerArgs =
-  | MetaModelPath of string
-  | OutputFilePath of string
+    | MetaModelPath of string
+    | OutputFilePath of string
+
     interface IArgParserTemplate with
-        member this.Usage: string = 
-            match this with
-            | MetaModelPath _ -> "The path to metaModel.json. See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#metaModel"
-            | OutputFilePath _ -> "The path to the output file. Should end with .fs"
-  
+      member this.Usage: string =
+        match this with
+        | MetaModelPath _ ->
+          "The path to metaModel.json. See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#metaModel"
+        | OutputFilePath _ -> "The path to the output file. Should end with .fs"
+
   type CommandArgs =
-  | [<CliPrefix(CliPrefix.None)>] Types of ParseResults<TypeArgs>
-  // | [<CliPrefix(CliPrefix.None)>] ClientServer of ParseResults<ClientServerArgs>
+    | [<CliPrefix(CliPrefix.None)>] Types of ParseResults<TypeArgs>
+    | [<CliPrefix(CliPrefix.None)>] ClientServer of ParseResults<ClientServerArgs>
+
     interface IArgParserTemplate with
       member this.Usage =
         match this with
         | Types _ -> "Generates Types from metaModel.json."
-        // | ClientServer _ -> "Generates Client/Server"
-  let readMetaModel metamodelPath = async {
+        | ClientServer _ -> "Generates Client/Server"
+
+  let readMetaModel metamodelPath =
+    async {
 
       printfn "Reading in %s" metamodelPath
 
@@ -46,56 +53,46 @@ module Main =
         JsonConvert.DeserializeObject<MetaModel.MetaModel>(metaModel, MetaModel.metaModelSerializerSettings)
 
       return parsedMetaModel
-  }
+    }
 
 
   [<EntryPoint>]
   let main argv =
-    
-    let errorHandler = ProcessExiter(colorizer = function ErrorCode.HelpText -> None | _ -> Some ConsoleColor.Red)
+
+    let errorHandler =
+      ProcessExiter(
+        colorizer =
+          function
+          | ErrorCode.HelpText -> None
+          | _ -> Some ConsoleColor.Red
+      )
+
     let parser = ArgumentParser.Create<CommandArgs>(programName = "MetaModelGenerator", errorHandler = errorHandler)
 
     let results = parser.ParseCommandLine argv
+
     match results.GetSubCommand() with
     | Types r ->
       let metaModelPath = r.GetResult <@ TypeArgs.MetaModelPath @>
       let OutputFilePath = r.GetResult <@ TypeArgs.OutputFilePath @>
-      let metaModel = readMetaModel metaModelPath |> Async.RunSynchronously
-      GenerateTypes.generateType metaModel OutputFilePath |> Async.RunSynchronously
-    
-    // | ClientServer r ->
 
-      // let metaModelPath = r.GetResult <@ ClientServerArgs.MetaModelPath @>
-      // let OutputFilePath = r.GetResult <@ ClientServerArgs.OutputFilePath @>
-      // let metaModel = readMetaModel metaModelPath |> Async.RunSynchronously
+      let metaModel =
+        readMetaModel metaModelPath
+        |> Async.RunSynchronously
 
-      // let requests =
-      //   metaModel.Requests 
-      //   |> Array.groupBy(fun x ->x.MessageDirection)
-      //   |> Map
-      // let notifications =
-      //   metaModel.Notifications
-      //   |> Array.groupBy(fun x -> x.MessageDirection)
-      //   |> Map
+      GenerateTypes.generateType metaModel OutputFilePath
+      |> Async.RunSynchronously
 
-      // printfn "Server: "
-      // printfn "  Requests: "
-      // for request in requests.[MetaModel.MessageDirection.ClientToServer] do 
-      //     printfn "    - %s %A  " request.Method request.ParamsSafe
-      // printfn "  Notifications: "
-      // for request in notifications.[MetaModel.MessageDirection.ClientToServer]  |> Array.append notifications.[MetaModel.MessageDirection.Both]  do 
-      //     printfn "    - %s %A" request.Method request.ParamsSafe
-      // ()
-      // printfn ""
+    | ClientServer r ->
 
+      let metaModelPath = r.GetResult <@ ClientServerArgs.MetaModelPath @>
+      let OutputFilePath = r.GetResult <@ ClientServerArgs.OutputFilePath @>
 
-      // printfn "Client: "
-      // printfn "  Requests: "
-      // for request in requests.[MetaModel.MessageDirection.ServerToClient] do 
-      //     printfn "    - %s %A " request.Method request.ParamsSafe
-      // printfn "  Notifications: "
-      // for request in notifications.[MetaModel.MessageDirection.ServerToClient] |> Array.append notifications.[MetaModel.MessageDirection.Both] do 
-      //     printfn "    - %s %A" request.Method request.ParamsSafe
-      // ()
+      let metaModel =
+        readMetaModel metaModelPath
+        |> Async.RunSynchronously
+
+      GenerateClientServer.generateClientServer metaModel OutputFilePath
+      |> Async.RunSynchronously
 
     0

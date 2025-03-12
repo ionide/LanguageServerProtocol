@@ -1,4 +1,5 @@
 namespace Ionide.LanguageServerProtocol.JsonUtils
+
 open Newtonsoft.Json
 open Microsoft.FSharp.Reflection
 open System
@@ -6,9 +7,9 @@ open System.Collections.Concurrent
 open System.Reflection
 
 
-
 module internal Converters =
   open System.Collections.Concurrent
+
   let inline memorise (f: 'a -> 'b) : 'a -> 'b =
     let d = ConcurrentDictionary<'a, 'b>()
     fun key -> d.GetOrAdd(key, f)
@@ -23,52 +24,66 @@ module internal Converters =
       | (true, value) -> value
       | _ ->
         let value = f key
-        d.TryAdd(hash, value) |> ignore
+
+        d.TryAdd(hash, value)
+        |> ignore
+
         value
+
 open Converters
 
 
-type private CaseInfo =
-  { Info: UnionCaseInfo
-    Fields: PropertyInfo[]
-    GetFieldValues: obj -> obj[]
-    Create: obj[] -> obj }
+type private CaseInfo = {
+  Info: UnionCaseInfo
+  Fields: PropertyInfo[]
+  GetFieldValues: obj -> obj[]
+  Create: obj[] -> obj
+}
 
-type private UnionInfo =
-  { Cases: CaseInfo[]
-    GetTag: obj -> int }
+type private UnionInfo = {
+  Cases: CaseInfo[]
+  GetTag: obj -> int
+} with
 
   member u.GetCaseOf(value: obj) =
     let tag = u.GetTag value
-    u.Cases |> Array.find (fun case -> case.Info.Tag = tag)
+
+    u.Cases
+    |> Array.find (fun case -> case.Info.Tag = tag)
 
 module private UnionInfo =
-  
+
   let private create (ty: Type) =
-    assert (ty |> FSharpType.IsUnion)
+    assert
+      (ty
+       |> FSharpType.IsUnion)
 
     let cases =
       FSharpType.GetUnionCases ty
-      |> Array.map (fun case ->
-        { Info = case
-          Fields = case.GetFields()
-          GetFieldValues = FSharpValue.PreComputeUnionReader case
-          Create = FSharpValue.PreComputeUnionConstructor case })
+      |> Array.map (fun case -> {
+        Info = case
+        Fields = case.GetFields()
+        GetFieldValues = FSharpValue.PreComputeUnionReader case
+        Create = FSharpValue.PreComputeUnionConstructor case
+      })
 
     { Cases = cases; GetTag = FSharpValue.PreComputeUnionTagReader ty }
 
   let get: Type -> _ = memoriseByHash (create)
 
 module Type =
-  let numerics =
-    [| typeof<int>
-       typeof<float>
-       typeof<byte>
-       typeof<uint>
-       //ENHANCEMENT: other number types
-       |]
+  let numerics = [|
+    typeof<int>
+    typeof<float>
+    typeof<byte>
+    typeof<uint>
+  //ENHANCEMENT: other number types
+  |]
 
-  let numericHashes = numerics |> Array.map (fun t -> t.GetHashCode())
+  let numericHashes =
+    numerics
+    |> Array.map (fun t -> t.GetHashCode())
+
   let stringHash = typeof<string>.GetHashCode()
   let boolHash = typeof<bool>.GetHashCode()
 
@@ -81,7 +96,9 @@ module Type =
 
   let inline isNumeric (t: Type) =
     let hash = t.GetHashCode()
-    numericHashes |> Array.contains hash
+
+    numericHashes
+    |> Array.contains hash
 
 [<Sealed>]
 type OptionConverter() =
@@ -94,7 +111,8 @@ type OptionConverter() =
       if innerType.IsValueType then
         typedefof<Nullable<_>>.MakeGenericType([| innerType |])
       else
-        innerType)
+        innerType
+    )
 
   let canConvert = memoriseByHash (Type.isOption)
 
@@ -107,7 +125,9 @@ type OptionConverter() =
       else
         let union = UnionInfo.get (value.GetType())
         let case = union.GetCaseOf value
-        case.GetFieldValues value |> Array.head
+
+        case.GetFieldValues value
+        |> Array.head
 
     serializer.Serialize(writer, value)
 

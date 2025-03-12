@@ -1,5 +1,6 @@
 namespace MetaModelGenerator
 
+
 module GenerateTypes =
 
   open System.Runtime.CompilerServices
@@ -13,10 +14,7 @@ module GenerateTypes =
 
   open type Fabulous.AST.Ast
 
-  open System.IO
-  open Newtonsoft.Json
   open Fantomas.FCS.Syntax
-  open Fabulous.AST.StackAllocatedCollections
   open Newtonsoft.Json.Linq
 
   let getIdent (x: IdentifierOrDot list) =
@@ -28,21 +26,6 @@ module GenerateTypes =
     )
     |> String.concat ""
 
-  type ModuleOrNamespaceExtensions =
-    /// Allows Anonymous Module components to be yielded directly into a Module
-    /// Useful since there's no common holder of declarations or generic WidgetBuilder than can be used
-    /// when yielding different types of declarations
-    [<Extension>]
-    static member inline Yield(_: CollectionBuilder<'parent, ModuleDecl>, x: WidgetBuilder<AnonymousModuleNode>) =
-      let node = Gen.mkOak x
-
-      let ws =
-        node.Declarations
-        |> List.map (fun x -> Ast.EscapeHatch(x).Compile())
-        |> List.toArray
-        |> MutStackArray1.fromArray
-
-      { Widgets = ws }
 
   let JToken = LongIdent(nameof JToken)
 
@@ -57,15 +40,10 @@ module GenerateTypes =
     else
       types.[0]
 
-  let isNullableType (t: MetaModel.Type) =
-    match t with
-    | MetaModel.Type.BaseType { Name = MetaModel.BaseTypes.Null } -> true
-    | _ -> false
-
   module DebuggerDisplay =
     let range_debuggerDisplay (r: WidgetBuilder<TypeDefnRecordNode>) =
       r.attribute(Attribute("DebuggerDisplay(\"{DebuggerDisplay}\")")).members () {
-        Property("x.DebuggerDisplay", "$\"{x.Start.DebuggerDisplay}-{x.End.DebuggerDisplay}\"")
+        Member("x.DebuggerDisplay", "$\"{x.Start.DebuggerDisplay}-{x.End.DebuggerDisplay}\"")
           .attributes (
             [
               Attribute("DebuggerBrowsable(DebuggerBrowsableState.Never)")
@@ -76,7 +54,7 @@ module GenerateTypes =
 
     let position_debuggerDisplay (r: WidgetBuilder<TypeDefnRecordNode>) =
       r.attribute(Attribute("DebuggerDisplay(\"{DebuggerDisplay}\")")).members () {
-        Property("x.DebuggerDisplay", "$\"({x.Line},{x.Character})\"")
+        Member("x.DebuggerDisplay", "$\"({x.Line},{x.Character})\"")
           .attributes (
             [
               Attribute("DebuggerBrowsable(DebuggerBrowsableState.Never)")
@@ -87,7 +65,7 @@ module GenerateTypes =
 
     let diagnostic_debuggerDisplay (r: WidgetBuilder<TypeDefnRecordNode>) =
       r.attribute(Attribute("DebuggerDisplay(\"{DebuggerDisplay}\")")).members () {
-        Property(
+        Member(
           "x.DebuggerDisplay",
           "$\"[{defaultArg x.Severity DiagnosticSeverity.Error}] ({x.Range.DebuggerDisplay}) {x.Message} ({Option.map string x.Code |> Option.defaultValue String.Empty})\""
         )
@@ -222,10 +200,10 @@ module GenerateTypes =
             // and unions with null (string | null)
             // we need to handle both cases
             let isOptional, items =
-              if Array.exists isNullableType o.Items then
+              if Array.exists MetaModel.isNullableType o.Items then
                 true,
                 o.Items
-                |> Array.filter (fun x -> not (isNullableType x))
+                |> Array.filter (fun x -> not (MetaModel.isNullableType x))
               else
                 false, o.Items
 
@@ -440,7 +418,7 @@ module GenerateTypes =
     interfaceStructures
     |> Array.map (fun s ->
       let widget =
-        Interface($"I{s.Name}") {
+        TypeDefn($"I{s.Name}") {
           let properties = s.PropertiesSafe
 
           for p in properties do
@@ -453,7 +431,7 @@ module GenerateTypes =
                 p.Type
                 p
 
-            let ap = AbstractProperty(fi.Name, fi.TypeInfo)
+            let ap = AbstractMember(fi.Name, fi.TypeInfo)
 
             yield
               fi.StructuredDocs
@@ -577,10 +555,10 @@ module GenerateTypes =
         |> Option.map (fun s ->
           let interfaceName = Ast.LongIdent($"I{s.Name}")
 
-          InterfaceMember(interfaceName) {
+          InterfaceWith(interfaceName) {
             for p in s.PropertiesSafe do
               let name = Constant($"x.{p.NameAsPascalCase}")
-              let outp = Property(ConstantPat(name), ConstantExpr(name))
+              let outp = Member(ConstantPat(name), ConstantExpr(name))
 
               p.StructuredDocs
               |> Option.mapOrDefault outp outp.xmlDocs
@@ -838,7 +816,7 @@ module GenerateTypes =
         enumeration.StructuredDocs
         |> Option.mapOrDefault ab ab.xmlDocs
 
-        NestedModule(enumeration.Name) {
+        Module(enumeration.Name) {
           for v in enumeration.ValuesSafe do
             let name = PrettyNaming.NormalizeIdentifierBackticks v.Name
             let l = Value(ConstantPat(Constant(name)), ConstantExpr(String(v.Value))).attribute (Attribute "Literal")
@@ -889,7 +867,7 @@ module GenerateTypes =
 
 
   /// The main entry point to generating types from a metaModel.json file
-  let generateType (parsedMetaModel : MetaModel.MetaModel) outputPath =
+  let generateType (parsedMetaModel: MetaModel.MetaModel) outputPath =
     async {
       let documentUriDocs =
         """
@@ -918,19 +896,19 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
             Open("Newtonsoft.Json.Linq")
 
             // Simple aliases for types that are not in dotnet
-            Abbrev("URI", "string")
+            Abbrev(Widgets.UriString, "string")
               .xmlDocs (
                 documentUriDocs
                 |> StructuredDocs.parse
               )
 
-            Abbrev("DocumentUri", "string")
+            Abbrev(Widgets.DocumentUriString, "string")
               .xmlDocs (
                 documentUriDocs
                 |> StructuredDocs.parse
               )
 
-            Abbrev("RegExp", "string")
+            Abbrev(Widgets.RegExpString, "string")
               .xmlDocs (
                 regexpDocs
                 |> StructuredDocs.parse
@@ -951,7 +929,7 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
 
             for s in structures do
               if isUnitStructure s then
-                Abbrev(s.Name, "unit")
+                Abbrev(s.Name, "obj")
               else
                 createStructure s knownInterfaces parsedMetaModel
                 |> List.map (fun r ->
@@ -984,16 +962,10 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
         }
 
 
-      printfn "Writing to %s" outputPath
-      let writeToFile path contents = File.WriteAllTextAsync(path, contents)
-
       let! formattedText =
         oak
         |> Gen.mkOak
         |> CodeFormatter.FormatOakAsync
 
-      do!
-        formattedText
-        |> writeToFile outputPath
-        |> Async.AwaitTask
+      do! FileWriters.writeIfChanged outputPath formattedText
     }

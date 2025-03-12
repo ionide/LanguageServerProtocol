@@ -26,40 +26,46 @@ let inline private memoriseByHash (f: 'a -> 'b) : 'a -> 'b =
     | (true, value) -> value
     | _ ->
       let value = f key
-      d.TryAdd(hash, value) |> ignore
+
+      d.TryAdd(hash, value)
+      |> ignore
+
       value
 
 [<MemoryDiagnoser>]
 [<GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)>]
 [<CategoriesColumn>]
 type TypeCheckBenchmarks() =
-  static let values: obj array =
-    [| 1
-       3.14
-       true
-       "foo"
-       4uy
-       Some "foo"
-       123456
-       "bar"
-       false
-       Some true
-       987.654321
-       0
-       Some 0
-       5u
-       Some "string"
-       Some "bar"
-       Some "baz"
-       Some "lorem ipsum dolor sit"
-       321654
-       2.71828
-       "lorem ipsum dolor sit"
-       Some 42
-       Some true
-       Some 3.14 |]
+  static let values: obj array = [|
+    1
+    3.14
+    true
+    "foo"
+    4uy
+    Some "foo"
+    123456
+    "bar"
+    false
+    Some true
+    987.654321
+    0
+    Some 0
+    5u
+    Some "string"
+    Some "bar"
+    Some "baz"
+    Some "lorem ipsum dolor sit"
+    321654
+    2.71828
+    "lorem ipsum dolor sit"
+    Some 42
+    Some true
+    Some 3.14
+  |]
 
-  static let types = values |> Array.map (fun v -> v.GetType())
+  static let types =
+    values
+    |> Array.map (fun v -> v.GetType())
 
   static let isOptionType (ty: Type) =
     ty.IsGenericType
@@ -73,7 +79,10 @@ type TypeCheckBenchmarks() =
     let mutable count = 0
 
     for ty in types do
-      if Type.numerics |> Array.exists ((=) ty) then
+      if
+        Type.numerics
+        |> Array.exists ((=) ty)
+      then
         count <- count + 1
 
     count
@@ -85,7 +94,10 @@ type TypeCheckBenchmarks() =
     for ty in types do
       let hash = ty.GetHashCode()
 
-      if Type.numericHashes |> Array.contains hash then
+      if
+        Type.numericHashes
+        |> Array.contains hash
+      then
         count <- count + 1
 
     count
@@ -190,40 +202,56 @@ module Example =
   type SingleCaseUnionHolder = { SingleCaseUnion: SingleCaseUnion }
 
   module SingleCaseUnionHolder =
-    let gen (rand: Random) (depth: int) =
-      { SingleCaseUnion =
-          if rand.NextBool() then
-            SingleCaseUnion.Ipsum
-          else
-            SingleCaseUnion.Ipsum }
+    let gen (rand: Random) (depth: int) = {
+      SingleCaseUnion =
+        if rand.NextBool() then
+          SingleCaseUnion.Ipsum
+        else
+          SingleCaseUnion.Ipsum
+    }
 
-  type WithExtensionData =
-    { NoExtensionData: string
-      [<JsonExtensionData>]
-      mutable AdditionalData: IDictionary<string, JToken> }
+  type WithExtensionData = {
+    NoExtensionData: string
+    [<JsonExtensionData>]
+    mutable AdditionalData: IDictionary<string, JToken>
+  }
 
   module WithExtensionData =
-    let gen (rand: Random) (depth: int) =
-      { NoExtensionData = $"WithExtensionData {depth}"
-        AdditionalData =
-          List.init (rand.NextCount depth) (fun i ->
+    let gen (rand: Random) (depth: int) = {
+      NoExtensionData = $"WithExtensionData {depth}"
+      AdditionalData =
+        List.init
+          (rand.NextCount depth)
+          (fun i ->
             let key = $"Data{depth}Ele{i}"
             let value = JToken.FromObject(i * depth)
-            (key, value))
-          |> Map.ofList }
+            (key, value)
+          )
+        |> Map.ofList
+    }
 
-  type RecordWithOption =
-    { RequiredValue: string
-      OptionalValue: string option
-      AnotherOptionalValue: int option
-      FinalOptionalValue: int option }
+  type RecordWithOption = {
+    RequiredValue: string
+    OptionalValue: string option
+    AnotherOptionalValue: int option
+    FinalOptionalValue: int option
+  }
 
   module RecordWithOption =
-    let gen (rand: Random) (depth: int) =
-      { RequiredValue = $"RecordWithOption {depth}"
-        OptionalValue = rand.NextOption $"Hello {depth}"
-        AnotherOptionalValue = rand.NextOption(42000 + depth)
-        FinalOptionalValue = rand.NextOption(13000 + depth) }
+    let gen (rand: Random) (depth: int) = {
+      RequiredValue = $"RecordWithOption {depth}"
+      OptionalValue = rand.NextOption $"Hello {depth}"
+      AnotherOptionalValue =
+        rand.NextOption(
+          42000
+          + depth
+        )
+      FinalOptionalValue =
+        rand.NextOption(
+          13000
+          + depth
+        )
+    }
 
   [<RequireQualifiedAccess>]
   [<ErasedUnion>]
@@ -238,9 +266,17 @@ module Example =
     let gen (rand: Random) (depth: int) =
       match rand.Next(0, 5) with
       | 0 -> ErasedUnionData.Alpha $"Erased {depth}"
-      | 1 -> ErasedUnionData.Beta(42000 + depth)
+      | 1 ->
+        ErasedUnionData.Beta(
+          42000
+          + depth
+        )
       | 2 -> ErasedUnionData.Gamma false
-      | 3 -> ErasedUnionData.Delta(42000.123 + (float depth))
+      | 3 ->
+        ErasedUnionData.Delta(
+          42000.123
+          + (float depth)
+        )
       | 4 -> ErasedUnionData.Epsilon(RecordWithOption.gen rand (depth - 1))
       | _ -> failwith "unreachable"
 
@@ -249,28 +285,29 @@ module Example =
   module ErasedUnionDataHolder =
     let gen (rand: Random) (depth: int) = { ErasedUnion = ErasedUnionData.gen rand depth }
 
-  type U2Holder =
-    { BoolString: U2<bool, string>
-      StringInt: U2<string, int>
-      BoolErasedUnionData: U2<bool, ErasedUnionDataHolder> }
+  type U2Holder = {
+    BoolString: U2<bool, string>
+    StringInt: U2<string, int>
+    BoolErasedUnionData: U2<bool, ErasedUnionDataHolder>
+  }
 
   module U2Holder =
-    let gen (rand: Random) (depth: int) =
-      { BoolString =
-          if rand.NextBool() then
-            U2.C1 true
-          else
-            U2.C2 $"U2 {depth}"
-        StringInt =
-          if rand.NextBool() then
-            U2.C1 $"U2 {depth}"
-          else
-            U2.C2(42000 + depth)
-        BoolErasedUnionData =
-          if rand.NextBool() then
-            U2.C1 true
-          else
-            U2.C2(ErasedUnionDataHolder.gen rand (depth - 1)) }
+    let gen (rand: Random) (depth: int) = {
+      BoolString = if rand.NextBool() then U2.C1 true else U2.C2 $"U2 {depth}"
+      StringInt =
+        if rand.NextBool() then
+          U2.C1 $"U2 {depth}"
+        else
+          U2.C2(
+            42000
+            + depth
+          )
+      BoolErasedUnionData =
+        if rand.NextBool() then
+          U2.C1 true
+        else
+          U2.C2(ErasedUnionDataHolder.gen rand (depth - 1))
+    }
 
   [<RequireQualifiedAccess>]
   type MyEnum =
@@ -284,38 +321,56 @@ module Example =
     let gen (rand: Random) (depth: int) =
       let n = Enum.GetNames(typeof<MyEnum>).Length
 
-      { EnumValue = rand.Next(0, n) |> enum<_>
-        EnumArray = Array.init (rand.NextCount depth) (fun i -> rand.Next(0, n) |> enum<_>) }
+      {
+        EnumValue =
+          rand.Next(0, n)
+          |> enum<_>
+        EnumArray =
+          Array.init
+            (rand.NextCount depth)
+            (fun i ->
+              rand.Next(0, n)
+              |> enum<_>
+            )
+      }
 
   type MapHolder = { MyMap: Map<string, string> }
 
   module MapHolder =
-    let gen (rand: Random) (depth: int) =
-      { MyMap =
-          Array.init (rand.NextCount depth) (fun i ->
+    let gen (rand: Random) (depth: int) = {
+      MyMap =
+        Array.init
+          (rand.NextCount depth)
+          (fun i ->
             let key = $"Key{i}"
             let value = $"Data{i}@{depth}"
-            (key, value))
-          |> Map.ofArray }
+            (key, value)
+          )
+        |> Map.ofArray
+    }
 
-  type BasicData =
-    { IntData: int
-      FloatData: float
-      BoolData: bool
-      StringData: string
-      CharData: char
-      StringOptionData: string option
-      IntArrayOptionData: int[] option }
+  type BasicData = {
+    IntData: int
+    FloatData: float
+    BoolData: bool
+    StringData: string
+    CharData: char
+    StringOptionData: string option
+    IntArrayOptionData: int[] option
+  }
 
   module BasicData =
-    let gen (rand: Random) (depth: int) =
-      { IntData = rand.Next(0, 500)
-        FloatData = rand.NextDouble()
-        BoolData = rand.NextBool()
-        StringData = $"Data {depth}"
-        CharData = '_'
-        StringOptionData = rand.NextOption $"Option {depth}"
-        IntArrayOptionData = Array.init (rand.NextCount depth) id |> rand.NextOption }
+    let gen (rand: Random) (depth: int) = {
+      IntData = rand.Next(0, 500)
+      FloatData = rand.NextDouble()
+      BoolData = rand.NextBool()
+      StringData = $"Data {depth}"
+      CharData = '_'
+      StringOptionData = rand.NextOption $"Option {depth}"
+      IntArrayOptionData =
+        Array.init (rand.NextCount depth) id
+        |> rand.NextOption
+    }
 
 
   [<RequireQualifiedAccess>]
@@ -347,9 +402,12 @@ module Example =
       | 9
       | 10 ->
         Data.More(
-          Array.init (rand.NextCount depth) (fun _ ->
-            let depth = rand.NextDepth depth
-            gen rand depth)
+          Array.init
+            (rand.NextCount depth)
+            (fun _ ->
+              let depth = rand.NextDepth depth
+              gen rand depth
+            )
         )
       | _ -> failwith "unreachable"
 
@@ -357,20 +415,24 @@ module Example =
     // Note: deterministic (-> seed)
     let rand = Random(seed)
 
-    let always =
-      [| Data.SingleCaseUnion(SingleCaseUnionHolder.gen rand maxDepth)
-         Data.WithExtensionData(WithExtensionData.gen rand maxDepth)
-         Data.RecordWithOption(RecordWithOption.gen rand maxDepth)
-         Data.ErasedUnion(ErasedUnionDataHolder.gen rand maxDepth)
-         Data.U2(U2Holder.gen rand maxDepth)
-         Data.Enum(MyEnumHolder.gen rand maxDepth)
-         Data.Map(MapHolder.gen rand maxDepth)
-         Data.BasicData(BasicData.gen rand maxDepth) |]
+    let always = [|
+      Data.SingleCaseUnion(SingleCaseUnionHolder.gen rand maxDepth)
+      Data.WithExtensionData(WithExtensionData.gen rand maxDepth)
+      Data.RecordWithOption(RecordWithOption.gen rand maxDepth)
+      Data.ErasedUnion(ErasedUnionDataHolder.gen rand maxDepth)
+      Data.U2(U2Holder.gen rand maxDepth)
+      Data.Enum(MyEnumHolder.gen rand maxDepth)
+      Data.Map(MapHolder.gen rand maxDepth)
+      Data.BasicData(BasicData.gen rand maxDepth)
+    |]
 
     let additional =
-      Array.init additionalWidth (fun _ ->
-        let depth = rand.NextDepth maxDepth
-        Data.gen rand depth)
+      Array.init
+        additionalWidth
+        (fun _ ->
+          let depth = rand.NextDepth maxDepth
+          Data.gen rand depth
+        )
 
     let data = Array.append always additional
     Data.More data
@@ -380,189 +442,250 @@ module Example =
 [<CategoriesColumn>]
 [<Orderer(SummaryOrderPolicy.Declared, MethodOrderPolicy.Declared)>]
 type MultipleTypesBenchmarks() =
-  let initializeParams: InitializeParams =
-    { ProcessId = Some 42
-      ClientInfo = Some { Name = "foo"; Version = None }
-      Locale = None
-      RootPath = Some "/"
-      RootUri = Some "file://..."
-      InitializationOptions = None
-      WorkDoneToken = None
-      Trace = Some TraceValues.Off
-      Capabilities =
-        
-          { Workspace =
-              Some
-                { ApplyEdit = Some true
-                  WorkspaceEdit =
-                    Some
-                      { DocumentChanges = Some true
-                        ResourceOperations =
-                          Some
-                            [| ResourceOperationKind.Create
-                               ResourceOperationKind.Rename
-                               ResourceOperationKind.Delete |]
-                        FailureHandling = Some FailureHandlingKind.Abort
-                        NormalizesLineEndings = None
-                        ChangeAnnotationSupport = Some { GroupsOnLabel = Some false } }
-                  DidChangeConfiguration = None
-                  DidChangeWatchedFiles = None
-                  Symbol =
-                    Some
-                      { DynamicRegistration = Some false
-                        SymbolKind = Some { ValueSet = Some SymbolKindCapabilities.DefaultValueSet }
-                        TagSupport = None
-                        ResolveSupport = None }
-                  SemanticTokens = Some { RefreshSupport = Some true }
-                  InlayHint = Some { RefreshSupport = Some false }
-                  InlineValue = Some { RefreshSupport = Some false }
-                  CodeLens = Some { RefreshSupport = Some true }
-                  ExecuteCommand = None
-                  WorkspaceFolders = None
-                  Configuration = None
-                  FileOperations = None
-                  Diagnostics = None 
-                  
-                  }
-            NotebookDocument = None
-            TextDocument =
-              Some
-                { Synchronization =
-                    Some
-                      { DynamicRegistration = Some true
-                        WillSave = Some true
-                        WillSaveWaitUntil = Some false
-                        DidSave = Some true }
-                  PublishDiagnostics =
-                    Some
-                      { RelatedInformation = None
-                        TagSupport = None
-                        VersionSupport = None
-                        CodeDescriptionSupport = None
-                        DataSupport = None }
-                  Completion = None
-                  Hover =
-                    Some
-                      { DynamicRegistration = Some true
-                        ContentFormat = Some [| MarkupKind.PlainText; MarkupKind.Markdown |] }
-                  SignatureHelp =
-                    Some
-                      { DynamicRegistration = Some true
-                        SignatureInformation =
-                          Some
-                            {  DocumentationFormat = None
-                               ParameterInformation = None
-                               ActiveParameterSupport = None }
-                        ContextSupport = None }
-                  Declaration = Some { DynamicRegistration = Some false; LinkSupport = Some false }
-                  References = Some { DynamicRegistration = Some false }
-                  DocumentHighlight = Some { DynamicRegistration = None }
-                  DocumentSymbol = None
-                  Formatting = Some { DynamicRegistration = Some true }
-                  RangeFormatting = Some { 
-                      DynamicRegistration = Some true 
-                    }
-                  OnTypeFormatting = None
-                  Definition = Some { DynamicRegistration = Some false; LinkSupport = Some false }
-                  TypeDefinition = Some { DynamicRegistration = Some false; LinkSupport = Some false }
-                  Implementation = Some { DynamicRegistration = Some false; LinkSupport = Some false }
-                  CodeAction =
-                    Some
-                      { DynamicRegistration = Some true
-                        CodeActionLiteralSupport =
-                          Some
-                            {  CodeActionKind =
-                                { ValueSet = [| "foo"; "bar"; "baz"; "alpha"; "beta"; "gamma"; "delta"; "x"; "y"; "z" |] } }
-                        IsPreferredSupport = Some true
-                        DisabledSupport = Some false
-                        DataSupport = None
-                        ResolveSupport = Some { Properties = [| "foo"; "bar"; "baz" |] }
-                        HonorsChangeAnnotations = Some false }
-                  CodeLens = Some { DynamicRegistration = Some true }
-                  DocumentLink = Some { DynamicRegistration = Some true; TooltipSupport = None }
-                  ColorProvider = Some { DynamicRegistration = Some true }
-                  Rename = None
-                  FoldingRange =
-                    Some
-                      { DynamicRegistration = Some false
-                        LineFoldingOnly = Some true
-                        RangeLimit = None
-                        FoldingRangeKind = None
-                        FoldingRange = None }
-                  SelectionRange = Some { DynamicRegistration = None }
-                  LinkedEditingRange = Some { DynamicRegistration = None }
-                  CallHierarchy = Some { DynamicRegistration = None }
-                  SemanticTokens =
-                    Some
-                      { DynamicRegistration = Some false
-                        Requests = { Range = Some (U2.C1 true); Full = Some(U2.C2 { Delta = Some true }) }
-                        TokenTypes =
-                          "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Proin tortor purus platea sit eu id nisi litora libero. Neque vulputate consequat ac amet augue blandit maximus aliquet congue. Pharetra vestibulum posuere ornare faucibus fusce dictumst orci aenean eu facilisis ut volutpat commodo senectus purus himenaeos fames primis convallis nisi."
-                          |> fun s -> s.Split(' ')
-                        TokenModifiers =
-                          "Phasellus fermentum malesuada phasellus netus dictum aenean placerat egestas amet. Ornare taciti semper dolor tristique morbi. Sem leo tincidunt aliquet semper eu lectus scelerisque quis. Sagittis vivamus mollis nisi mollis enim fermentum laoreet."
-                          |> fun s -> s.Split(' ')
-                        Formats = [| TokenFormat.Relative |]
-                        OverlappingTokenSupport = Some false
-                        MultilineTokenSupport = Some true
-                        ServerCancelSupport = None
-                        AugmentsSyntaxTokens = None }
-                  TypeHierarchy = Some { DynamicRegistration = None }
-                  Moniker = Some { DynamicRegistration = None }
-                  InlineValue = Some { DynamicRegistration = None }
-                  InlayHint =
-                    Some
-                      { DynamicRegistration = Some true
-                        ResolveSupport = Some { Properties = [| "Tooltip"; "Position"; "TextEdits" |] } }
-                  Diagnostic = Some { DynamicRegistration = None; RelatedDocumentSupport = None } }
-            General = None
-            Experimental = None
-            Window = None }
-      WorkspaceFolders =
-        Some
-          [| { Uri = "..."; Name = "foo" }
-             { Uri = "/"; Name = "bar" }
-             { Uri = "something long stuff and even longer and longer and longer"
-               Name = "bar" } |] }
+  let initializeParams: InitializeParams = {
+    ProcessId = Some 42
+    ClientInfo = Some { Name = "foo"; Version = None }
+    Locale = None
+    RootPath = Some "/"
+    RootUri = Some "file://..."
+    InitializationOptions = None
+    WorkDoneToken = None
+    Trace = Some TraceValues.Off
+    Capabilities =
 
-  let inlayHint: InlayHint =
-    { Label =
-        U2.C2
-          [| { InlayHintLabelPart.Value = "1st label"
-               Tooltip = Some(U2.C1 "1st label tooltip")
-               Location = Some { Uri = "1st"; Range = mkRange' (1u, 2u) (3u, 4u) }
-               Command = None }
-             { Value = "2nd label"
-               Tooltip = Some(U2.C1 "1st label tooltip")
-               Location = Some { Uri = "2nd"; Range = mkRange' (5u, 8u) (10u, 9u) }
-               Command = Some { Title = "2nd command"; Command = "foo"; Arguments = None } }
-             { InlayHintLabelPart.Value = "3rd label"
-               Tooltip =
-                 Some(
-                   U2.C2
-                     { Kind = MarkupKind.Markdown
-                       Value =
-                         """
+      {
+        Workspace =
+          Some {
+            ApplyEdit = Some true
+            WorkspaceEdit =
+              Some {
+                DocumentChanges = Some true
+                ResourceOperations =
+                  Some [|
+                    ResourceOperationKind.Create
+                    ResourceOperationKind.Rename
+                    ResourceOperationKind.Delete
+                  |]
+                FailureHandling = Some FailureHandlingKind.Abort
+                NormalizesLineEndings = None
+                ChangeAnnotationSupport = Some { GroupsOnLabel = Some false }
+              }
+            DidChangeConfiguration = None
+            DidChangeWatchedFiles = None
+            Symbol =
+              Some {
+                DynamicRegistration = Some false
+                SymbolKind = Some { ValueSet = Some SymbolKindCapabilities.DefaultValueSet }
+                TagSupport = None
+                ResolveSupport = None
+              }
+            SemanticTokens = Some { RefreshSupport = Some true }
+            InlayHint = Some { RefreshSupport = Some false }
+            InlineValue = Some { RefreshSupport = Some false }
+            CodeLens = Some { RefreshSupport = Some true }
+            ExecuteCommand = None
+            WorkspaceFolders = None
+            Configuration = None
+            FileOperations = None
+            Diagnostics = None
+
+          }
+        NotebookDocument = None
+        TextDocument =
+          Some {
+            Synchronization =
+              Some {
+                DynamicRegistration = Some true
+                WillSave = Some true
+                WillSaveWaitUntil = Some false
+                DidSave = Some true
+              }
+            PublishDiagnostics =
+              Some {
+                RelatedInformation = None
+                TagSupport = None
+                VersionSupport = None
+                CodeDescriptionSupport = None
+                DataSupport = None
+              }
+            Completion = None
+            Hover =
+              Some {
+                DynamicRegistration = Some true
+                ContentFormat =
+                  Some [|
+                    MarkupKind.PlainText
+                    MarkupKind.Markdown
+                  |]
+              }
+            SignatureHelp =
+              Some {
+                DynamicRegistration = Some true
+                SignatureInformation =
+                  Some {
+                    DocumentationFormat = None
+                    ParameterInformation = None
+                    ActiveParameterSupport = None
+                  }
+                ContextSupport = None
+              }
+            Declaration = Some { DynamicRegistration = Some false; LinkSupport = Some false }
+            References = Some { DynamicRegistration = Some false }
+            DocumentHighlight = Some { DynamicRegistration = None }
+            DocumentSymbol = None
+            Formatting = Some { DynamicRegistration = Some true }
+            RangeFormatting = Some { DynamicRegistration = Some true }
+            OnTypeFormatting = None
+            Definition = Some { DynamicRegistration = Some false; LinkSupport = Some false }
+            TypeDefinition = Some { DynamicRegistration = Some false; LinkSupport = Some false }
+            Implementation = Some { DynamicRegistration = Some false; LinkSupport = Some false }
+            CodeAction =
+              Some {
+                DynamicRegistration = Some true
+                CodeActionLiteralSupport =
+                  Some {
+                    CodeActionKind = {
+                      ValueSet = [|
+                        "foo"
+                        "bar"
+                        "baz"
+                        "alpha"
+                        "beta"
+                        "gamma"
+                        "delta"
+                        "x"
+                        "y"
+                        "z"
+                      |]
+                    }
+                  }
+                IsPreferredSupport = Some true
+                DisabledSupport = Some false
+                DataSupport = None
+                ResolveSupport =
+                  Some {
+                    Properties = [|
+                      "foo"
+                      "bar"
+                      "baz"
+                    |]
+                  }
+                HonorsChangeAnnotations = Some false
+              }
+            CodeLens = Some { DynamicRegistration = Some true }
+            DocumentLink = Some { DynamicRegistration = Some true; TooltipSupport = None }
+            ColorProvider = Some { DynamicRegistration = Some true }
+            Rename = None
+            FoldingRange =
+              Some {
+                DynamicRegistration = Some false
+                LineFoldingOnly = Some true
+                RangeLimit = None
+                FoldingRangeKind = None
+                FoldingRange = None
+              }
+            SelectionRange = Some { DynamicRegistration = None }
+            LinkedEditingRange = Some { DynamicRegistration = None }
+            CallHierarchy = Some { DynamicRegistration = None }
+            SemanticTokens =
+              Some {
+                DynamicRegistration = Some false
+                Requests = { Range = Some(U2.C1 true); Full = Some(U2.C2 { Delta = Some true }) }
+                TokenTypes =
+                  "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Proin tortor purus platea sit eu id nisi litora libero. Neque vulputate consequat ac amet augue blandit maximus aliquet congue. Pharetra vestibulum posuere ornare faucibus fusce dictumst orci aenean eu facilisis ut volutpat commodo senectus purus himenaeos fames primis convallis nisi."
+                  |> fun s -> s.Split(' ')
+                TokenModifiers =
+                  "Phasellus fermentum malesuada phasellus netus dictum aenean placerat egestas amet. Ornare taciti semper dolor tristique morbi. Sem leo tincidunt aliquet semper eu lectus scelerisque quis. Sagittis vivamus mollis nisi mollis enim fermentum laoreet."
+                  |> fun s -> s.Split(' ')
+                Formats = [| TokenFormat.Relative |]
+                OverlappingTokenSupport = Some false
+                MultilineTokenSupport = Some true
+                ServerCancelSupport = None
+                AugmentsSyntaxTokens = None
+              }
+            TypeHierarchy = Some { DynamicRegistration = None }
+            Moniker = Some { DynamicRegistration = None }
+            InlineValue = Some { DynamicRegistration = None }
+            InlayHint =
+              Some {
+                DynamicRegistration = Some true
+                ResolveSupport =
+                  Some {
+                    Properties = [|
+                      "Tooltip"
+                      "Position"
+                      "TextEdits"
+                    |]
+                  }
+              }
+            Diagnostic = Some { DynamicRegistration = None; RelatedDocumentSupport = None }
+          }
+        General = None
+        Experimental = None
+        Window = None
+      }
+    WorkspaceFolders =
+      Some [|
+        { Uri = "..."; Name = "foo" }
+        { Uri = "/"; Name = "bar" }
+        {
+          Uri = "something long stuff and even longer and longer and longer"
+          Name = "bar"
+        }
+      |]
+  }
+
+  let inlayHint: InlayHint = {
+    Label =
+      U2.C2 [|
+        {
+          InlayHintLabelPart.Value = "1st label"
+          Tooltip = Some(U2.C1 "1st label tooltip")
+          Location = Some { Uri = "1st"; Range = mkRange' (1u, 2u) (3u, 4u) }
+          Command = None
+        }
+        {
+          Value = "2nd label"
+          Tooltip = Some(U2.C1 "1st label tooltip")
+          Location = Some { Uri = "2nd"; Range = mkRange' (5u, 8u) (10u, 9u) }
+          Command = Some { Title = "2nd command"; Command = "foo"; Arguments = None }
+        }
+        {
+          InlayHintLabelPart.Value = "3rd label"
+          Tooltip =
+            Some(
+              U2.C2 {
+                Kind = MarkupKind.Markdown
+                Value =
+                  """
                                             # Header
                                             Description
                                             * List 1
                                             * List 2
-                                            """ }
-                 )
-               Location = Some { Uri = "3rd"; Range = mkRange' (1u, 2u) (3u, 4u) }
-               Command = None } |]
-      Position = { Line = 5u; Character = 10u }
-      Kind = Some InlayHintKind.Type
-      TextEdits =
-        Some
-          [| { Range = mkRange' (5u, 10u) (6u, 5u); NewText = "foo bar" }
-             { Range = mkRange' (5u, 0u) (5u, 2u); NewText = "baz" } |]
-      Tooltip = Some(U2.C2 { Kind = MarkupKind.PlainText; Value = "some tooltip" })
-      PaddingLeft = Some true
-      PaddingRight = Some false
-      Data = Some(JToken.FromObject "some data") }
+                                            """
+              }
+            )
+          Location = Some { Uri = "3rd"; Range = mkRange' (1u, 2u) (3u, 4u) }
+          Command = None
+        }
+      |]
+    Position = { Line = 5u; Character = 10u }
+    Kind = Some InlayHintKind.Type
+    TextEdits =
+      Some [|
+        { Range = mkRange' (5u, 10u) (6u, 5u); NewText = "foo bar" }
+        { Range = mkRange' (5u, 0u) (5u, 2u); NewText = "baz" }
+      |]
+    Tooltip = Some(U2.C2 { Kind = MarkupKind.PlainText; Value = "some tooltip" })
+    PaddingLeft = Some true
+    PaddingRight = Some false
+    Data = Some(JToken.FromObject "some data")
+  }
 
-  let allLsp: obj[] = [| initializeParams; inlayHint |]
+  let allLsp: obj[] = [|
+    initializeParams
+    inlayHint
+  |]
 
   /// Some complex data which covers all converters
   let example = Example.createData (1234, 9, 5)
@@ -570,11 +693,20 @@ type MultipleTypesBenchmarks() =
 
   let withCounts (counts) data =
     data
-    |> Array.collect (fun data -> counts |> Array.map (fun count -> [| box count; box data |]))
+    |> Array.collect (fun data ->
+      counts
+      |> Array.map (fun count -> [|
+        box count
+        box data
+      |])
+    )
 
   member _.AllLsp_Roundtrip() =
     for o in allLsp do
-      let json = inlayHint |> serialize
+      let json =
+        inlayHint
+        |> serialize
+
       let res = json.ToObject(o.GetType(), jsonRpcFormatter.JsonSerializer)
       ()
 
@@ -586,7 +718,10 @@ type MultipleTypesBenchmarks() =
       b.AllLsp_Roundtrip()
 
   member _.Example_Roundtrip() =
-    let json = example |> serialize
+    let json =
+      example
+      |> serialize
+
     let res = json.ToObject(example.GetType(), jsonRpcFormatter.JsonSerializer)
     ()
 
@@ -602,44 +737,74 @@ type MultipleTypesBenchmarks() =
   [<Arguments(50)>]
   member _.Option_Roundtrips(count: int) =
     for _ in 1..count do
-      let json = option |> serialize
+      let json =
+        option
+        |> serialize
+
       let _ = json.ToObject(option.GetType(), jsonRpcFormatter.JsonSerializer)
       ()
 
   member _.SingleCaseUnion_ArgumentsSource() =
-    [| Example.SingleCaseUnion.Ipsum; Example.SingleCaseUnion.Lorem |]
-    |> withCounts [| 1; 50 |]
+    [|
+      Example.SingleCaseUnion.Ipsum
+      Example.SingleCaseUnion.Lorem
+    |]
+    |> withCounts [|
+      1
+      50
+    |]
 
   [<BenchmarkCategory("Basic"); Benchmark>]
   [<ArgumentsSource("SingleCaseUnion_ArgumentsSource")>]
   member _.SingleCaseUnion_Roundtrips(count: int, data: Example.SingleCaseUnion) =
     for _ in 1..count do
-      let json = data |> serialize
+      let json =
+        data
+        |> serialize
+
       let _ = json.ToObject(typeof<Example.SingleCaseUnion>, jsonRpcFormatter.JsonSerializer)
       ()
 
   member _.ErasedUnion_ArgumentsSource() =
-    [| Example.ErasedUnionData.Alpha "foo"
-       Example.ErasedUnionData.Beta 42
-       Example.ErasedUnionData.Gamma true
-       Example.ErasedUnionData.Delta 3.14
-       Example.ErasedUnionData.Epsilon
-         { RequiredValue = "foo"
-           OptionalValue = None
-           AnotherOptionalValue = None
-           FinalOptionalValue = None } |]
-    |> withCounts [| 1; 50 |]
+    [|
+      Example.ErasedUnionData.Alpha "foo"
+      Example.ErasedUnionData.Beta 42
+      Example.ErasedUnionData.Gamma true
+      Example.ErasedUnionData.Delta 3.14
+      Example.ErasedUnionData.Epsilon {
+        RequiredValue = "foo"
+        OptionalValue = None
+        AnotherOptionalValue = None
+        FinalOptionalValue = None
+      }
+    |]
+    |> withCounts [|
+      1
+      50
+    |]
 
   [<BenchmarkCategory("Basic"); Benchmark>]
   [<ArgumentsSource("ErasedUnion_ArgumentsSource")>]
   member _.ErasedUnion_Roundtrips(count: int, data: Example.ErasedUnionData) =
     for _ in 1..count do
-      let json = data |> serialize
+      let json =
+        data
+        |> serialize
+
       let _ = json.ToObject(typeof<Example.ErasedUnionData>, jsonRpcFormatter.JsonSerializer)
       ()
 
 
 let run (args: string[]) =
-  let switcher = BenchmarkSwitcher.FromTypes([| typeof<MultipleTypesBenchmarks>; typeof<TypeCheckBenchmarks> |])
-  switcher.Run(args) |> ignore
+  let switcher =
+    BenchmarkSwitcher.FromTypes(
+      [|
+        typeof<MultipleTypesBenchmarks>
+        typeof<TypeCheckBenchmarks>
+      |]
+    )
+
+  switcher.Run(args)
+  |> ignore
+
   0

@@ -14,7 +14,9 @@ open StreamJsonRpc.Protocol
 type TestLspClient(sendServerNotification: ClientNotificationSender, sendServerRequest: ClientRequestSender) =
   inherit LspClient()
 
-let setupEndpoints (_: LspClient) : Map<string, System.Delegate> = [] |> Map.ofList
+let setupEndpoints (_: LspClient) : Map<string, System.Delegate> =
+  []
+  |> Map.ofList
 
 let requestWithContentLength (request: string) = $"Content-Length: {request.Length}\r\n\r\n{request}"
 
@@ -26,80 +28,85 @@ let exitRequest = @"{""jsonrpc"":""2.0"",""method"":""exit"",""id"":1}"
 type Foo = { bar: string; baz: string }
 
 let tests =
-  testList
-    "startWithSetup"
-    [ testAsync "can start up multiple times in same process" {
-        use inputServerPipe1 = new AnonymousPipeServerStream()
-        use inputClientPipe1 = new AnonymousPipeClientStream(inputServerPipe1.GetClientHandleAsString())
-        use outputServerPipe1 = new AnonymousPipeServerStream()
+  testList "startWithSetup" [
+    testAsync "can start up multiple times in same process" {
+      use inputServerPipe1 = new AnonymousPipeServerStream()
+      use inputClientPipe1 = new AnonymousPipeClientStream(inputServerPipe1.GetClientHandleAsString())
+      use outputServerPipe1 = new AnonymousPipeServerStream()
 
-        use inputWriter1 = new StreamWriter(inputServerPipe1)
-        inputWriter1.AutoFlush <- true
+      use inputWriter1 = new StreamWriter(inputServerPipe1)
+      inputWriter1.AutoFlush <- true
 
-        let server1 =
-          async {
-            let result = (startWithSetup setupEndpoints inputClientPipe1 outputServerPipe1 TestLspClient defaultRpc)
-            Expect.equal (int result) 0 "server startup failed"
-          }
+      let server1 =
+        async {
+          let result =
+            startWithSetup setupEndpoints inputClientPipe1 outputServerPipe1 (fun x -> new TestLspClient(x)) defaultRpc
 
-        let! server1Async = Async.StartChild(server1)
+          Expect.equal (int result) 0 "server startup failed"
+        }
 
-        use inputServerPipe2 = new AnonymousPipeServerStream()
-        use inputClientPipe2 = new AnonymousPipeClientStream(inputServerPipe2.GetClientHandleAsString())
-        use outputServerPipe2 = new AnonymousPipeServerStream()
+      let! server1Async = Async.StartChild(server1)
 
-        use inputWriter2 = new StreamWriter(inputServerPipe2)
-        inputWriter2.AutoFlush <- true
+      use inputServerPipe2 = new AnonymousPipeServerStream()
+      use inputClientPipe2 = new AnonymousPipeClientStream(inputServerPipe2.GetClientHandleAsString())
+      use outputServerPipe2 = new AnonymousPipeServerStream()
 
-        let server2 =
-          async {
-            let result = (startWithSetup setupEndpoints inputClientPipe2 outputServerPipe2 TestLspClient defaultRpc)
-            Expect.equal (int result) 0 "server startup failed"
-          }
+      use inputWriter2 = new StreamWriter(inputServerPipe2)
+      inputWriter2.AutoFlush <- true
 
-        let! server2Async = Async.StartChild(server2)
+      let server2 =
+        async {
+          let result =
+            (startWithSetup setupEndpoints inputClientPipe2 outputServerPipe2 (fun x -> new TestLspClient(x)) defaultRpc)
 
-        inputWriter1.Write(requestWithContentLength (shutdownRequest))
-        inputWriter1.Write(requestWithContentLength (exitRequest))
+          Expect.equal (int result) 0 "server startup failed"
+        }
 
-        inputWriter2.Write(requestWithContentLength (shutdownRequest))
-        inputWriter2.Write(requestWithContentLength (exitRequest))
+      let! server2Async = Async.StartChild(server2)
 
-        do! server1Async
-        do! server2Async
-      }
+      inputWriter1.Write(requestWithContentLength (shutdownRequest))
+      inputWriter1.Write(requestWithContentLength (exitRequest))
 
-      testCaseAsync "Handle JsonSerializationError gracefully"
-      <| async {
+      inputWriter2.Write(requestWithContentLength (shutdownRequest))
+      inputWriter2.Write(requestWithContentLength (exitRequest))
 
-        let struct (server, client) = FullDuplexStream.CreatePair()
+      do! server1Async
+      do! server2Async
+    }
 
-        use jsonRpcHandler = new HeaderDelimitedMessageHandler(server, defaultJsonRpcFormatter ())
-        use serverRpc = defaultRpc jsonRpcHandler
+    testCaseAsync "Handle JsonSerializationError gracefully"
+    <| async {
 
-        let functions: Map<string, Delegate> = Map [ "lol", Func<Foo, Foo>(fun (foo: Foo) -> foo) :> Delegate ]
+      let struct (server, client) = FullDuplexStream.CreatePair()
 
-        functions
-        |> Seq.iter (fun (KeyValue(name, rpcDelegate)) ->
-          let rpcAttribute = JsonRpcMethodAttribute(name)
-          rpcAttribute.UseSingleObjectParameterDeserialization <- true
-          serverRpc.AddLocalRpcMethod(rpcDelegate.GetMethodInfo(), rpcDelegate.Target, rpcAttribute))
+      use jsonRpcHandler = new HeaderDelimitedMessageHandler(server, defaultJsonRpcFormatter ())
+      use serverRpc = defaultRpc jsonRpcHandler
 
-        serverRpc.StartListening()
-        let create (s: Stream) : JsonRpc = JsonRpc.Attach(s, target = null)
-        let clientRpc: JsonRpc = create client
+      let functions: Map<string, Delegate> = Map [ "lol", Func<Foo, Foo>(fun (foo: Foo) -> foo) :> Delegate ]
 
-        try
-          let! (_: Foo) =
-            clientRpc.InvokeWithParameterObjectAsync<Foo>("lol", {| bar = "lol" |})
-            |> Async.AwaitTask
+      functions
+      |> Seq.iter (fun (KeyValue(name, rpcDelegate)) ->
+        let rpcAttribute = JsonRpcMethodAttribute(name)
+        rpcAttribute.UseSingleObjectParameterDeserialization <- true
+        serverRpc.AddLocalRpcMethod(rpcDelegate.GetMethodInfo(), rpcDelegate.Target, rpcAttribute)
+      )
 
-          ()
-        with Flatten(:? RemoteInvocationException as ex) ->
-          Expect.equal
-            ex.Message
-            "Required property 'baz' not found in JSON. Path ''."
-            "Get parse error message and not crash process"
+      serverRpc.StartListening()
+      let create (s: Stream) : JsonRpc = JsonRpc.Attach(s, target = null)
+      let clientRpc: JsonRpc = create client
 
-          Expect.equal ex.ErrorCode ((int) JsonRpcErrorCode.ParseError) "Should get parse error code"
-      } ]
+      try
+        let! (_: Foo) =
+          clientRpc.InvokeWithParameterObjectAsync<Foo>("lol", {| bar = "lol" |})
+          |> Async.AwaitTask
+
+        ()
+      with Flatten(:? RemoteInvocationException as ex) ->
+        Expect.equal
+          ex.Message
+          "Required property 'baz' not found in JSON. Path ''."
+          "Get parse error message and not crash process"
+
+        Expect.equal ex.ErrorCode ((int) JsonRpcErrorCode.ParseError) "Should get parse error code"
+    }
+  ]

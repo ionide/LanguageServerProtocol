@@ -86,6 +86,10 @@ module rec MetaModel =
       x.Params
       |> Option.Array.toArray
 
+    member x.StructuredDocs =
+      x.Documentation
+      |> Option.map StructuredDocs.parse
+
   /// Represents a LSP notification
   type Notification = {
 
@@ -113,6 +117,10 @@ module rec MetaModel =
     member x.ParamsSafe =
       x.Params
       |> Option.Array.toArray
+
+    member x.StructuredDocs =
+      x.Documentation
+      |> Option.map StructuredDocs.parse
 
   [<RequireQualifiedAccess>]
   type BaseTypes =
@@ -423,13 +431,8 @@ module rec MetaModel =
         failwith "Should never be writing this structure, it comes from Microsoft LSP Spec"
 
       override _.ReadJson
-        (
-          reader: JsonReader,
-          objectType: System.Type,
-          existingValue: Type,
-          hasExistingValue,
-          serializer: JsonSerializer
-        ) =
+        (reader: JsonReader, objectType: System.Type, existingValue: Type, hasExistingValue, serializer: JsonSerializer)
+        =
         let jobj = JObject.Load(reader)
         let kind = jobj.["kind"].Value<string>()
 
@@ -477,3 +480,8 @@ module rec MetaModel =
     settings.Converters.Add(Converters.MapKeyTypeConverter() :> JsonConverter)
     settings.Converters.Add(JsonUtils.OptionConverter() :> JsonConverter)
     settings
+
+  let isNullableType (t: MetaModel.Type) =
+    match t with
+    | MetaModel.Type.BaseType { Name = MetaModel.BaseTypes.Null } -> true
+    | _ -> false

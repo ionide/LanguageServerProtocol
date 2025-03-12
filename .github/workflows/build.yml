@@ -21,7 +21,7 @@ jobs:
           global-json-file: global.json
           dotnet-version: |
             8.x
-            6.x
+            9.x
       - name: Run build
         run: dotnet build -c Release src
       - name: Run tests
@@ -29,7 +29,7 @@ jobs:
       - name: Run publish
         run: dotnet pack -o release src
       - name: Upload NuGet packages
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
-          name: packages
+          name: packages-${{ matrix.os }}
           path: release/

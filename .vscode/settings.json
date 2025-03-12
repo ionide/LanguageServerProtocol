@@ -7,5 +7,6 @@
     "Ionide",
     "Newtonsoft",
     "Supertypes"
-  ]
+  ],
+  "editor.formatOnSave": true
 }

@@ -15,6 +15,7 @@ module Server =
   open StreamJsonRpc
   open StreamJsonRpc.Protocol
   open JsonRpc
+  open Mappings
 
   let logger = LogProvider.getLoggerByName "LSP Server"
 
@@ -237,9 +238,6 @@ module Server =
     use jsonRpcHandler = new WebSocketMessageHandler(socket, defaultJsonRpcFormatter ())
     startWithSetupCore setupRequestHandlings jsonRpcHandler clientCreator customizeRpc
 
-  type ServerRequestHandling<'server when 'server :> Ionide.LanguageServerProtocol.ILspServer> = {
-    Run: 'server -> Delegate
-  }
 
   let serverRequestHandling<'server, 'param, 'result when 'server :> Ionide.LanguageServerProtocol.ILspServer>
     (run: 'server -> 'param -> AsyncLspResult<'result>)
@@ -247,135 +245,7 @@ module Server =
     { Run = fun s -> requestHandling (run s) }
 
   let defaultRequestHandlings () : Map<string, ServerRequestHandling<'server>> =
-    let requestHandling = serverRequestHandling
-
-    [
-      "initialize", requestHandling (fun s p -> s.Initialize(p))
-      "initialized",
-      requestHandling (fun s () ->
-        s.Initialized()
-        |> notificationSuccess
-      )
-      "textDocument/hover", requestHandling (fun s p -> s.TextDocumentHover(p))
-      "textDocument/didOpen",
-      requestHandling (fun s p ->
-        s.TextDocumentDidOpen(p)
-        |> notificationSuccess
-      )
-      "textDocument/didChange",
-      requestHandling (fun s p ->
-        s.TextDocumentDidChange(p)
-        |> notificationSuccess
-      )
-      "textDocument/completion", requestHandling (fun s p -> s.TextDocumentCompletion(p))
-      "completionItem/resolve", requestHandling (fun s p -> s.CompletionItemResolve(p))
-      "textDocument/rename", requestHandling (fun s p -> s.TextDocumentRename(p))
-      "textDocument/prepareRename", requestHandling (fun s p -> s.TextDocumentPrepareRename(p))
-      "textDocument/declaration", requestHandling (fun s p -> s.TextDocumentDeclaration(p))
-      "textDocument/definition", requestHandling (fun s p -> s.TextDocumentDefinition(p))
-      "textDocument/typeDefinition", requestHandling (fun s p -> s.TextDocumentTypeDefinition(p))
-      "textDocument/implementation", requestHandling (fun s p -> s.TextDocumentImplementation(p))
-      "textDocument/codeAction", requestHandling (fun s p -> s.TextDocumentCodeAction(p))
-      "codeAction/resolve", requestHandling (fun s p -> s.CodeActionResolve(p))
-      "textDocument/codeLens", requestHandling (fun s p -> s.TextDocumentCodeLens(p))
-      "codeLens/resolve", requestHandling (fun s p -> s.CodeLensResolve(p))
-      "textDocument/references", requestHandling (fun s p -> s.TextDocumentReferences(p))
-      "textDocument/documentHighlight", requestHandling (fun s p -> s.TextDocumentDocumentHighlight(p))
-      "textDocument/documentLink", requestHandling (fun s p -> s.TextDocumentDocumentLink(p))
-      "textDocument/signatureHelp", requestHandling (fun s p -> s.TextDocumentSignatureHelp(p))
-      "documentLink/resolve", requestHandling (fun s p -> s.DocumentLinkResolve(p))
-      "textDocument/documentColor", requestHandling (fun s p -> s.TextDocumentDocumentColor(p))
-      "textDocument/colorPresentation", requestHandling (fun s p -> s.TextDocumentColorPresentation(p))
-      "textDocument/formatting", requestHandling (fun s p -> s.TextDocumentFormatting(p))
-      "textDocument/rangeFormatting", requestHandling (fun s p -> s.TextDocumentRangeFormatting(p))
-      "textDocument/onTypeFormatting", requestHandling (fun s p -> s.TextDocumentOnTypeFormatting(p))
-      "textDocument/willSave",
-      requestHandling (fun s p ->
-        s.TextDocumentWillSave(p)
-        |> notificationSuccess
-      )
-      "textDocument/willSaveWaitUntil", requestHandling (fun s p -> s.TextDocumentWillSaveWaitUntil(p))
-      "textDocument/didSave",
-      requestHandling (fun s p ->
-        s.TextDocumentDidSave(p)
-        |> notificationSuccess
-      )
-      "textDocument/didClose",
-      requestHandling (fun s p ->
-        s.TextDocumentDidClose(p)
-        |> notificationSuccess
-      )
-      "textDocument/documentSymbol", requestHandling (fun s p -> s.TextDocumentDocumentSymbol(p))
-      "textDocument/moniker", requestHandling (fun s p -> s.TextDocumentMoniker(p))
-      "textDocument/linkedEditingRange", requestHandling (fun s p -> s.TextDocumentLinkedEditingRange(p))
-      "textDocument/foldingRange", requestHandling (fun s p -> s.TextDocumentFoldingRange(p))
-      "textDocument/selectionRange", requestHandling (fun s p -> s.TextDocumentSelectionRange(p))
-      "textDocument/prepareCallHierarchy", requestHandling (fun s p -> s.TextDocumentPrepareCallHierarchy(p))
-      "callHierarchy/incomingCalls", requestHandling (fun s p -> s.CallHierarchyIncomingCalls(p))
-      "callHierarchy/outgoingCalls", requestHandling (fun s p -> s.CallHierarchyOutgoingCalls(p))
-      "textDocument/prepareTypeHierarchy", requestHandling (fun s p -> s.TextDocumentPrepareTypeHierarchy(p))
-      "typeHierarchy/supertypes", requestHandling (fun s p -> s.TypeHierarchySupertypes(p))
-      "typeHierarchy/subtypes", requestHandling (fun s p -> s.TypeHierarchySubtypes(p))
-      "textDocument/semanticTokens/full", requestHandling (fun s p -> s.TextDocumentSemanticTokensFull(p))
-      "textDocument/semanticTokens/full/delta", requestHandling (fun s p -> s.TextDocumentSemanticTokensFullDelta(p))
-      "textDocument/semanticTokens/range", requestHandling (fun s p -> s.TextDocumentSemanticTokensRange(p))
-      "textDocument/inlayHint", requestHandling (fun s p -> s.TextDocumentInlayHint(p))
-      "inlayHint/resolve", requestHandling (fun s p -> s.InlayHintResolve(p))
-      "textDocument/inlineValue", requestHandling (fun s p -> s.TextDocumentInlineValue(p))
-      "textDocument/diagnostic", requestHandling (fun s p -> s.TextDocumentDiagnostic(p))
-      "workspace/didChangeWatchedFiles",
-      requestHandling (fun s p ->
-        s.WorkspaceDidChangeWatchedFiles(p)
-        |> notificationSuccess
-      )
-      "workspace/didChangeWorkspaceFolders",
-      requestHandling (fun s p ->
-        s.WorkspaceDidChangeWorkspaceFolders(p)
-        |> notificationSuccess
-      )
-      "workspace/didChangeConfiguration",
-      requestHandling (fun s p ->
-        s.WorkspaceDidChangeConfiguration(p)
-        |> notificationSuccess
-      )
-      "workspace/willCreateFiles", requestHandling (fun s p -> s.WorkspaceWillCreateFiles(p))
-      "workspace/didCreateFiles",
-      requestHandling (fun s p ->
-        s.WorkspaceDidCreateFiles(p)
-        |> notificationSuccess
-      )
-      "workspace/willRenameFiles", requestHandling (fun s p -> s.WorkspaceWillRenameFiles(p))
-      "workspace/didRenameFiles",
-      requestHandling (fun s p ->
-        s.WorkspaceDidRenameFiles(p)
-        |> notificationSuccess
-      )
-      "workspace/willDeleteFiles", requestHandling (fun s p -> s.WorkspaceWillDeleteFiles(p))
-      "workspace/didDeleteFiles",
-      requestHandling (fun s p ->
-        s.WorkspaceDidDeleteFiles(p)
-        |> notificationSuccess
-      )
-      "workspace/symbol", requestHandling (fun s p -> s.WorkspaceSymbol(p))
-      "workspaceSymbol/resolve", requestHandling (fun s p -> s.WorkspaceSymbolResolve(p))
-      "workspace/executeCommand", requestHandling (fun s p -> s.WorkspaceExecuteCommand(p))
-      "window/workDoneProgress/cancel",
-      requestHandling (fun s p ->
-        s.WorkDoneProgressCancel(p)
-        |> notificationSuccess
-      )
-      "workspace/diagnostic", requestHandling (fun s p -> s.WorkspaceDiagnostic(p))
-      "shutdown",
-      requestHandling (fun s () ->
-        s.Shutdown()
-        |> notificationSuccess
-      )
-      "exit",
-      requestHandling (fun s () ->
-        s.Exit()
-        |> notificationSuccess
-      )
-    ]
+    routeMappings ()
     |> Map.ofList
 
   let private requestHandlingSetupFunc<'client, 'server
@@ -629,13 +499,15 @@ module Client =
         | Some handling ->
           try
             match notification.Params with
-            | None -> return Result.Error(JsonRpc.Error.InvalidParams)
+            | None -> return Result.Error(JsonRpc.Error.InvalidParams())
             | Some prms ->
               let! result = handling.Run prms
               return Result.Ok()
           with ex ->
-            return Result.Error(JsonRpc.Error.Create(JsonRpc.ErrorCodes.internalError, ex.ToString()))
-        | None -> return Result.Error(JsonRpc.Error.MethodNotFound)
+            return
+              JsonRpc.Error.InternalError(ex.ToString())
+              |> Result.Error
+        | None -> return Result.Error(JsonRpc.Error.MethodNotFound())
       }
 
     let messageHandler str =

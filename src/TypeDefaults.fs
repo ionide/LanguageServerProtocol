@@ -1,4 +1,5 @@
 namespace Ionide.LanguageServerProtocol.Types
+
 [<AutoOpen>]
 module Extensions =
 
@@ -193,8 +194,8 @@ module Extensions =
 
     static member CanUseDocumentChanges(capabilities: ClientCapabilities) =
       (capabilities.Workspace
-      |> Option.bind (fun x -> x.WorkspaceEdit)
-      |> Option.bind (fun x -> x.DocumentChanges)) = Some true
+       |> Option.bind (fun x -> x.WorkspaceEdit)
+       |> Option.bind (fun x -> x.DocumentChanges)) = Some true
 
     static member Create(edits: TextDocumentEdit[], capabilities: ClientCapabilities) =
       if WorkspaceEdit.CanUseDocumentChanges(capabilities) then
