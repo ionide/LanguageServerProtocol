@@ -6,6 +6,10 @@ Library for implementing Language Server Protocol in F#.
 
 1. dotnet build
 
+## How to use
+
+See [FsharpLspExample](https://github.com/ssmucny/FsharpLspExample) for documentation with a tutorial and simple worked example explaining how to use this project to build a Language server.
+
 ## How to contribute
 
 _Imposter syndrome disclaimer_: I want your help. No really, I do.
