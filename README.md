@@ -6,9 +6,13 @@ Library for implementing Language Server Protocol in F#.
 
 1. dotnet build
 
-## How to use
+## Examples
 
-See [FsharpLspExample](https://github.com/ssmucny/FsharpLspExample) for documentation with a tutorial and simple worked example explaining how to use this project to build a Language server.
+- [ProtoGraph](https://git.samsmucny.com/ssmucny/Flux-SDK/src/branch/master/src/FluxSDK.LanguageServer/ProtoGraph.fs): Language server for ProtoGraph, a dataflow programming language for Resonite's ProtoFlux
+- [Marksman](https://github.com/artempyanykh/marksman/blob/main/Marksman/Program.fs): A language server for markdown documents
+- [FsAutoComplete](https://github.com/ionide/FsAutoComplete/blob/main/src/FsAutoComplete/LspServers/AdaptiveFSharpLspServer.fs): The language server for F# itself by Ionide
+
+See [FsharpLspExample](https://git.samsmucny.com/ssmucny/FsharpLspExample/src/branch/main) ([GitHub mirror](https://github.com/ssmucny/FsharpLspExample)) for documentation with a tutorial and simple worked example explaining how to use this project to build a Language server.
 
 ## How to contribute
 
