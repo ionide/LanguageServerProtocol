@@ -38,29 +38,3 @@ the project and submit pull requests.
 The library is available under [MIT license](LICENSE.md), which allows modification and redistribution for both commercial and non-commercial purposes.
 
 Please note that this project is released with a [Contributor Code of Conduct](CODE_OF_CONDUCT.md). By participating in this project you agree to abide by its terms.
-
-## Our Sponsors
-
-Discover Panel is released as part of Ionide organization - OSS organization focused on building cross platform, developer tools.
-
-You can support Ionide development on [Open Collective](https://opencollective.com/ionide).
-
-### Partners
-
-<div align="center">
-
-<a href="https://lambdafactory.io"><img src="https://cdn-images-1.medium.com/max/332/1*la7_YvDFvrtA720P5bYWBQ@2x.png" alt="drawing" width="100"/></a>
-
-</div>
-
-### Sponsors
-
-[Become a sponsor](https://opencollective.com/ionide) and get your logo on our README on Github, description in the VSCode marketplace and on [ionide.io](https://ionide.io) with a link to your site.
-
-<div align="center">
-    <a href="https://ionide.io/sponsors.html">
-        <img src="https://opencollective.com/ionide/tiers/silver-sponsor.svg?avatarHeight=120&width=1000&button=false"/>
-        <br/>
-        <img src="https://opencollective.com/ionide/tiers/bronze-sponsor.svg?avatarHeight=120&width=1000&button=false"/>
-    </a>
-</div>
