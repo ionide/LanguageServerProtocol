@@ -5,7 +5,6 @@ open System.Runtime.Serialization
 open System.Diagnostics
 open Newtonsoft.Json
 open Newtonsoft.Json.Linq
-
 /// URI's are transferred as strings. The URI's format is defined in https://tools.ietf.org/html/rfc3986
 ///
 /// See: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#uri
@@ -1635,7 +1634,6 @@ type WorkspaceDiagnosticParams = {
 ///
 /// @since 3.17.0
 type WorkspaceDiagnosticReport = { Items: WorkspaceDocumentDiagnosticReport[] }
-
 /// A partial result for a workspace diagnostic report.
 ///
 /// @since 3.17.0
@@ -3326,7 +3324,6 @@ type WorkDoneProgressEnd = {
 }
 
 type SetTraceParams = { Value: TraceValues }
-
 type LogTraceParams = { Message: string; Verbose: string option }
 
 type CancelParams = {
@@ -4485,8 +4482,7 @@ type Diagnostic = {
 
   [<DebuggerBrowsable(DebuggerBrowsableState.Never); JsonIgnore>]
   member x.DebuggerDisplay =
-    $"[{defaultArg x.Severity DiagnosticSeverity.Error}] ({x.Range.DebuggerDisplay}) {x.Message} ({Option.map string x.Code
-                                                                                                   |> Option.defaultValue String.Empty})"
+    $"[{defaultArg x.Severity DiagnosticSeverity.Error}] ({x.Range.DebuggerDisplay}) {x.Message} ({Option.map string x.Code |> Option.defaultValue String.Empty})"
 
 /// Contains additional information about the context in which a completion request is triggered.
 type CompletionContext = {

@@ -111,13 +111,11 @@ type ILspServer =
   /// response is of type {@link FoldingRangeList} or a Thenable
   /// that resolves to such.
   abstract TextDocumentFoldingRange: FoldingRangeParams -> AsyncLspResult<option<array<FoldingRange>>>
-
   /// A request to resolve the type definition locations of a symbol at a given text
   /// document position. The request's parameter is of type {@link TextDocumentPositionParams}
   /// the response is of type {@link Declaration} or a typed array of {@link DeclarationLink}
   /// or a Thenable that resolves to such.
   abstract TextDocumentDeclaration: DeclarationParams -> AsyncLspResult<option<U2<Declaration, array<DeclarationLink>>>>
-
   /// A request to provide selection ranges in a document. The request's
   /// parameter is of type {@link SelectionRangeParams}, the
   /// response is of type {@link SelectionRange SelectionRange[]} or a Thenable
@@ -239,7 +237,6 @@ type ILspServer =
   /// server constantly fails on this request. This is done to keep the save fast and
   /// reliable.
   abstract TextDocumentWillSaveWaitUntil: WillSaveTextDocumentParams -> AsyncLspResult<option<array<TextEdit>>>
-
   /// Request to request completion at a given text document position. The request's
   /// parameter is of type {@link TextDocumentPosition} the response
   /// is of type {@link CompletionItem CompletionItem[]} or {@link CompletionList}
@@ -250,7 +247,6 @@ type ILspServer =
   /// request. However, properties that are needed for the initial sorting and filtering, like `sortText`,
   /// `filterText`, `insertText`, and `textEdit`, must not be changed during resolve.
   abstract TextDocumentCompletion: CompletionParams -> AsyncLspResult<option<U2<array<CompletionItem>, CompletionList>>>
-
   /// Request to resolve additional information for a given completion item.The request's
   /// parameter is of type {@link CompletionItem} the response
   /// is of type {@link CompletionItem} or a Thenable that resolves to such.
