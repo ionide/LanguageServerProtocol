@@ -72,10 +72,10 @@
           so if you happen to read some content during a Restore, that content won't be re-read during a
           subsequent Build  
       -->
-    <MSBuild Projects="@(_GeneratorProject)" Targets="Restore">
+    <MSBuild Projects="@(_GeneratorProject)" Targets="Restore" RemoveProperties="TargetFramework">
       <Output TaskParameter="TargetOutputs" ItemName="_GeneratorApp" />
     </MSBuild>
-    <MSBuild Projects="@(_GeneratorProject)" Targets="Build">
+    <MSBuild Projects="@(_GeneratorProject)" Targets="Build" RemoveProperties="TargetFramework">
       <Output TaskParameter="TargetOutputs" ItemName="_GeneratorApp" />
     </MSBuild>
 
