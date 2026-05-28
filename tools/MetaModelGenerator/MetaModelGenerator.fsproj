@@ -5,11 +5,9 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Argu" Version="*" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="Fabulous.AST" Version="[1.2.0]" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="../../src/OptionConverter.fs" />
     <Compile Include="PrimitiveExtensions.fs" />
     <Compile Include="MetaModel.fs" />
     <Compile Include="Common.fs" />

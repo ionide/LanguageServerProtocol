@@ -8,6 +8,20 @@ module GenerateClientServer =
   open Fantomas.Core
 
 
+  let private formatConfig = {
+    FormatConfig.Default with
+        IndentSize = 2
+        MaxRecordWidth = 80
+        MaxValueBindingWidth = 120
+        MaxFunctionBindingWidth = 120
+        MaxDotGetExpressionWidth = 120
+        MaxInfixOperatorExpression = 10
+        ArrayOrListMultilineFormatter = MultilineFormatterType.NumberOfItems
+        MultilineBracketStyle = MultilineBracketStyle.Stroustrup
+        MultiLineLambdaClosingNewline = true
+        InsertFinalNewline = false
+  }
+
   let generateClientServer (parsedMetaModel: MetaModel.MetaModel) outputPath =
     async {
       printfn "Generating generateClientServer"
@@ -312,7 +326,7 @@ module GenerateClientServer =
       let! formattedText =
         oak
         |> Gen.mkOak
-        |> CodeFormatter.FormatOakAsync
+        |> fun oak -> CodeFormatter.FormatOakAsync(oak, formatConfig)
 
       do! FileWriters.writeIfChanged outputPath formattedText
 

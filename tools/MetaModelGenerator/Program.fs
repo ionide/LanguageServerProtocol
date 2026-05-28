@@ -3,7 +3,7 @@
 module Main =
   open Argu
   open System
-  open Newtonsoft.Json
+  open System.Text.Json
   open System.IO
 
   type TypeArgs =
@@ -50,7 +50,7 @@ module Main =
       printfn "Deserializing metaModel"
 
       let parsedMetaModel =
-        JsonConvert.DeserializeObject<MetaModel.MetaModel>(metaModel, MetaModel.metaModelSerializerSettings)
+        JsonSerializer.Deserialize<MetaModel.MetaModel>(metaModel, MetaModel.metaModelSerializerOptions)
 
       return parsedMetaModel
     }

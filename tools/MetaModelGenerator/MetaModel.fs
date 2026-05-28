@@ -18,36 +18,15 @@ module Proposed =
     else
       true
 
-module Preconverts =
-  open Newtonsoft.Json
-  open Newtonsoft.Json.Linq
-
-  type SingleOrArrayConverter<'T>() =
-    inherit JsonConverter()
-
-    override x.CanConvert(tobject: System.Type) = tobject = typeof<'T array>
-
-    override _.WriteJson(writer: JsonWriter, value, serializer: JsonSerializer) : unit =
-      failwith "Should never be writing this structure, it comes from Microsoft LSP Spec"
-
-    override _.ReadJson(reader: JsonReader, objectType: System.Type, existingValue: obj, serializer: JsonSerializer) =
-      let token = JToken.Load reader
-
-      match token.Type with
-      | JTokenType.Array -> serializer.Deserialize(reader, objectType)
-      | JTokenType.Null -> null
-      | _ -> Some [| token.ToObject<'T>(serializer) |]
-
 module rec MetaModel =
   open System
-  open Newtonsoft.Json.Linq
-  open Newtonsoft.Json
-  open Ionide.LanguageServerProtocol
+  open System.Text.Json
+  open System.Text.Json.Serialization
 
   type MetaData = { Version: string }
 
   /// Indicates in which direction a message is sent in the protocol.
-  [<JsonConverter(typeof<Newtonsoft.Json.Converters.StringEnumConverter>)>]
+  [<JsonConverter(typeof<JsonStringEnumConverter>)>]
   type MessageDirection =
     | ClientToServer = 0
     | ServerToClient = 1
@@ -66,7 +45,6 @@ module rec MetaModel =
     /// The request's method name.
     Method: string
     /// The parameter type(s) if any.
-    [<JsonConverter(typeof<Preconverts.SingleOrArrayConverter<Type>>)>]
     Params: Type array option
     /// Optional partial result type if the request supports partial result reporting.
     PartialResult: Type option
@@ -102,7 +80,6 @@ module rec MetaModel =
     /// The request's method name.
     Method: string
     /// The parameter type(s) if any.
-    [<JsonConverter(typeof<Preconverts.SingleOrArrayConverter<Type>>)>]
     Params: Type array option
     /// Whether this is a proposed feature. If omitted the notification is final.",
     Proposed: bool option
@@ -334,7 +311,7 @@ module rec MetaModel =
       x.Documentation
       |> Option.map StructuredDocs.parse
 
-  [<JsonConverter(typeof<Newtonsoft.Json.Converters.StringEnumConverter>)>]
+  [<JsonConverter(typeof<JsonStringEnumConverter>)>]
   type EnumerationTypeNameValues =
     | String = 0
     | Integer = 1
@@ -349,6 +326,7 @@ module rec MetaModel =
     Name: string
     Proposed: bool option
     Since: string option
+    [<JsonConverter(typeof<Converters.StringOrNumberAsStringConverter>)>]
     Value: string
   } with
 
@@ -398,88 +376,168 @@ module rec MetaModel =
 
   module Converters =
 
+    /// Reads a JSON value that is either a JSON string or a JSON number, returning it as a string.
+    /// This is needed because integer/uinteger enumeration values are serialised as numbers in metaModel.json.
+    type StringOrNumberAsStringConverter() =
+      inherit JsonConverter<string>()
+
+      override _.Read(reader: byref<Utf8JsonReader>, _typeToConvert: System.Type, _options: JsonSerializerOptions) =
+        match reader.TokenType with
+        | JsonTokenType.String -> reader.GetString()
+        | JsonTokenType.Number ->
+          // Preserve the raw number token as a string (e.g. "-32700")
+          reader.GetInt64()
+          |> string
+        | other -> failwithf "StringOrNumberAsStringConverter: unexpected token %A" other
+
+      override _.Write(writer: Utf8JsonWriter, value: string, _options: JsonSerializerOptions) =
+        writer.WriteStringValue(value)
+
     type MapKeyTypeConverter() =
       inherit JsonConverter<MapKeyType>()
 
-      override _.WriteJson(writer: JsonWriter, value: MapKeyType, serializer: JsonSerializer) : unit =
-        failwith "Should never be writing this structure, it comes from Microsoft LSP Spec"
-
-      override _.ReadJson
-        (
-          reader: JsonReader,
-          objectType: System.Type,
-          existingValue: MapKeyType,
-          hasExistingValue,
-          serializer: JsonSerializer
-        ) =
-        let jobj = JObject.Load(reader)
-        let kind = jobj.["kind"].Value<string>()
+      override _.Read(reader: byref<Utf8JsonReader>, _typeToConvert: System.Type, options: JsonSerializerOptions) =
+        let doc = JsonDocument.ParseValue(&reader)
+        let root = doc.RootElement
+        let kind = root.GetProperty("kind").GetString()
 
         match kind with
         | ReferenceTypeConst ->
-          let name = jobj.["name"].Value<string>()
+          let name = root.GetProperty("name").GetString()
           MapKeyType.ReferenceType { Kind = kind; Name = name }
         | "base" ->
-          let name = jobj.["name"].Value<string>()
+          let name = root.GetProperty("name").GetString()
           MapKeyType.Base {| Kind = kind; Name = MapKeyNameEnum.Parse name |}
         | _ -> failwithf "Unknown map key type: %s" kind
+
+      override _.Write(_writer, _value, _options) =
+        failwith "Should never be writing this structure, it comes from Microsoft LSP Spec"
+
+    /// Reads a value that may be either a single item or an array of items,
+    /// deserializing it as 'T array option (None when the JSON token is null).
+    type SingleOrArrayConverter<'T>() =
+      inherit JsonConverter<'T array option>()
+
+      override _.Read(reader: byref<Utf8JsonReader>, _typeToConvert: System.Type, options: JsonSerializerOptions) =
+        match reader.TokenType with
+        | JsonTokenType.Null ->
+          reader.Read()
+          |> ignore
+
+          None
+        | JsonTokenType.StartArray ->
+          let arr = JsonSerializer.Deserialize<'T array>(&reader, options)
+          Some arr
+        | _ ->
+          let item = JsonSerializer.Deserialize<'T>(&reader, options)
+          Some [| item |]
+
+      override _.Write(_writer, _value, _options) =
+        failwith "Should never be writing this structure, it comes from Microsoft LSP Spec"
 
     type TypeConverter() =
       inherit JsonConverter<Type>()
 
-      override _.WriteJson(writer: JsonWriter, value: MetaModel.Type, serializer: JsonSerializer) : unit =
-        failwith "Should never be writing this structure, it comes from Microsoft LSP Spec"
-
-      override _.ReadJson
-        (reader: JsonReader, objectType: System.Type, existingValue: Type, hasExistingValue, serializer: JsonSerializer)
-        =
-        let jobj = JObject.Load(reader)
-        let kind = jobj.["kind"].Value<string>()
+      override _.Read(reader: byref<Utf8JsonReader>, _typeToConvert: System.Type, options: JsonSerializerOptions) =
+        let doc = JsonDocument.ParseValue(&reader)
+        let root = doc.RootElement
+        let kind = root.GetProperty("kind").GetString()
+        // Helper: re-serialise a sub-element and deserialize as 'T
+        let deser (t: System.Type) (el: JsonElement) = JsonSerializer.Deserialize(el.GetRawText(), t, options)
 
         match kind with
         | BaseTypeConst ->
-          let name = jobj.["name"].Value<string>()
+          let name = root.GetProperty("name").GetString()
           Type.BaseType { Kind = kind; Name = BaseTypes.Parse name }
         | ReferenceTypeConst ->
-          let name = jobj.["name"].Value<string>()
+          let name = root.GetProperty("name").GetString()
           Type.ReferenceType { Kind = kind; Name = name }
         | ArrayTypeConst ->
-          let element = jobj.["element"].ToObject<Type>(serializer)
+          let element = deser typeof<Type> (root.GetProperty("element")) :?> Type
           Type.ArrayType { Kind = kind; Element = element }
         | MapTypeConst ->
-          let key = jobj.["key"].ToObject<MapKeyType>(serializer)
-          let value = jobj.["value"].ToObject<Type>(serializer)
+          let key = deser typeof<MapKeyType> (root.GetProperty("key")) :?> MapKeyType
+          let value = deser typeof<Type> (root.GetProperty("value")) :?> Type
           Type.MapType { Kind = kind; Key = key; Value = value }
         | AndTypeConst ->
-          let items = jobj.["items"].ToObject<Type[]>(serializer)
+          let items = deser typeof<Type[]> (root.GetProperty("items")) :?> Type[]
           Type.AndType { Kind = kind; Items = items }
         | OrTypeConst ->
-          let items = jobj.["items"].ToObject<Type[]>(serializer)
+          let items = deser typeof<Type[]> (root.GetProperty("items")) :?> Type[]
           Type.OrType { Kind = kind; Items = items }
         | TupleTypeConst ->
-          let items = jobj.["items"].ToObject<Type[]>(serializer)
+          let items = deser typeof<Type[]> (root.GetProperty("items")) :?> Type[]
           Type.TupleType { Kind = kind; Items = items }
         | StructureTypeLiteral ->
-          let value = jobj.["value"].ToObject<StructureLiteral>(serializer)
+          let value = deser typeof<StructureLiteral> (root.GetProperty("value")) :?> StructureLiteral
           Type.StructureLiteralType { Kind = kind; Value = value }
         | StringLiteralTypeConst ->
-          let value = jobj.["value"].Value<string>()
+          let value = root.GetProperty("value").GetString()
           Type.StringLiteralType { Kind = kind; Value = value }
         | IntegerLiteralTypeConst ->
-          let value = jobj.["value"].Value<decimal>()
+          let value = root.GetProperty("value").GetDecimal()
           Type.IntegerLiteralType { Kind = kind; Value = value }
         | BooleanLiteralTypeConst ->
-          let value = jobj.["value"].Value<bool>()
+          let value = root.GetProperty("value").GetBoolean()
           Type.BooleanLiteralType { Kind = kind; Value = value }
         | _ -> failwithf "Unknown type kind: %s" kind
 
+      override _.Write(_writer, _value, _options) =
+        failwith "Should never be writing this structure, it comes from Microsoft LSP Spec"
 
-  let metaModelSerializerSettings =
-    let settings = JsonSerializerSettings()
-    settings.Converters.Add(Converters.TypeConverter() :> JsonConverter)
-    settings.Converters.Add(Converters.MapKeyTypeConverter() :> JsonConverter)
-    settings.Converters.Add(JsonUtils.OptionConverter() :> JsonConverter)
-    settings
+    /// STJ converter for F# option types.
+    type OptionConverter<'T>() =
+      inherit JsonConverter<'T option>()
+
+      override _.Read(reader: byref<Utf8JsonReader>, _typeToConvert: System.Type, options: JsonSerializerOptions) =
+        if reader.TokenType = JsonTokenType.Null then
+          reader.Read()
+          |> ignore
+
+          None
+        else
+          Some(JsonSerializer.Deserialize<'T>(&reader, options))
+
+      override _.Write(writer: Utf8JsonWriter, value: 'T option, options: JsonSerializerOptions) =
+        match value with
+        | None -> writer.WriteNullValue()
+        | Some v -> JsonSerializer.Serialize(writer, v, options)
+
+    type OptionConverterFactory() =
+      inherit JsonConverterFactory()
+
+      override _.CanConvert(t: System.Type) =
+        t.IsGenericType
+        && t.GetGenericTypeDefinition() = typedefof<option<_>>
+
+      override _.CreateConverter(t: System.Type, _options: JsonSerializerOptions) =
+        let innerType = t.GetGenericArguments()[0]
+        let converterType = typedefof<OptionConverter<_>>.MakeGenericType(innerType)
+        System.Activator.CreateInstance(converterType) :?> JsonConverter
+
+    /// STJ converter for 'T array option fields that may be a single item or an array in JSON.
+    type SingleOrArrayConverterFactory() =
+      inherit JsonConverterFactory()
+
+      override _.CanConvert(t: System.Type) =
+        t.IsGenericType
+        && t.GetGenericTypeDefinition() = typedefof<option<_>>
+        && t.GetGenericArguments().[0].IsArray
+
+      override _.CreateConverter(t: System.Type, _options: JsonSerializerOptions) =
+        let elementType = t.GetGenericArguments().[0].GetElementType()
+        let converterType = typedefof<SingleOrArrayConverter<_>>.MakeGenericType([| elementType |])
+        System.Activator.CreateInstance(converterType) :?> JsonConverter
+
+  let metaModelSerializerOptions =
+    let options = JsonSerializerOptions(PropertyNamingPolicy = JsonNamingPolicy.CamelCase)
+    options.Converters.Add(Converters.TypeConverter())
+    options.Converters.Add(Converters.MapKeyTypeConverter())
+    // SingleOrArrayConverterFactory must come before OptionConverterFactory
+    // so that 'Type array option' fields hit the right converter
+    options.Converters.Add(Converters.SingleOrArrayConverterFactory())
+    options.Converters.Add(Converters.OptionConverterFactory())
+    options
 
   let isNullableType (t: MetaModel.Type) =
     match t with
