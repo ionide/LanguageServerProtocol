@@ -420,11 +420,7 @@ module rec MetaModel =
 
       override _.Read(reader: byref<Utf8JsonReader>, _typeToConvert: System.Type, options: JsonSerializerOptions) =
         match reader.TokenType with
-        | JsonTokenType.Null ->
-          reader.Read()
-          |> ignore
-
-          None
+        | JsonTokenType.Null -> None
         | JsonTokenType.StartArray ->
           let arr = JsonSerializer.Deserialize<'T array>(&reader, options)
           Some arr
@@ -490,13 +486,9 @@ module rec MetaModel =
       inherit JsonConverter<'T option>()
 
       override _.Read(reader: byref<Utf8JsonReader>, _typeToConvert: System.Type, options: JsonSerializerOptions) =
-        if reader.TokenType = JsonTokenType.Null then
-          reader.Read()
-          |> ignore
-
-          None
-        else
-          Some(JsonSerializer.Deserialize<'T>(&reader, options))
+        match reader.TokenType with
+        | JsonTokenType.Null -> None
+        | _ -> Some(JsonSerializer.Deserialize<'T>(&reader, options))
 
       override _.Write(writer: Utf8JsonWriter, value: 'T option, options: JsonSerializerOptions) =
         match value with
