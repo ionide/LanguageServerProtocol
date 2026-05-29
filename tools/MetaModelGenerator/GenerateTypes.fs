@@ -15,7 +15,7 @@ module GenerateTypes =
   open type Fabulous.AST.Ast
 
   open Fantomas.FCS.Syntax
-  open Newtonsoft.Json.Linq
+
 
   let getIdent (x: IdentifierOrDot list) =
     x
@@ -27,7 +27,7 @@ module GenerateTypes =
     |> String.concat ""
 
 
-  let JToken = LongIdent(nameof JToken)
+  let JToken = LongIdent "JToken"
 
   let createOption (t: WidgetBuilder<Type>) = Ast.OptionPostfix t
 
@@ -866,6 +866,8 @@ module GenerateTypes =
     }
 
 
+  let private formatConfig = Formatting.formatConfig
+
   /// The main entry point to generating types from a metaModel.json file
   let generateType (parsedMetaModel: MetaModel.MetaModel) outputPath =
     async {
@@ -965,7 +967,7 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
       let! formattedText =
         oak
         |> Gen.mkOak
-        |> CodeFormatter.FormatOakAsync
+        |> fun oak -> CodeFormatter.FormatOakAsync(oak, formatConfig)
 
       do! FileWriters.writeIfChanged outputPath formattedText
     }
