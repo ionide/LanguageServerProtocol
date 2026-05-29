@@ -397,7 +397,7 @@ module rec MetaModel =
       inherit JsonConverter<MapKeyType>()
 
       override _.Read(reader: byref<Utf8JsonReader>, _typeToConvert: System.Type, options: JsonSerializerOptions) =
-        let doc = JsonDocument.ParseValue(&reader)
+        use doc = JsonDocument.ParseValue(&reader)
         let root = doc.RootElement
         let kind = root.GetProperty("kind").GetString()
 
@@ -439,7 +439,7 @@ module rec MetaModel =
       inherit JsonConverter<Type>()
 
       override _.Read(reader: byref<Utf8JsonReader>, _typeToConvert: System.Type, options: JsonSerializerOptions) =
-        let doc = JsonDocument.ParseValue(&reader)
+        use doc = JsonDocument.ParseValue(&reader)
         let root = doc.RootElement
         let kind = root.GetProperty("kind").GetString()
         // Helper: re-serialise a sub-element and deserialize as 'T
