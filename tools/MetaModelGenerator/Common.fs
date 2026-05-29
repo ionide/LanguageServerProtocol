@@ -1,5 +1,22 @@
 namespace MetaModelGenerator
 
+module Formatting =
+  open Fantomas.Core
+
+  let formatConfig = {
+    FormatConfig.Default with
+        IndentSize = 2
+        MaxRecordWidth = 80
+        MaxValueBindingWidth = 120
+        MaxFunctionBindingWidth = 120
+        MaxDotGetExpressionWidth = 120
+        MaxInfixOperatorExpression = 10
+        ArrayOrListMultilineFormatter = MultilineFormatterType.NumberOfItems
+        MultilineBracketStyle = MultilineBracketStyle.Stroustrup
+        MultiLineLambdaClosingNewline = true
+        InsertFinalNewline = false
+  }
+
 
 module FileWriters =
   open System.IO

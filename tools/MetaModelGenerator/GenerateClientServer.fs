@@ -8,19 +8,7 @@ module GenerateClientServer =
   open Fantomas.Core
 
 
-  let private formatConfig = {
-    FormatConfig.Default with
-        IndentSize = 2
-        MaxRecordWidth = 80
-        MaxValueBindingWidth = 120
-        MaxFunctionBindingWidth = 120
-        MaxDotGetExpressionWidth = 120
-        MaxInfixOperatorExpression = 10
-        ArrayOrListMultilineFormatter = MultilineFormatterType.NumberOfItems
-        MultilineBracketStyle = MultilineBracketStyle.Stroustrup
-        MultiLineLambdaClosingNewline = true
-        InsertFinalNewline = false
-  }
+  let private formatConfig = Formatting.formatConfig
 
   let generateClientServer (parsedMetaModel: MetaModel.MetaModel) outputPath =
     async {
