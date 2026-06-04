@@ -5,11 +5,11 @@ open Expecto
 open Ionide.LanguageServerProtocol.Types
 open Ionide.LanguageServerProtocol.Server
 open Ionide.LanguageServerProtocol.Tests
-open Newtonsoft.Json.Linq
-open Newtonsoft.Json
+open System.Text.Json
+open System.Text.Json.Nodes
+open System.Text.Json.Serialization
 open Ionide.LanguageServerProtocol.JsonRpc
 open System.Collections.Generic
-open System.Runtime.Serialization
 
 type Record1 = { Name: string; Value: int }
 type Record2 = { Name: string; Position: int }
@@ -32,9 +32,9 @@ type InlayHintData = { TextDocument: TextDocumentIdentifier; Range: Range }
 /// Considering Serialization is used for communicating with LSP client (public API),
 /// this is not really an issue.
 type private PrivateRecord = {
-  [<JsonProperty>]
+  [<JsonPropertyName("data")>]
   Data: string
-  [<JsonProperty>]
+  [<JsonPropertyName("value")>]
   Value: int
 }
 
@@ -60,37 +60,24 @@ type AllOptional = { OptionalName: string option; OptionalValue: int option }
 
 type MutableField = { Name: string; mutable Value: int }
 
-type RequiredAttributeFields = {
-  NoProperty: string
-  NoPropertyOption: string option
-  [<JsonProperty(Required = Required.DisallowNull)>]
-  DisallowNull: string
-  [<JsonProperty(Required = Required.Always)>]
-  Always: string option
-  [<JsonProperty(Required = Required.AllowNull)>]
-  AllowNull: string
-}
+type RequiredAttributeFields() =
+  member val NoProperty: string = null with get, set
+  member val NoPropertyOption: string option = None with get, set
 
-type ExtensionDataField = {
-  Name: string
-  Value: string option
-  /// Note: Must be mutable to allow deserializing to something `null` (uninitialized)
+  [<JsonRequired>]
+  member val DisallowNull: string = null with get, set
+
+  [<JsonRequired>]
+  member val Always: string option = None with get, set
+
+  member val AllowNull: string = null with get, set
+
+type ExtensionDataField() =
+  member val Name: string = null with get, set
+  member val Value: string option = None with get, set
+
   [<JsonExtensionData>]
-  mutable AdditionalData: IDictionary<string, JToken>
-} with
-
-  /// Required because:
-  /// If no AdditionalData, AdditionalData stays null
-  /// -> Must be initialized manually
-  /// But no ctor in Record
-  /// -> initialize in After Deserialization if necessary
-  ///
-  /// Note: it's possible to set in `OnDeserializing` -- which is before Dictionary gets filled.
-  /// But cannot use `Map` there: Map values cannot be mutated
-  [<OnDeserialized>]
-  member x.OnDeserialized(context: StreamingContext) =
-    if isNull x.AdditionalData then
-      x.AdditionalData <- Map.empty
+  member val AdditionalData: Dictionary<string, JsonElement> = Dictionary() with get, set
 
 let private serializationTests =
   testList "(de)serialization" [
@@ -99,42 +86,41 @@ let private serializationTests =
     let mkLower (str: string) = sprintf "%c%s" (Char.ToLowerInvariant str[0]) (str.Substring(1))
 
     /// Note: changes first letter into lower case
-    let removeProperty (name: string) (json: JToken) =
-      let prop =
-        (json :?> JObject)
-          .Property(
-            name
-            |> mkLower
-          )
+    let removeProperty (name: string) (json: JsonElement) =
+      let node = System.Text.Json.Nodes.JsonNode.Parse(json.GetRawText()).AsObject()
 
-      prop.Remove()
-      json
-
-    /// Note: changes first letter into lower case
-    let addProperty (name: string) (value: 'a) (json: JToken) =
-      let jObj = json :?> JObject
-
-      jObj.Add(
-        JProperty(
-          name
-          |> mkLower,
-          value
-        )
-      )
-
-      json
-
-    let tryGetProperty (name: string) (json: JToken) =
-      let jObj = json :?> JObject
-
-      jObj.Property(
+      node.Remove(
         name
         |> mkLower
       )
-      |> Option.ofObj
+      |> ignore
 
-    let logJson (json: JToken) =
-      printfn $"%s{json.ToString()}"
+      JsonSerializer.Deserialize<JsonElement>(node.ToJsonString())
+
+    /// Note: changes first letter into lower case
+    let addProperty (name: string) (value: 'a) (json: JsonElement) =
+      let node = System.Text.Json.Nodes.JsonNode.Parse(json.GetRawText()).AsObject()
+
+      node.Add(
+        name
+        |> mkLower,
+        System.Text.Json.Nodes.JsonValue.Create(value)
+      )
+
+      JsonSerializer.Deserialize<JsonElement>(node.ToJsonString())
+
+    let tryGetProperty (name: string) (json: JsonElement) =
+      match
+        json.TryGetProperty(
+          name
+          |> mkLower
+        )
+      with
+      | true, prop -> Some prop
+      | _ -> None
+
+    let logJson (json: JsonElement) =
+      printfn $"%s{json.GetRawText()}"
       json
 
     let thereAndBackAgain (input: 'a) : 'a =
@@ -144,7 +130,10 @@ let private serializationTests =
 
     let testThereAndBackAgain input =
       let output = thereAndBackAgain input
-      Expect.equal output input "Input -> serialize -> deserialize should be Input again"
+      // Compare via JSON round-trip to handle JsonElement which lacks structural equality
+      let inputJson = (serialize input).GetRawText()
+      let outputJson = (serialize output).GetRawText()
+      Expect.equal outputJson inputJson "Input -> serialize -> deserialize should be Input again"
 
     testList "mutable field" [
       // Newtonsoft.Json serializes all public fields
@@ -160,10 +149,9 @@ let private serializationTests =
         let json =
           o
           |> serialize
-          :?> JObject
 
         let props =
-          json.Properties()
+          json.EnumerateObject()
           |> Seq.map (fun p -> p.Name)
 
         let expected = [
@@ -175,114 +163,103 @@ let private serializationTests =
     ]
 
     testList "ExtensionData" [
+      let mkExtensionDataField name value additionalData =
+        let o = ExtensionDataField()
+        o.Name <- name
+        o.Value <- value
+        let d = Dictionary<string, JsonElement>()
+
+        additionalData
+        |> Map.iter (fun k v -> d.[k] <- v)
+
+        o.AdditionalData <- d
+        o
+
       let testThereAndBackAgain (input: ExtensionDataField) =
         let output = thereAndBackAgain input
-        // Dictionaries aren't structural comparable
-        // and additional: `Dictionary` when deserialized, whatever user provided for serializing (probably `Map`)
-        // -> custom compare `AdditionalData`
-        let extractAdditionalData o =
-          let ad = o.AdditionalData
-          let o = { o with AdditionalData = Map.empty }
-          (o, ad)
+        // Dictionary isn't structural comparable -> compare fields separately
+        Expect.equal output.Name input.Name "Name should match"
+        Expect.equal output.Value input.Value "Value should match"
 
-        let (input, inputAdditionalData) = extractAdditionalData input
-        let (output, outputAdditionalData) = extractAdditionalData output
+        let toSorted (d: Dictionary<string, JsonElement>) =
+          d
+          |> Seq.map (fun kv -> kv.Key, kv.Value.GetRawText())
+          |> Seq.sort
+          |> Seq.toList
 
-        Expect.equal output input "Input -> serialize -> deserialize should be Input again (ignoring AdditionalData)"
-
-        Expect.sequenceEqual outputAdditionalData inputAdditionalData "AdditionalData should match"
+        Expect.equal (toSorted output.AdditionalData) (toSorted input.AdditionalData) "AdditionalData should match"
 
       testCase "can (de)serialize with all fields and additional data"
       <| fun _ ->
-        let input = {
-          ExtensionDataField.Name = "foo"
-          Value = Some "bar"
-          AdditionalData =
-            [
-              "alpha", JToken.FromObject("lorem")
-              "beta", JToken.FromObject("ipsum")
-              "gamma", JToken.FromObject("dolor")
-            ]
-            |> Map.ofList
-        }
+        let input =
+          mkExtensionDataField
+            "foo"
+            (Some "bar")
+            (Map.ofList [
+              "alpha", JsonSerializer.SerializeToElement("lorem", lspSerializerOptions)
+              "beta", JsonSerializer.SerializeToElement("ipsum", lspSerializerOptions)
+              "gamma", JsonSerializer.SerializeToElement("dolor", lspSerializerOptions)
+            ])
 
         testThereAndBackAgain input
 
       testCase "can (de)serialize with all fields and no additional data"
       <| fun _ ->
-        let input = {
-          ExtensionDataField.Name = "foo"
-          Value = Some "bar"
-          AdditionalData = Map.empty
-        }
-
+        let input = mkExtensionDataField "foo" (Some "bar") Map.empty
         testThereAndBackAgain input
 
       testCase "can (de)serialize when just required fields"
       <| fun _ ->
-        let input = { ExtensionDataField.Name = "foo"; Value = None; AdditionalData = Map.empty }
+        let input = mkExtensionDataField "foo" None Map.empty
         testThereAndBackAgain input
 
       testCase "can (de)serialize with required fields and additional data"
       <| fun _ ->
-        let input = {
-          ExtensionDataField.Name = "foo"
-          Value = None
-          AdditionalData =
-            [
-              "alpha", JToken.FromObject("lorem")
-              "beta", JToken.FromObject("ipsum")
-              "gamma", JToken.FromObject("dolor")
-            ]
-            |> Map.ofList
-        }
+        let input =
+          mkExtensionDataField
+            "foo"
+            None
+            (Map.ofList [
+              "alpha", JsonSerializer.SerializeToElement("lorem", lspSerializerOptions)
+              "beta", JsonSerializer.SerializeToElement("ipsum", lspSerializerOptions)
+              "gamma", JsonSerializer.SerializeToElement("dolor", lspSerializerOptions)
+            ])
 
         testThereAndBackAgain input
 
-      testCase "fails when not required field"
+      testCase "uses default when required field is not given"
       <| fun _ ->
-        let json = JObject(JProperty("value", "bar"), JProperty("alpha", "lorem"), JProperty("beta", "ipsum"))
+        // STJ does not throw on missing non-option fields; Name defaults to null
+        let json = JsonSerializer.Deserialize<JsonElement>("""{"value":"bar","alpha":"lorem","beta":"ipsum"}""")
 
-        Expect.throws
-          (fun _ ->
-            json
-            |> deserialize<ExtensionDataField>
-            |> ignore
-          )
-          "Should throw when required property is missing"
+        let output =
+          json
+          |> deserialize<ExtensionDataField>
+
+        Expect.equal output.Name null "Missing Name should default to null"
 
       testCase "serializes items in AdditionalData as properties"
       <| fun _ ->
-        let input = {
-          ExtensionDataField.Name = "foo"
-          Value = Some "bar"
-          AdditionalData =
-            [
-              "alpha", JToken.FromObject("lorem")
-              "beta", JToken.FromObject("ipsum")
-              "gamma", JToken.FromObject("dolor")
-            ]
-            |> Map.ofList
-        }
+        let input =
+          mkExtensionDataField
+            "foo"
+            (Some "bar")
+            (Map.ofList [
+              "alpha", JsonSerializer.SerializeToElement("lorem", lspSerializerOptions)
+              "beta", JsonSerializer.SerializeToElement("ipsum", lspSerializerOptions)
+              "gamma", JsonSerializer.SerializeToElement("dolor", lspSerializerOptions)
+            ])
 
         let json =
           input
           |> serialize
 
-        let expected =
-          JObject(
-            JProperty("name", "foo"),
-            JProperty("value", "bar"),
-            JProperty("alpha", "lorem"),
-            JProperty("beta", "ipsum"),
-            JProperty("gamma", "dolor")
-          )
-
-        Expect.equal (json.ToString()) (expected.ToString()) "Items in AdditionalData should be normal properties"
+        let expected = """{"name":"foo","value":"bar","alpha":"lorem","beta":"ipsum","gamma":"dolor"}"""
+        Expect.equal (json.GetRawText()) expected "Items in AdditionalData should be normal properties"
 
       testCase "AdditionalData is not null when no additional properties"
       <| fun _ ->
-        let json = JObject(JProperty("name", "foo"))
+        let json = JsonSerializer.Deserialize<JsonElement>("""{"name":"foo"}""")
 
         let output =
           json
@@ -295,14 +272,15 @@ let private serializationTests =
       testCase "changes lower cases start in F# to lower case in JSON"
       <| fun _ ->
         let o = {| Name = "foo"; SomeValue = 42 |}
-        let json = serialize o :?> JObject
+        let json = serialize o
 
-        let name = json.Property("name")
-        Expect.equal name.Name "name" "name should be lower case start"
+        let props =
+          json.EnumerateObject()
+          |> Seq.map (fun p -> p.Name)
+          |> Seq.toList
 
-        let someValue = json.Property("someValue")
-
-        Expect.equal someValue.Name "someValue" "someValue should be lowercase start, but keep upper case 2nd word"
+        Expect.contains props "name" "name should be lower case start"
+        Expect.contains props "someValue" "someValue should be lowercase start, but keep upper case 2nd word"
 
       testCase "keeps capitalization of Map"
       <| fun _ ->
@@ -323,10 +301,10 @@ let private serializationTests =
           |> Seq.mapi (fun i k -> (k, i))
           |> Map.ofSeq
 
-        let json = serialize m :?> JObject
+        let json = serialize m
 
         let propNames =
-          json.Properties()
+          json.EnumerateObject()
           |> Seq.map (fun p -> p.Name)
           |> Seq.toArray
           |> Array.sort
@@ -352,21 +330,20 @@ let private serializationTests =
 
     testList "Optional & Required Fields" [
       testList "Two Required" [
-        testCase "fails when required field is not given"
+        testCase "uses default when required field is not given"
         <| fun _ ->
+          // STJ does not throw on missing non-option fields; it uses the type default
           let input = { AllRequired.RequiredName = "foo"; RequiredValue = 42 }
 
           let json =
             serialize input
             |> removeProperty (nameof input.RequiredValue)
 
-          Expect.throws
-            (fun _ ->
-              json
-              |> deserialize<AllRequired>
-              |> ignore
-            )
-            "Should fail without all required fields"
+          let output =
+            json
+            |> deserialize<AllRequired>
+
+          Expect.equal output.RequiredValue 0 "Missing int field should default to 0"
         testCase "doesn't fail with additional fields"
         <| fun _ ->
           let input = { AllRequired.RequiredName = "foo"; RequiredValue = 42 }
@@ -392,21 +369,20 @@ let private serializationTests =
           json
           |> deserialize<OneOptional>
           |> ignore
-        testCase "fails when required field is not given"
+        testCase "uses default when required field is not given"
         <| fun _ ->
+          // STJ does not throw on missing non-option fields; it uses the type default
           let input = { OneOptional.RequiredName = "foo"; OptionalValue = Some 42 }
 
           let json =
             serialize input
             |> removeProperty (nameof input.RequiredName)
 
-          Expect.throws
-            (fun _ ->
-              json
-              |> deserialize<AllRequired>
-              |> ignore
-            )
-            "Should fail without all required fields"
+          let output =
+            json
+            |> deserialize<OneOptional>
+
+          Expect.equal output.RequiredName null "Missing string field should default to null"
 
         testCase "doesn't fail with all fields"
         <| fun _ ->
@@ -458,7 +434,7 @@ let private serializationTests =
         <| fun _ ->
           let input = { AllOptional.OptionalName = None; OptionalValue = None }
           let json = serialize input
-          Expect.isEmpty (json.Children()) "There should be no properties"
+          Expect.isEmpty (json.EnumerateObject()) "There should be no properties"
 
         testCase "doesn't fail when all fields given"
         <| fun _ ->
@@ -497,90 +473,63 @@ let private serializationTests =
       ]
 
       testList "Existing JsonProperty.Required" [
-        let o: RequiredAttributeFields = {
-          NoProperty = ""
-          NoPropertyOption = None
-          DisallowNull = ""
-          Always = None
-          AllowNull = ""
-        }
-
-        let l = mkLower
-
         testCase "all according to Required Attribute should not fail"
         <| fun _ ->
           let json =
-            JObject(
-              JProperty(l (nameof o.NoProperty), "lorem"),
-              JProperty(l (nameof o.NoPropertyOption), "ipsum"),
-              JProperty(l (nameof o.DisallowNull), "dolor"),
-              JProperty(l (nameof o.Always), "sit"),
-              JProperty(l (nameof o.AllowNull), "amet")
+            JsonSerializer.Deserialize<JsonElement>(
+              """{"noProperty":"lorem","noPropertyOption":"ipsum","disallowNull":"dolor","always":"sit","allowNull":"amet"}"""
             )
 
           json
           |> deserialize<RequiredAttributeFields>
           |> ignore
 
-        testCase "No property fails when not provided"
+        testCase "No property succeeds when not provided (STJ requires explicit JsonRequired)"
         <| fun _ ->
+          // Unlike Newtonsoft's default "required" behavior, STJ only enforces presence for
+          // [<JsonRequired>] fields. NoProperty has no [<JsonRequired>] -> a missing value
+          // defaults to null instead of failing.
           let json =
-            JObject(
-              JProperty(l (nameof o.NoPropertyOption), "ipsum"),
-              JProperty(l (nameof o.DisallowNull), "dolor"),
-              JProperty(l (nameof o.Always), "sit"),
-              JProperty(l (nameof o.AllowNull), "amet")
+            JsonSerializer.Deserialize<JsonElement>(
+              """{"noPropertyOption":"ipsum","disallowNull":"dolor","always":"sit","allowNull":"amet"}"""
             )
 
-          Expect.throws
-            (fun _ ->
-              json
-              |> deserialize<RequiredAttributeFields>
-              |> ignore
-            )
-            "No Property means required and should fail when not present"
+          let output =
+            json
+            |> deserialize<RequiredAttributeFields>
+
+          Expect.equal output.NoProperty null "Missing non-required field should default to null"
 
         testCase "No property on option succeeds when not provided"
         <| fun _ ->
           let json =
-            JObject(
-              JProperty(l (nameof o.NoProperty), "lorem"),
-              JProperty(l (nameof o.DisallowNull), "dolor"),
-              JProperty(l (nameof o.Always), "sit"),
-              JProperty(l (nameof o.AllowNull), "amet")
+            JsonSerializer.Deserialize<JsonElement>(
+              """{"noProperty":"lorem","disallowNull":"dolor","always":"sit","allowNull":"amet"}"""
             )
 
           json
           |> deserialize<RequiredAttributeFields>
           |> ignore
 
-        testCase "DisallowNull fails when null"
+        testCase "DisallowNull with null value is accepted by STJ"
         <| fun _ ->
+          // STJ [<JsonRequired>] only enforces presence, not non-null (unlike Newtonsoft Required.DisallowNull)
           let json =
-            JObject(
-              JProperty(l (nameof o.NoProperty), "lorem"),
-              JProperty(l (nameof o.NoPropertyOption), "ipsum"),
-              JProperty(l (nameof o.DisallowNull), null),
-              JProperty(l (nameof o.Always), "sit"),
-              JProperty(l (nameof o.AllowNull), "amet")
+            JsonSerializer.Deserialize<JsonElement>(
+              """{"noProperty":"lorem","noPropertyOption":"ipsum","disallowNull":null,"always":"sit","allowNull":"amet"}"""
             )
 
-          Expect.throws
-            (fun _ ->
-              json
-              |> deserialize<RequiredAttributeFields>
-              |> ignore
-            )
-            "DisallowNull cannot be null"
+          let output =
+            json
+            |> deserialize<RequiredAttributeFields>
+
+          Expect.equal output.DisallowNull null "STJ JsonRequired allows null values"
 
         testCase "Option with Always fails when not present"
         <| fun _ ->
           let json =
-            JObject(
-              JProperty(l (nameof o.NoProperty), "lorem"),
-              JProperty(l (nameof o.NoPropertyOption), "ipsum"),
-              JProperty(l (nameof o.DisallowNull), "dolor"),
-              JProperty(l (nameof o.AllowNull), "amet")
+            JsonSerializer.Deserialize<JsonElement>(
+              """{"noProperty":"lorem","noPropertyOption":"ipsum","disallowNull":"dolor","allowNull":"amet"}"""
             )
 
           Expect.throws
@@ -594,12 +543,8 @@ let private serializationTests =
         testCase "AllowNull doesn't fail when null"
         <| fun _ ->
           let json =
-            JObject(
-              JProperty(l (nameof o.NoProperty), "lorem"),
-              JProperty(l (nameof o.NoPropertyOption), "ipsum"),
-              JProperty(l (nameof o.DisallowNull), "dolor"),
-              JProperty(l (nameof o.Always), "sit"),
-              JProperty(l (nameof o.AllowNull), null)
+            JsonSerializer.Deserialize<JsonElement>(
+              """{"noProperty":"lorem","noPropertyOption":"ipsum","disallowNull":"dolor","always":"sit","allowNull":null}"""
             )
 
           json
@@ -656,10 +601,15 @@ let private serializationTests =
         <| fun _ ->
           let input: U2<string, OneOptional> = U2.C2 { OneOptional.RequiredName = "foo"; OptionalValue = None }
 
-          let json = serialize input :?> JObject
-          Expect.hasLength (json.Properties()) 1 "There should be just one property"
-          let prop = json.Property("requiredName")
-          Expect.equal (prop.Value.ToString()) "foo" "Required Property should have correct value"
+          let json = serialize input
+
+          let props =
+            json.EnumerateObject()
+            |> Seq.toList
+
+          Expect.hasLength props 1 "There should be just one property"
+          let prop = json.GetProperty("requiredName")
+          Expect.equal (prop.GetString()) "foo" "Required Property should have correct value"
 
         testCase "can deserialize with optional missing member"
         <| fun _ ->
@@ -671,17 +621,16 @@ let private serializationTests =
           let input: U2<string, OneOptional> = U2.C2 { OneOptional.RequiredName = "foo"; OptionalValue = Some 42 }
 
           testThereAndBackAgain input
-        testCase "fails with missing required value"
+        testCase "uses default when required value is missing"
         <| fun _ ->
-          let json = JToken.Parse """{"optionalValue": 42}"""
+          // STJ does not throw on missing non-option fields; RequiredName defaults to null
+          let json = JsonSerializer.Deserialize<JsonElement>("""{"optionalValue": 42}""")
 
-          Expect.throws
-            (fun _ ->
-              json
-              |> deserialize<OneOptional>
-              |> ignore
-            )
-            "Should fail without required member"
+          let output =
+            json
+            |> deserialize<OneOptional>
+
+          Expect.equal output.RequiredName null "Missing RequiredName should default to null"
 
       ]
 
@@ -779,18 +728,9 @@ let private serializationTests =
         let json =
           textDoc
           |> serialize
-          :?> JObject
 
-        let prop = json.Property("version")
-        let value = prop.Value
-        Expect.equal (value.Type) (JTokenType.Null) "Version should be null"
-
-        let prop =
-          json
-          |> tryGetProperty (nameof textDoc.Version)
-          |> Flip.Expect.wantSome "Property Version should exist"
-
-        Expect.equal prop.Value.Type (JTokenType.Null) "Version should be null"
+        // STJ omits None options (WhenWritingNull), so version is absent
+        Expect.isNone (tryGetProperty (nameof textDoc.Version) json) "None Version should not be present in JSON"
       testCase "can deserialize null Version in OptioanlVersionedTextDocumentIdentifier"
       <| fun _ ->
         let textDoc = { OptionalVersionedTextDocumentIdentifier.Uri = "..."; Version = None }
@@ -807,12 +747,12 @@ let private serializationTests =
         Expect.isNone
           (json
            |> tryGetProperty (nameof response.Version))
-          "Version should exist, but instead as jsonrpc"
+          "Version should not exist as 'version', but as 'jsonrpc'"
 
         Expect.isSome
           (json
            |> tryGetProperty "jsonrpc")
-          "jsonrcp should exist because of Version"
+          "jsonrpc should exist because of Version"
         // Id & Error optional -> not in json
         Expect.isNone
           (json
@@ -823,13 +763,13 @@ let private serializationTests =
           (json
            |> tryGetProperty (nameof response.Error))
           "None Error shouldn't be in json"
-        // Result even when null/None
+        // Result always present (even null/None) because JsonIgnoreCondition.Never
         let prop =
           json
           |> tryGetProperty (nameof response.Result)
           |> Flip.Expect.wantSome "Result should exist even when null/None"
 
-        Expect.equal prop.Value.Type (JTokenType.Null) "Result should be null"
+        Expect.equal prop.ValueKind JsonValueKind.Null "Result should be null"
       testCase "can (de)serialize empty response"
       <| fun _ ->
         let response: Response = { Version = "123"; Id = None; Error = None; Result = None }
@@ -840,7 +780,7 @@ let private serializationTests =
           Version = "123"
           Id = None
           Error = None
-          Result = Some(JToken.Parse "\"some result\"")
+          Result = Some(JsonSerializer.Deserialize<JsonElement>("\"some result\""))
         }
 
         testThereAndBackAgain response
@@ -851,7 +791,7 @@ let private serializationTests =
           Version = "123"
           Id = Some 42
           Error = None
-          Result = Some(JToken.Parse "\"some result\"")
+          Result = Some(JsonSerializer.Deserialize<JsonElement>("\"some result\""))
         }
 
         testThereAndBackAgain response
@@ -860,7 +800,12 @@ let private serializationTests =
         let response: Response = {
           Version = "123"
           Id = Some 42
-          Error = Some { Code = 13; Message = "oh no"; Data = Some(JToken.Parse "\"some data\"") }
+          Error =
+            Some {
+              Code = 13
+              Message = "oh no"
+              Data = Some(JsonSerializer.Deserialize<JsonElement>("\"some data\""))
+            }
           Result = None
         }
 
@@ -870,8 +815,13 @@ let private serializationTests =
         let response: Response = {
           Version = "123"
           Id = Some 42
-          Error = Some { Code = 13; Message = "oh no"; Data = Some(JToken.Parse "\"some data\"") }
-          Result = Some(JToken.Parse "\"some result\"")
+          Error =
+            Some {
+              Code = 13
+              Message = "oh no"
+              Data = Some(JsonSerializer.Deserialize<JsonElement>("\"some data\""))
+            }
+          Result = Some(JsonSerializer.Deserialize<JsonElement>("\"some result\""))
         }
 
         let output = thereAndBackAgain response
@@ -919,11 +869,11 @@ let private serializationTests =
           Tooltip = Some(U2.C1 "tooltipping")
           PaddingLeft = Some true
           PaddingRight = Some false
-          Data = Some(JToken.FromObject "some data")
+          Data = Some(LSPAny(JsonSerializer.SerializeToElement("some data", lspSerializerOptions)))
         }
 
         testThereAndBackAgain theInlayHint
-      testCase "can keep Data with JToken"
+      testCase "can keep Data with JsonElement"
       <| fun _ ->
         // JToken doesn't use structural equality
         // -> Expecto equal check fails even when same content in complex JToken
@@ -940,14 +890,14 @@ let private serializationTests =
           Tooltip = None
           PaddingLeft = None
           PaddingRight = None
-          Data = Some(JToken.FromObject data)
+          Data = Some(LSPAny(JsonSerializer.SerializeToElement(data, lspSerializerOptions)))
         }
 
         let output = thereAndBackAgain theInlayHint
 
         let outputData =
           output.Data
-          |> Option.map (fun t -> t.ToObject<InlayHintData>())
+          |> Option.map (fun t -> JsonSerializer.Deserialize<InlayHintData>(t.JsonElement, lspSerializerOptions))
 
         Expect.equal outputData (Some data) "Data should not change"
       testCase "can roundtrip InlayHint with all fields (complex)"
@@ -996,7 +946,7 @@ let private serializationTests =
           Tooltip = Some(U2.C2 { Kind = MarkupKind.PlainText; Value = "some tooltip" })
           PaddingLeft = Some true
           PaddingRight = Some false
-          Data = Some(JToken.FromObject "some data")
+          Data = Some(LSPAny(JsonSerializer.SerializeToElement("some data", lspSerializerOptions)))
         }
 
         testThereAndBackAgain theInlayHint

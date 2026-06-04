@@ -1,10 +1,10 @@
 module Ionide.LanguageServerProtocol.JsonRpc
 
-open Newtonsoft.Json
-open Newtonsoft.Json.Linq
+open System.Text.Json
+open System.Text.Json.Serialization
 
 type MessageTypeTest = {
-  [<JsonProperty("jsonrpc")>]
+  [<JsonPropertyName("jsonrpc")>]
   Version: string
   Id: int option
   Method: string option
@@ -25,14 +25,14 @@ let getMessageType messageTest =
   | _ -> MessageType.Error
 
 type Request = {
-  [<JsonProperty("jsonrpc")>]
+  [<JsonPropertyName("jsonrpc")>]
   Version: string
   Id: int
   Method: string
-  Params: JToken option
+  Params: JsonElement option
 } with
 
-  static member Create(id: int, method': string, rpcParams: JToken option) = {
+  static member Create(id: int, method': string, rpcParams: JsonElement option) = {
     Version = "2.0"
     Id = id
     Method = method'
@@ -40,13 +40,13 @@ type Request = {
   }
 
 type Notification = {
-  [<JsonProperty("jsonrpc")>]
+  [<JsonPropertyName("jsonrpc")>]
   Version: string
   Method: string
-  Params: JToken option
+  Params: JsonElement option
 } with
 
-  static member Create(method': string, rpcParams: JToken option) = {
+  static member Create(method': string, rpcParams: JsonElement option) = {
     Version = "2.0"
     Method = method'
     Params = rpcParams
@@ -72,7 +72,7 @@ open Ionide.LanguageServerProtocol.Types
 type Error = {
   Code: int
   Message: string
-  Data: JToken option
+  Data: JsonElement option
 } with
 
   static member Create(code: int, message: string) = { Code = code; Message = message; Data = None }
@@ -102,18 +102,14 @@ type Error = {
     Error.Create(int LSPErrorCodes.RequestCancelled, message)
 
 type Response = {
-  [<JsonProperty("jsonrpc")>]
+  [<JsonPropertyName("jsonrpc")>]
   Version: string
   Id: int option
   Error: Error option
-  [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]
-  Result: JToken option
+  Result: JsonElement option
 } with
 
-  /// Json.NET conditional property serialization, controlled by naming convention
-  member x.ShouldSerializeResult() = x.Error.IsNone
-
-  static member Success(id: int, result: JToken option) = {
+  static member Success(id: int, result: JsonElement option) = {
     Version = "2.0"
     Id = Some id
     Result = result
@@ -121,6 +117,71 @@ type Response = {
   }
 
   static member Failure(id: int, error: Error) = { Version = "2.0"; Id = Some id; Result = None; Error = Some error }
+
+/// Custom STJ converter for Response:
+/// - Always writes "result" (as null) when Error is None
+/// - Omits "result" when Error is Some
+type ResponseConverter() =
+  inherit JsonConverter<Response>()
+
+  override _.Read(reader, _t, opts) =
+    // Parse manually to avoid infinite recursion
+    let mutable version = ""
+    let mutable id: int option = None
+    let mutable error: Error option = None
+    let mutable result: JsonElement option = None
+
+    if reader.TokenType = JsonTokenType.StartObject then
+      while reader.Read()
+            && reader.TokenType
+               <> JsonTokenType.EndObject do
+        if reader.TokenType = JsonTokenType.PropertyName then
+          let propName = reader.GetString()
+
+          reader.Read()
+          |> ignore
+
+          match propName with
+          | "jsonrpc" -> version <- reader.GetString()
+          | "id" when
+            reader.TokenType
+            <> JsonTokenType.Null
+            ->
+            id <- Some(reader.GetInt32())
+          | "error" when
+            reader.TokenType
+            <> JsonTokenType.Null
+            ->
+            error <- Some(JsonSerializer.Deserialize<Error>(&reader, opts))
+          | "result" when
+            reader.TokenType
+            <> JsonTokenType.Null
+            ->
+            result <- Some(JsonSerializer.Deserialize<JsonElement>(&reader, opts))
+          | _ -> reader.Skip()
+
+    { Version = version; Id = id; Error = error; Result = result }
+
+  override _.Write(writer, value, opts) =
+    writer.WriteStartObject()
+    writer.WriteString("jsonrpc", value.Version)
+
+    match value.Id with
+    | Some id -> writer.WriteNumber("id", id)
+    | None -> ()
+
+    match value.Error with
+    | Some err ->
+      writer.WritePropertyName("error")
+      JsonSerializer.Serialize(writer, err, opts)
+    | None ->
+      writer.WritePropertyName("result")
+
+      match value.Result with
+      | Some je -> je.WriteTo(writer)
+      | None -> writer.WriteNullValue()
+
+    writer.WriteEndObject()
 
 
 /// Result type composed of a success value or an error of type JsonRpc.Error
@@ -180,6 +241,7 @@ module Requests =
 
               rpcException.ErrorData <-
                 error.Data
+                |> Option.map (fun je -> je :> obj)
                 |> Option.defaultValue null
 
               raise rpcException

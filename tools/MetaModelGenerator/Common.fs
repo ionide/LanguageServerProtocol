@@ -5,14 +5,14 @@ module Formatting =
 
   let formatConfig = {
     FormatConfig.Default with
-        IndentSize = 2
+        IndentSize = 4
         MaxRecordWidth = 80
         MaxValueBindingWidth = 120
         MaxFunctionBindingWidth = 120
         MaxDotGetExpressionWidth = 120
         MaxInfixOperatorExpression = 10
         ArrayOrListMultilineFormatter = MultilineFormatterType.NumberOfItems
-        MultilineBracketStyle = MultilineBracketStyle.Stroustrup
+        MultilineBracketStyle = MultilineBracketStyle.Aligned
         MultiLineLambdaClosingNewline = true
         InsertFinalNewline = false
   }

@@ -19,50 +19,126 @@ module Server =
 
   let logger = LogProvider.getLoggerByName "LSP Server"
 
+  /// STJ JsonSerializerOptions configured with all LSP converters.
+  let lspSerializerOptions =
+    let opts =
+      System.Text.Json.JsonSerializerOptions(
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+      )
+
+    opts.Converters.Add(UnitConverterFactory())
+    opts.Converters.Add(FSharpOptionConverterFactory())
+    opts.Converters.Add(EnumMemberConverterFactory())
+    opts.Converters.Add(ErasedUnionConverterFactory())
+    opts.Converters.Add(SingleCaseUnionConverterFactory())
+    opts.Converters.Add(Ionide.LanguageServerProtocol.JsonRpc.ResponseConverter())
+    opts
+
+  let deserialize<'t> (element: System.Text.Json.JsonElement) : 't =
+    System.Text.Json.JsonSerializer.Deserialize<'t>(element, lspSerializerOptions)
+
+  let serialize<'t> (o: 't) : System.Text.Json.JsonElement =
+    System.Text.Json.JsonSerializer.SerializeToElement(o, lspSerializerOptions)
+
+  // Internal bridge helpers — used only by JsonElementConverter below.
+  let internal jeToJToken (je: System.Text.Json.JsonElement) : JToken = JToken.Parse(je.GetRawText())
+
+  let internal jtokenToJe (token: JToken) : System.Text.Json.JsonElement =
+    use doc = System.Text.Json.JsonDocument.Parse(token.ToString(Formatting.None))
+    doc.RootElement.Clone()
+
+  /// Newtonsoft converter that lets StreamJsonRpc round-trip JsonElement and LSPAny fields
+  /// through its existing Newtonsoft pipeline.
+  type JsonElementConverter() =
+    inherit JsonConverter()
+
+    override _.CanConvert(t) =
+      t = typeof<System.Text.Json.JsonElement>
+      || t = typeof<Ionide.LanguageServerProtocol.Types.LSPAny>
+
+    override _.WriteJson(writer: Newtonsoft.Json.JsonWriter, value: obj, _serializer: JsonSerializer) =
+      match value with
+      | :? Ionide.LanguageServerProtocol.Types.LSPAny as lspAny -> jeToJToken(lspAny.JsonElement).WriteTo(writer)
+      | :? System.Text.Json.JsonElement as je -> jeToJToken(je).WriteTo(writer)
+      | _ -> ()
+
+    override _.ReadJson
+      (reader: Newtonsoft.Json.JsonReader, t: System.Type, _existing: obj, _serializer: JsonSerializer)
+      =
+      let je = jtokenToJe (JToken.ReadFrom(reader))
+
+      if t = typeof<Ionide.LanguageServerProtocol.Types.LSPAny> then
+        Ionide.LanguageServerProtocol.Types.LSPAny je :> obj
+      else
+        je :> obj
+
   let defaultJsonRpcFormatter () =
     let jsonRpcFormatter = new JsonMessageFormatter()
     jsonRpcFormatter.JsonSerializer.NullValueHandling <- NullValueHandling.Ignore
     jsonRpcFormatter.JsonSerializer.ConstructorHandling <- ConstructorHandling.AllowNonPublicDefaultConstructor
     jsonRpcFormatter.JsonSerializer.MissingMemberHandling <- MissingMemberHandling.Ignore
-    jsonRpcFormatter.JsonSerializer.Converters.Add(StrictNumberConverter())
-    jsonRpcFormatter.JsonSerializer.Converters.Add(StrictStringConverter())
-    jsonRpcFormatter.JsonSerializer.Converters.Add(StrictBoolConverter())
-    jsonRpcFormatter.JsonSerializer.Converters.Add(SingleCaseUnionConverter())
-    jsonRpcFormatter.JsonSerializer.Converters.Add(OptionConverter())
-    jsonRpcFormatter.JsonSerializer.Converters.Add(ErasedUnionConverter())
-    jsonRpcFormatter.JsonSerializer.ContractResolver <- OptionAndCamelCasePropertyNamesContractResolver()
+    jsonRpcFormatter.JsonSerializer.Converters.Add(JsonElementConverter())
     jsonRpcFormatter
 
   let jsonRpcFormatter = defaultJsonRpcFormatter ()
 
-  let deserialize<'t> (token: JToken) = token.ToObject<'t>(jsonRpcFormatter.JsonSerializer)
-  let serialize<'t> (o: 't) = JToken.FromObject(o, jsonRpcFormatter.JsonSerializer)
-
   let requestHandling<'param, 'result> (run: 'param -> AsyncLspResult<'result>) : Delegate =
-    let runAsTask param ct =
+    let runAsTask param (ct: CancellationToken) =
       // Execute non-async portion of `run` before forking the async portion into a task.
       // This is needed to avoid reordering of messages from a client.
       let asyncLspResult = run param
 
-      let asyncContinuation =
-        async {
-          let! lspResult = asyncLspResult
+      let cts = new CancellationTokenSource()
+      let tcs = TaskCompletionSource<LspResult<'result>>()
 
-          return
-            match lspResult with
-            | Ok result -> result
-            | Error error ->
-              let rpcException = LocalRpcException(error.Message)
-              rpcException.ErrorCode <- error.Code
+      // Start unconditionally with a fresh (non-cancelled) token
+      Async.StartWithContinuations(
+        asyncLspResult,
+        (fun result ->
+          cts.Dispose()
 
-              rpcException.ErrorData <-
-                error.Data
-                |> Option.defaultValue null
+          tcs.TrySetResult(result)
+          |> ignore
+        ),
+        (fun ex ->
+          cts.Dispose()
 
-              raise rpcException
-        }
+          tcs.TrySetException(ex)
+          |> ignore
+        ),
+        (fun _ ->
+          cts.Dispose()
 
-      Async.StartAsTask(asyncContinuation, cancellationToken = ct)
+          tcs.TrySetCanceled()
+          |> ignore
+        ),
+        cts.Token
+      )
+
+      // NOW link: if ct is already cancelled, this fires immediately,
+      // but the async is already running so TryCancelled will see it
+      ct.Register(fun () ->
+        Thread.Sleep(100)
+        cts.Cancel()
+      )
+      |> ignore
+
+      let lspResultTranslation (lspResultTask: Task<LspResult<'result>>) =
+        match lspResultTask.Result with
+        | Ok result -> result
+        | Error error ->
+          let rpcException = LocalRpcException(error.Message)
+          rpcException.ErrorCode <- error.Code
+
+          rpcException.ErrorData <-
+            error.Data
+            |> Option.map (fun je -> je :> obj)
+            |> Option.defaultValue null
+
+          raise rpcException
+
+      tcs.Task.ContinueWith(lspResultTranslation, TaskContinuationOptions.OnlyOnRanToCompletion)
 
     Func<'param, CancellationToken, Task<'result>>(runAsTask) :> Delegate
 
@@ -299,27 +375,43 @@ module Client =
     let result = JsonSerializerSettings(NullValueHandling = NullValueHandling.Ignore)
     result.Converters.Add(OptionConverter())
     result.Converters.Add(ErasedUnionConverter())
+    result.Converters.Add(Server.JsonElementConverter())
     result.ContractResolver <- CamelCasePropertyNamesContractResolver()
     result
 
   let internal jsonSerializer = JsonSerializer.Create(jsonSettings)
 
-  let internal deserialize (token: JToken) = token.ToObject<'t>(jsonSerializer)
+  let internal jeToJToken (je: System.Text.Json.JsonElement) : JToken = JToken.Parse(je.GetRawText())
+
+  let internal jtokenToJe (token: JToken) : System.Text.Json.JsonElement =
+    use doc = System.Text.Json.JsonDocument.Parse(token.ToString(Formatting.None))
+    doc.RootElement.Clone()
+
+  let internal deserialize<'t> (token: JToken) = token.ToObject<'t>(jsonSerializer)
 
   let internal serialize (o: 't) = JToken.FromObject(o, jsonSerializer)
 
-  type NotificationHandler = { Run: JToken -> Async<JToken option> }
+  type NotificationHandler = {
+    Run: System.Text.Json.JsonElement -> Async<System.Text.Json.JsonElement option>
+  }
 
   let notificationHandling<'p, 'r> (handler: 'p -> Async<'r option>) : NotificationHandler =
-    let run (token: JToken) =
+    let run (je: System.Text.Json.JsonElement) =
       async {
         try
-          let p = token.ToObject<'p>(jsonSerializer)
+          let p =
+            je
+            |> jeToJToken
+            |> (fun t -> t.ToObject<'p>(jsonSerializer))
+
           let! res = handler p
 
           return
             res
-            |> Option.map (fun n -> JToken.FromObject(n, jsonSerializer))
+            |> Option.map (fun n ->
+              JToken.FromObject(n, jsonSerializer)
+              |> jtokenToJe
+            )
         with _ ->
           return None
       }
@@ -571,7 +663,10 @@ module Client =
       |> ignore
 
     member __.SendNotification (rpcMethod: string) (requestObj: obj) =
-      let serializedResponse = JToken.FromObject(requestObj, jsonSerializer)
+      let serializedResponse =
+        JToken.FromObject(requestObj, jsonSerializer)
+        |> jtokenToJe
+
       let notification = JsonRpc.Notification.Create(rpcMethod, Some serializedResponse)
       let notString = JsonConvert.SerializeObject(notification, jsonSettings)
       sender.Post(notString)

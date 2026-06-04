@@ -8,9 +8,9 @@ module Ionide.LanguageServerProtocol.Tests.Shotgun
 
 open System
 open System.Reflection
+open System.Text.Json
 open Ionide.LanguageServerProtocol.Types
 open FsCheck
-open Newtonsoft.Json.Linq
 open Expecto
 open Ionide.LanguageServerProtocol.Server
 open Ionide.LanguageServerProtocol.Types
@@ -27,10 +27,17 @@ type Gens =
         <> null
       )
 
-  static member JToken() : Arbitrary<JToken> =
-    // actual value doesn't matter -> handled by user
-    // and complexer JTokens cannot be directly compared with `=`
-    JToken.FromObject(123)
+  static member JsonElement() : Arbitrary<JsonElement> =
+    // FsCheck can't derive a generator for JsonElement.
+    // Actual value doesn't matter — keep it simple.
+    JsonSerializer.SerializeToElement(123)
+    |> Gen.constant
+    |> Arb.fromGen
+
+  static member LSPAny() : Arbitrary<LSPAny> =
+    // LSPAny now has structural equality, but FsCheck still can't derive a generator.
+    // Use a constant value; equality is now real so roundtrips compare by value.
+    LSPAny(JsonSerializer.SerializeToElement(123))
     |> Gen.constant
     |> Arb.fromGen
 
@@ -151,11 +158,12 @@ type private Roundtripper =
 
   static member TestThereAndBackAgain(input: 'a) =
     let output = Roundtripper.ThereAndBackAgain input
-    // Fails: Dictionary doesn't support structural identity (-> different instances with same content aren't equal)
-    // Expect.equal output input "Input -> serialize -> deserialize should be Input again"
-    Utils.convertExtensionDataDictionariesToMap output
-    Utils.convertExtensionDataDictionariesToMap input
-    Expect.equal output input "Input -> serialize -> deserialize should be Input again"
+    // Compare via JSON round-trip to handle types that lack structural equality:
+    // - `JsonElement` (`LSPAny`) is a struct without structural `=`
+    // - `Dictionary` (`JsonExtensionData`) compares by reference, not content
+    let inputJson = (serialize input).GetRawText()
+    let outputJson = (serialize output).GetRawText()
+    Expect.equal outputJson inputJson "Input -> serialize -> deserialize should be Input again"
 
   static member TestProperty<'a when 'a: equality> name =
     testPropertyWithConfig fsCheckConfig name (Roundtripper.TestThereAndBackAgain<'a>)
