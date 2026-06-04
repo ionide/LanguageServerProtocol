@@ -27,7 +27,7 @@ module GenerateTypes =
     |> String.concat ""
 
 
-  let JToken = LongIdent "JToken"
+  let JsonElement = LongIdent "JsonElement"
 
   let createOption (t: WidgetBuilder<Type>) = Ast.OptionPostfix t
 
@@ -230,9 +230,7 @@ module GenerateTypes =
               isOptional
               && not currentProperty.IsOptional
             then
-              createOption (createErasedUnion ts),
-              Some(Attribute "JsonProperty(NullValueHandling = NullValueHandling.Include)"),
-              namedAnonRecs
+              createOption (createErasedUnion ts), None, namedAnonRecs
             else
               createErasedUnion ts, None, namedAnonRecs
 
@@ -244,7 +242,7 @@ module GenerateTypes =
             l.Value.PropertiesSafe
             |> Array.isEmpty
           then
-            JToken, None, []
+            JsonElement, None, []
           else
             let ts =
               l.Value.PropertiesSafe
@@ -647,7 +645,7 @@ module GenerateTypes =
   let createTypeAlias (alias: MetaModel.TypeAlias) =
     let rec getType path (t: MetaModel.Type) =
       if alias.Name = "LSPAny" then
-        JToken, []
+        JsonElement, []
       else
         match t with
         | MetaModel.Type.ReferenceType r -> LongIdent r.Name, []
@@ -687,7 +685,7 @@ module GenerateTypes =
             l.Value.PropertiesSafe
             |> Array.isEmpty
           then
-            JToken, []
+            JsonElement, []
           else
             let ts =
               l.Value.PropertiesSafe
@@ -847,7 +845,7 @@ module GenerateTypes =
           enumeration.StructuredDocs
           |> Option.mapOrDefault enum enum.xmlDocs
 
-        enum.attribute (Attribute("JsonConverter(typeof<Converters.StringEnumConverter>)"))
+        enum.attribute (Attribute("JsonConverter(typeof<JsonStringEnumConverter>)"))
 
       | MetaModel.EnumerationTypeNameValues.Integer
       | MetaModel.EnumerationTypeNameValues.Uinteger -> // Create enums with number values
@@ -894,8 +892,8 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
             Open("System")
             Open("System.Runtime.Serialization")
             Open("System.Diagnostics")
-            Open("Newtonsoft.Json")
-            Open("Newtonsoft.Json.Linq")
+            Open("System.Text.Json")
+            Open("System.Text.Json.Serialization")
 
             // Simple aliases for types that are not in dotnet
             Abbrev(Widgets.UriString, "string")
