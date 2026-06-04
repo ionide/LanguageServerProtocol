@@ -643,10 +643,13 @@ module GenerateTypes =
 
   /// Creates F# Type Aliases or Records based on a TypeAlias
   let createTypeAlias (alias: MetaModel.TypeAlias) =
-    let rec getType path (t: MetaModel.Type) =
-      if alias.Name = "LSPAny" then
-        JsonElement, []
-      else
+    // LSPAny is defined as a proper wrapper DU (with structural equality) in Types.fs.
+    // Do not emit a generated alias for it here.
+    if alias.Name = "LSPAny" then
+      AnonymousModule() { () }
+    else
+
+      let rec getType path (t: MetaModel.Type) =
         match t with
         | MetaModel.Type.ReferenceType r -> LongIdent r.Name, []
         | MetaModel.Type.BaseType b -> LongIdent(b.Name.ToDotNetType()), []
@@ -759,47 +762,47 @@ module GenerateTypes =
 
         | _ -> failwithf "todo Property %A" t
 
-    let (types: WidgetBuilder<Type>, namedAnonRecs) = getType [ alias.Name ] alias.Type
+      let (types: WidgetBuilder<Type>, namedAnonRecs) = getType [ alias.Name ] alias.Type
 
-    let (|AliasIsSameAsRecordName|_|) (alias: WidgetBuilder<Type>, namedAnonRecs) =
-      let typeAlias = Gen.mkOak alias
+      let (|AliasIsSameAsRecordName|_|) (alias: WidgetBuilder<Type>, namedAnonRecs) =
+        let typeAlias = Gen.mkOak alias
 
-      let nestedRecord =
-        namedAnonRecs
-        |> Seq.tryExactlyOne
+        let nestedRecord =
+          namedAnonRecs
+          |> Seq.tryExactlyOne
 
-      match typeAlias, Option.map Gen.mkOak nestedRecord with
-      | Type.LongIdent i, Some r when (getIdent i.Content) = getIdent ((r :> ITypeDefn).TypeName.Identifier.Content) ->
-        nestedRecord
-      | _ -> None
+        match typeAlias, Option.map Gen.mkOak nestedRecord with
+        | Type.LongIdent i, Some r when (getIdent i.Content) = getIdent ((r :> ITypeDefn).TypeName.Identifier.Content) ->
+          nestedRecord
+        | _ -> None
 
-    let abbrev =
-      match types, namedAnonRecs with
-      | AliasIsSameAsRecordName r ->
-        // If the record being emitted is the same as the type alias, ignore the type alias and just emit the record
-        AnonymousModule() {
-          alias.StructuredDocs
-          |> Option.mapOrDefault r r.xmlDocs
-        }
-      | _ ->
-        AnonymousModule() {
-          let abbrev = Abbrev(alias.Name, types)
-
-          let abbrev =
+      let abbrev =
+        match types, namedAnonRecs with
+        | AliasIsSameAsRecordName r ->
+          // If the record being emitted is the same as the type alias, ignore the type alias and just emit the record
+          AnonymousModule() {
             alias.StructuredDocs
-            |> Option.mapOrDefault abbrev abbrev.xmlDocs
+            |> Option.mapOrDefault r r.xmlDocs
+          }
+        | _ ->
+          AnonymousModule() {
+            let abbrev = Abbrev(alias.Name, types)
 
-          abbrev
+            let abbrev =
+              alias.StructuredDocs
+              |> Option.mapOrDefault abbrev abbrev.xmlDocs
 
-          for o in namedAnonRecs do
-            o
-        }
+            abbrev
 
-    AnonymousModule() {
+            for o in namedAnonRecs do
+              o
+          }
 
-      abbrev
+      AnonymousModule() {
 
-    }
+        abbrev
+
+      }
 
 
   /// Creates Open or Closed Enums based on an Enumeration

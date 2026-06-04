@@ -3,9 +3,9 @@ module Ionide.LanguageServerProtocol.Tests.Utils
 
 open Ionide.LanguageServerProtocol.Types
 open System.Reflection
-open Newtonsoft.Json
 open System.Collections.Generic
-open Newtonsoft.Json.Linq
+open System.Text.Json
+open System.Text.Json.Serialization
 open System
 open Expecto
 open System.Collections
@@ -75,7 +75,7 @@ let isLspType (additionalRules: (Type -> bool) list) (ty: Type) =
   && (additionalRules
       |> List.forall (fun rule -> rule ty))
 
-/// Replaces contents of properties with `JsonExtensionData`Attribute of type `IDictionary<string, JToken>`
+/// Replaces contents of properties with `JsonExtensionData`Attribute of type `IDictionary<string, LSPAny>`
 /// with a `Map` containing same elements.
 /// `null` field is kept.
 ///
@@ -88,10 +88,10 @@ let isLspType (additionalRules: (Type -> bool) list) (ty: Type) =
 /// Dictionaries don't use structural identity
 /// -> `Expecto.equal` fails with two dictionaries -- or objects that contain dictionary
 ///
-/// In Newtonsoft.Json: `JsonExtensionData` required a Dictionary (IDictionary).
-/// Unfortunately F# `Map` cannot be used because no default ctor and not mutable.
-/// -> Must use something else -- like `Dictionary` (see LSP Type `FormattingOptions`)
-/// But now LSP data cannot be compared with `=` or `Expecto.equal`.
+/// STJ `JsonExtensionData` requires a mutable `IDictionary` — F# `Map` cannot be used
+/// because it has no default ctor and is not mutable.
+/// -> Must use `Dictionary` (see LSP Type `FormattingOptions`)
+/// But `Dictionary` doesn't use structural equality, so LSP data can't be compared with `=`.
 /// And the type with `Dictionary` might be nested deep down.
 ///
 /// -> Replace all dictionaries with `Map` -> comparison works again
@@ -117,7 +117,7 @@ let rec convertExtensionDataDictionariesToMap (o: obj) =
   | :? float
   | :? byte
   | :? uint -> ()
-  | :? JToken -> ()
+  | :? JsonElement -> ()
   | :? IDictionary as dict ->
     for kv in
       dict
@@ -163,8 +163,8 @@ let rec convertExtensionDataDictionariesToMap (o: obj) =
     for (prop, value) in propsWithValues do
       match value with
       | null -> ()
-      | :? Map<string, JToken> -> ()
-      | :? IDictionary<string, JToken> as dict ->
+      | :? Map<string, LSPAny> -> ()
+      | :? IDictionary<string, LSPAny> as dict ->
         match prop.GetCustomAttribute<JsonExtensionDataAttribute>() with
         | null -> ()
         | _ when not prop.CanWrite ->
@@ -187,7 +187,7 @@ module TestData =
   type WithExtensionData = {
     Value: string
     [<JsonExtensionData>]
-    mutable AdditionalData: IDictionary<string, JToken>
+    mutable AdditionalData: IDictionary<string, LSPAny>
   }
 
   [<RequireQualifiedAccess>]
@@ -332,9 +332,9 @@ let tests =
 
       let dict =
         [|
-          "alpha", JToken.FromObject "lorem"
-          "beta", JToken.FromObject "ipsum"
-          "gamma", JToken.FromObject "dolor"
+          "alpha", LSPAny(JsonSerializer.SerializeToElement "lorem")
+          "beta", LSPAny(JsonSerializer.SerializeToElement "ipsum")
+          "gamma", LSPAny(JsonSerializer.SerializeToElement "dolor")
         |]
         |> Map.ofArray
 
@@ -429,7 +429,7 @@ let tests =
             5
             (fun i ->
               let m =
-                Array.init (i + 3) (fun j -> ($"Dict{i}Element{j}", JToken.FromObject(i + j)))
+                Array.init (i + 3) (fun j -> ($"Dict{i}Element{j}", LSPAny(JsonSerializer.SerializeToElement(i + j))))
                 |> Map.ofArray
 
               {
@@ -458,7 +458,7 @@ let tests =
             List.init
               (seed % 4
                + 3)
-              (fun i -> ($"Seed{seed}Element{i}Of{count}", JToken.FromObject(count + i)))
+              (fun i -> ($"Seed{seed}Element{i}Of{count}", LSPAny(JsonSerializer.SerializeToElement(count + i))))
             |> Map.ofList
             |> mkDict
         }

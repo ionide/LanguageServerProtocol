@@ -3,13 +3,14 @@ module Ionide.LanguageServerProtocol.Tests.Benchmarks
 open Ionide.LanguageServerProtocol.Types
 open Ionide.LanguageServerProtocol.JsonUtils
 open Ionide.LanguageServerProtocol.Server
-open Newtonsoft.Json.Linq
+
 open BenchmarkDotNet.Attributes
 open BenchmarkDotNet.Running
 open BenchmarkDotNet.Configs
 open System
 open System.Collections.Concurrent
 open System.Collections.Generic
+open System.Text.Json
 open BenchmarkDotNet.Order
 
 let inline private memorise (f: 'a -> 'b) : 'a -> 'b =
@@ -67,6 +68,13 @@ type TypeCheckBenchmarks() =
     values
     |> Array.map (fun v -> v.GetType())
 
+  static let numericHashes =
+    Type.numerics
+    |> Array.map (fun t -> t.GetHashCode())
+
+  static let boolHash = typeof<bool>.GetHashCode()
+  static let stringHash = typeof<string>.GetHashCode()
+
   static let isOptionType (ty: Type) =
     ty.IsGenericType
     && ty.GetGenericTypeDefinition() = typedefof<_ option>
@@ -95,7 +103,7 @@ type TypeCheckBenchmarks() =
       let hash = ty.GetHashCode()
 
       if
-        Type.numericHashes
+        numericHashes
         |> Array.contains hash
       then
         count <- count + 1
@@ -117,7 +125,7 @@ type TypeCheckBenchmarks() =
     let mutable count = 0
 
     for ty in types do
-      if ty.GetHashCode() = Type.boolHash then
+      if ty.GetHashCode() = boolHash then
         count <- count + 1
 
     count
@@ -137,7 +145,7 @@ type TypeCheckBenchmarks() =
     let mutable count = 0
 
     for ty in types do
-      if ty.GetHashCode() = Type.stringHash then
+      if ty.GetHashCode() = stringHash then
         count <- count + 1
 
     count
@@ -213,7 +221,7 @@ module Example =
   type WithExtensionData = {
     NoExtensionData: string
     [<JsonExtensionData>]
-    mutable AdditionalData: IDictionary<string, JToken>
+    mutable AdditionalData: IDictionary<string, JsonElement>
   }
 
   module WithExtensionData =
@@ -224,7 +232,7 @@ module Example =
           (rand.NextCount depth)
           (fun i ->
             let key = $"Data{depth}Ele{i}"
-            let value = JToken.FromObject(i * depth)
+            let value = JsonSerializer.SerializeToElement(i * depth, lspSerializerOptions)
             (key, value)
           )
         |> Map.ofList
@@ -679,7 +687,7 @@ type MultipleTypesBenchmarks() =
     Tooltip = Some(U2.C2 { Kind = MarkupKind.PlainText; Value = "some tooltip" })
     PaddingLeft = Some true
     PaddingRight = Some false
-    Data = Some(JToken.FromObject "some data")
+    Data = Some(LSPAny(JsonSerializer.SerializeToElement("some data", lspSerializerOptions)))
   }
 
   let allLsp: obj[] = [|
@@ -707,7 +715,7 @@ type MultipleTypesBenchmarks() =
         inlayHint
         |> serialize
 
-      let res = json.ToObject(o.GetType(), jsonRpcFormatter.JsonSerializer)
+      let res = JsonSerializer.Deserialize(json, o.GetType(), lspSerializerOptions)
       ()
 
   [<BenchmarkCategory("LSP"); Benchmark>]
@@ -722,7 +730,7 @@ type MultipleTypesBenchmarks() =
       example
       |> serialize
 
-    let res = json.ToObject(example.GetType(), jsonRpcFormatter.JsonSerializer)
+    let res = JsonSerializer.Deserialize(json, example.GetType(), lspSerializerOptions)
     ()
 
   [<BenchmarkCategory("Example"); Benchmark>]
@@ -741,7 +749,7 @@ type MultipleTypesBenchmarks() =
         option
         |> serialize
 
-      let _ = json.ToObject(option.GetType(), jsonRpcFormatter.JsonSerializer)
+      let _ = JsonSerializer.Deserialize(json, option.GetType(), lspSerializerOptions)
       ()
 
   member _.SingleCaseUnion_ArgumentsSource() =
@@ -762,7 +770,7 @@ type MultipleTypesBenchmarks() =
         data
         |> serialize
 
-      let _ = json.ToObject(typeof<Example.SingleCaseUnion>, jsonRpcFormatter.JsonSerializer)
+      let _ = JsonSerializer.Deserialize(json, typeof<Example.SingleCaseUnion>, lspSerializerOptions)
       ()
 
   member _.ErasedUnion_ArgumentsSource() =
@@ -791,7 +799,7 @@ type MultipleTypesBenchmarks() =
         data
         |> serialize
 
-      let _ = json.ToObject(typeof<Example.ErasedUnionData>, jsonRpcFormatter.JsonSerializer)
+      let _ = JsonSerializer.Deserialize(json, typeof<Example.ErasedUnionData>, lspSerializerOptions)
       ()
 
 
