@@ -243,7 +243,7 @@ let private serializationTests =
       <| fun _ ->
         let json =
           JObject(JProperty("value", "bar"), JProperty("alpha", "lorem"), JProperty("beta", "ipsum"))
-          |> LSPAny
+          |> LSPAny.fromJToken
 
         Expect.throws
           (fun _ ->
@@ -289,7 +289,7 @@ let private serializationTests =
       <| fun _ ->
         let json =
           JObject(JProperty("name", "foo"))
-          |> LSPAny
+          |> LSPAny.fromJToken
 
         let output =
           json
@@ -688,7 +688,7 @@ let private serializationTests =
         <| fun _ ->
           let json =
             JToken.Parse """{"optionalValue": 42}"""
-            |> LSPAny
+            |> LSPAny.fromJToken
 
           Expect.throws
             (fun _ ->
@@ -935,7 +935,7 @@ let private serializationTests =
           Tooltip = Some(U2.C1 "tooltipping")
           PaddingLeft = Some true
           PaddingRight = Some false
-          Data = Some(LSPAny(JToken.FromObject "some data"))
+          Data = Some(LSPAny.fromJToken (JToken.FromObject "some data"))
         }
 
         testThereAndBackAgain theInlayHint
@@ -954,7 +954,7 @@ let private serializationTests =
           Tooltip = None
           PaddingLeft = None
           PaddingRight = None
-          Data = Some(LSPAny(JToken.FromObject data))
+          Data = Some(LSPAny.fromJToken (JToken.FromObject data))
         }
 
         let output = thereAndBackAgain theInlayHint
@@ -1010,7 +1010,7 @@ let private serializationTests =
           Tooltip = Some(U2.C2 { Kind = MarkupKind.PlainText; Value = "some tooltip" })
           PaddingLeft = Some true
           PaddingRight = Some false
-          Data = Some(LSPAny(JToken.FromObject "some data"))
+          Data = Some(LSPAny.fromJToken (JToken.FromObject "some data"))
         }
 
         testThereAndBackAgain theInlayHint

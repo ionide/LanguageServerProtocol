@@ -679,7 +679,11 @@ type MultipleTypesBenchmarks() =
     Tooltip = Some(U2.C2 { Kind = MarkupKind.PlainText; Value = "some tooltip" })
     PaddingLeft = Some true
     PaddingRight = Some false
-    Data = Some(LSPAny(JToken.FromObject "some data"))
+    Data =
+      Some(
+        JToken.FromObject "some data"
+        |> LSPAny.fromJToken
+      )
   }
 
   let allLsp: obj[] = [|

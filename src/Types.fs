@@ -107,7 +107,8 @@ type U4<'T1, 'T2, 'T3, 'T4> =
 ///
 /// The internal representation is intentionally kept behind a single <c>JToken</c> property so
 /// that the backing type can be swapped to <c>System.Text.Json.JsonElement</c> in the future
-/// with minimal impact on call sites.
+/// with minimal impact on call sites. Prefer the <c>fromJToken</c> factory over the constructor
+/// directly; a companion <c>fromJsonElement</c> can be added once the migration happens.
 [<JsonConverter(typeof<LSPAnyConverter>)>]
 type LSPAny(token: JToken) =
 
@@ -128,6 +129,10 @@ type LSPAny(token: JToken) =
 
   interface System.IEquatable<LSPAny> with
     member x.Equals(other) = JToken.DeepEquals(token, other.JToken)
+
+  /// Wraps a <see cref="JToken"/> in an <see cref="LSPAny"/>.
+  /// A companion <c>fromJsonElement</c> can be added here once the backing type is migrated to <see cref="System.Text.Json.JsonElement"/>.
+  static member inline fromJToken(token: JToken) = LSPAny(token)
 
 /// Newtonsoft.Json converter for <see cref="LSPAny"/>.
 /// Reads any JSON value into a <see cref="JToken"/> and wraps it; writes by delegating to the token.
