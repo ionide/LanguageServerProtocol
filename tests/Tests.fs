@@ -99,9 +99,9 @@ let private serializationTests =
     let mkLower (str: string) = sprintf "%c%s" (Char.ToLowerInvariant str[0]) (str.Substring(1))
 
     /// Note: changes first letter into lower case
-    let removeProperty (name: string) (json: JToken) =
+    let removeProperty (name: string) (json: LSPAny) =
       let prop =
-        (json :?> JObject)
+        (json.JToken :?> JObject)
           .Property(
             name
             |> mkLower
@@ -111,8 +111,8 @@ let private serializationTests =
       json
 
     /// Note: changes first letter into lower case
-    let addProperty (name: string) (value: 'a) (json: JToken) =
-      let jObj = json :?> JObject
+    let addProperty (name: string) (value: 'a) (json: LSPAny) =
+      let jObj = json.JToken :?> JObject
 
       jObj.Add(
         JProperty(
@@ -124,8 +124,8 @@ let private serializationTests =
 
       json
 
-    let tryGetProperty (name: string) (json: JToken) =
-      let jObj = json :?> JObject
+    let tryGetProperty (name: string) (json: LSPAny) =
+      let jObj = json.JToken :?> JObject
 
       jObj.Property(
         name
@@ -133,7 +133,7 @@ let private serializationTests =
       )
       |> Option.ofObj
 
-    let logJson (json: JToken) =
+    let logJson (json: LSPAny) =
       printfn $"%s{json.ToString()}"
       json
 
@@ -160,7 +160,7 @@ let private serializationTests =
         let json =
           o
           |> serialize
-          :?> JObject
+          |> fun a -> a.JToken :?> JObject
 
         let props =
           json.Properties()
@@ -241,7 +241,9 @@ let private serializationTests =
 
       testCase "fails when not required field"
       <| fun _ ->
-        let json = JObject(JProperty("value", "bar"), JProperty("alpha", "lorem"), JProperty("beta", "ipsum"))
+        let json =
+          JObject(JProperty("value", "bar"), JProperty("alpha", "lorem"), JProperty("beta", "ipsum"))
+          |> LSPAny
 
         Expect.throws
           (fun _ ->
@@ -278,11 +280,16 @@ let private serializationTests =
             JProperty("gamma", "dolor")
           )
 
-        Expect.equal (json.ToString()) (expected.ToString()) "Items in AdditionalData should be normal properties"
+        Expect.equal
+          (json.JToken.ToString())
+          (expected.ToString())
+          "Items in AdditionalData should be normal properties"
 
       testCase "AdditionalData is not null when no additional properties"
       <| fun _ ->
-        let json = JObject(JProperty("name", "foo"))
+        let json =
+          JObject(JProperty("name", "foo"))
+          |> LSPAny
 
         let output =
           json
@@ -295,7 +302,7 @@ let private serializationTests =
       testCase "changes lower cases start in F# to lower case in JSON"
       <| fun _ ->
         let o = {| Name = "foo"; SomeValue = 42 |}
-        let json = serialize o :?> JObject
+        let json = (serialize o).JToken :?> JObject
 
         let name = json.Property("name")
         Expect.equal name.Name "name" "name should be lower case start"
@@ -323,7 +330,7 @@ let private serializationTests =
           |> Seq.mapi (fun i k -> (k, i))
           |> Map.ofSeq
 
-        let json = serialize m :?> JObject
+        let json = (serialize m).JToken :?> JObject
 
         let propNames =
           json.Properties()
@@ -458,7 +465,7 @@ let private serializationTests =
         <| fun _ ->
           let input = { AllOptional.OptionalName = None; OptionalValue = None }
           let json = serialize input
-          Expect.isEmpty (json.Children()) "There should be no properties"
+          Expect.isEmpty (json.JToken.Children()) "There should be no properties"
 
         testCase "doesn't fail when all fields given"
         <| fun _ ->
@@ -517,6 +524,7 @@ let private serializationTests =
               JProperty(l (nameof o.Always), "sit"),
               JProperty(l (nameof o.AllowNull), "amet")
             )
+            |> LSPAny
 
           json
           |> deserialize<RequiredAttributeFields>
@@ -531,6 +539,7 @@ let private serializationTests =
               JProperty(l (nameof o.Always), "sit"),
               JProperty(l (nameof o.AllowNull), "amet")
             )
+            |> LSPAny
 
           Expect.throws
             (fun _ ->
@@ -549,6 +558,7 @@ let private serializationTests =
               JProperty(l (nameof o.Always), "sit"),
               JProperty(l (nameof o.AllowNull), "amet")
             )
+            |> LSPAny
 
           json
           |> deserialize<RequiredAttributeFields>
@@ -564,6 +574,7 @@ let private serializationTests =
               JProperty(l (nameof o.Always), "sit"),
               JProperty(l (nameof o.AllowNull), "amet")
             )
+            |> LSPAny
 
           Expect.throws
             (fun _ ->
@@ -582,6 +593,7 @@ let private serializationTests =
               JProperty(l (nameof o.DisallowNull), "dolor"),
               JProperty(l (nameof o.AllowNull), "amet")
             )
+            |> LSPAny
 
           Expect.throws
             (fun _ ->
@@ -601,6 +613,7 @@ let private serializationTests =
               JProperty(l (nameof o.Always), "sit"),
               JProperty(l (nameof o.AllowNull), null)
             )
+            |> LSPAny
 
           json
           |> deserialize<RequiredAttributeFields>
@@ -656,7 +669,7 @@ let private serializationTests =
         <| fun _ ->
           let input: U2<string, OneOptional> = U2.C2 { OneOptional.RequiredName = "foo"; OptionalValue = None }
 
-          let json = serialize input :?> JObject
+          let json = (serialize input).JToken :?> JObject
           Expect.hasLength (json.Properties()) 1 "There should be just one property"
           let prop = json.Property("requiredName")
           Expect.equal (prop.Value.ToString()) "foo" "Required Property should have correct value"
@@ -673,7 +686,9 @@ let private serializationTests =
           testThereAndBackAgain input
         testCase "fails with missing required value"
         <| fun _ ->
-          let json = JToken.Parse """{"optionalValue": 42}"""
+          let json =
+            JToken.Parse """{"optionalValue": 42}"""
+            |> LSPAny
 
           Expect.throws
             (fun _ ->
@@ -776,17 +791,18 @@ let private serializationTests =
       <| fun _ ->
         let textDoc = { OptionalVersionedTextDocumentIdentifier.Uri = "..."; Version = None }
 
-        let json =
+        let jsonAny =
           textDoc
           |> serialize
-          :?> JObject
+
+        let json = jsonAny.JToken :?> JObject
 
         let prop = json.Property("version")
         let value = prop.Value
         Expect.equal (value.Type) (JTokenType.Null) "Version should be null"
 
         let prop =
-          json
+          jsonAny
           |> tryGetProperty (nameof textDoc.Version)
           |> Flip.Expect.wantSome "Property Version should exist"
 

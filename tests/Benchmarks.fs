@@ -707,7 +707,7 @@ type MultipleTypesBenchmarks() =
         inlayHint
         |> serialize
 
-      let res = json.ToObject(o.GetType(), jsonRpcFormatter.JsonSerializer)
+      let res = json.JToken.ToObject(o.GetType(), jsonRpcFormatter.JsonSerializer)
       ()
 
   [<BenchmarkCategory("LSP"); Benchmark>]
@@ -722,7 +722,7 @@ type MultipleTypesBenchmarks() =
       example
       |> serialize
 
-    let res = json.ToObject(example.GetType(), jsonRpcFormatter.JsonSerializer)
+    let res = json.JToken.ToObject(example.GetType(), jsonRpcFormatter.JsonSerializer)
     ()
 
   [<BenchmarkCategory("Example"); Benchmark>]
@@ -741,7 +741,7 @@ type MultipleTypesBenchmarks() =
         option
         |> serialize
 
-      let _ = json.ToObject(option.GetType(), jsonRpcFormatter.JsonSerializer)
+      let _ = json.JToken.ToObject(option.GetType(), jsonRpcFormatter.JsonSerializer)
       ()
 
   member _.SingleCaseUnion_ArgumentsSource() =
@@ -762,7 +762,7 @@ type MultipleTypesBenchmarks() =
         data
         |> serialize
 
-      let _ = json.ToObject(typeof<Example.SingleCaseUnion>, jsonRpcFormatter.JsonSerializer)
+      let _ = json.JToken.ToObject(typeof<Example.SingleCaseUnion>, jsonRpcFormatter.JsonSerializer)
       ()
 
   member _.ErasedUnion_ArgumentsSource() =
@@ -791,7 +791,7 @@ type MultipleTypesBenchmarks() =
         data
         |> serialize
 
-      let _ = json.ToObject(typeof<Example.ErasedUnionData>, jsonRpcFormatter.JsonSerializer)
+      let _ = json.JToken.ToObject(typeof<Example.ErasedUnionData>, jsonRpcFormatter.JsonSerializer)
       ()
 
 
