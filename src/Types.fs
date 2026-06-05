@@ -107,13 +107,18 @@ type U4<'T1, 'T2, 'T3, 'T4> =
 ///
 /// The internal representation is intentionally kept behind a single <c>JToken</c> property so
 /// that the backing type can be swapped to <c>System.Text.Json.JsonElement</c> in the future
-/// with minimal impact on call sites. Prefer the <c>fromJToken</c> factory over the constructor
-/// directly; a companion <c>fromJsonElement</c> can be added once the migration happens.
+/// with minimal impact on call sites. Prefer the <c>fromJToken</c> / <c>fromJsonElement</c>
+/// factories over the constructor directly.
 [<JsonConverter(typeof<LSPAnyConverter>)>]
 type LSPAny(token: JToken) =
 
   /// The underlying JSON token.
   member _.JToken: JToken = token
+
+  /// The value as a <see cref="System.Text.Json.JsonElement"/>, bridged via raw JSON text.
+  /// Once the backing type is migrated to <see cref="System.Text.Json.JsonElement"/> this will be a direct accessor.
+  member _.JsonElement: System.Text.Json.JsonElement =
+    System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(token.ToString(Formatting.None))
 
   override _.ToString() = token.ToString(Formatting.None)
 
@@ -131,8 +136,12 @@ type LSPAny(token: JToken) =
     member x.Equals(other) = JToken.DeepEquals(token, other.JToken)
 
   /// Wraps a <see cref="JToken"/> in an <see cref="LSPAny"/>.
-  /// A companion <c>fromJsonElement</c> can be added here once the backing type is migrated to <see cref="System.Text.Json.JsonElement"/>.
   static member inline fromJToken(token: JToken) = LSPAny(token)
+
+  /// Wraps a <see cref="System.Text.Json.JsonElement"/> in an <see cref="LSPAny"/>, bridged via raw JSON text.
+  /// Once the backing type is migrated to <see cref="System.Text.Json.JsonElement"/> this will be a direct wrap.
+  static member inline fromJsonElement(element: System.Text.Json.JsonElement) =
+    LSPAny(JToken.Parse(element.GetRawText()))
 
 /// Newtonsoft.Json converter for <see cref="LSPAny"/>.
 /// Reads any JSON value into a <see cref="JToken"/> and wraps it; writes by delegating to the token.
