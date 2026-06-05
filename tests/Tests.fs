@@ -919,14 +919,12 @@ let private serializationTests =
           Tooltip = Some(U2.C1 "tooltipping")
           PaddingLeft = Some true
           PaddingRight = Some false
-          Data = Some(JToken.FromObject "some data")
+          Data = Some(LSPAny(JToken.FromObject "some data"))
         }
 
         testThereAndBackAgain theInlayHint
-      testCase "can keep Data with JToken"
+      testCase "can keep Data with LSPAny"
       <| fun _ ->
-        // JToken doesn't use structural equality
-        // -> Expecto equal check fails even when same content in complex JToken
         let data = {
           InlayHintData.TextDocument = { Uri = "..." }
           Range = { Start = { Line = 5u; Character = 7u }; End = { Line = 5u; Character = 10u } }
@@ -940,14 +938,14 @@ let private serializationTests =
           Tooltip = None
           PaddingLeft = None
           PaddingRight = None
-          Data = Some(JToken.FromObject data)
+          Data = Some(LSPAny(JToken.FromObject data))
         }
 
         let output = thereAndBackAgain theInlayHint
 
         let outputData =
           output.Data
-          |> Option.map (fun t -> t.ToObject<InlayHintData>())
+          |> Option.map (fun x -> x.JToken.ToObject<InlayHintData>())
 
         Expect.equal outputData (Some data) "Data should not change"
       testCase "can roundtrip InlayHint with all fields (complex)"
@@ -996,7 +994,7 @@ let private serializationTests =
           Tooltip = Some(U2.C2 { Kind = MarkupKind.PlainText; Value = "some tooltip" })
           PaddingLeft = Some true
           PaddingRight = Some false
-          Data = Some(JToken.FromObject "some data")
+          Data = Some(LSPAny(JToken.FromObject "some data"))
         }
 
         testThereAndBackAgain theInlayHint
