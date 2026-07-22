@@ -17,15 +17,11 @@ type U2<'T1, 'T2> =
   | C1 of 'T1
   | C2 of 'T2
 
-  override _.ToString() = "U2"
-
 [<ErasedUnion; System.Diagnostics.DebuggerDisplay("U3")>]
 type U3<'T1, 'T2, 'T3> =
   | C1 of 'T1
   | C2 of 'T2
   | C3 of 'T3
-
-  override _.ToString() = "U3"
 
 [<ErasedUnion; System.Diagnostics.DebuggerDisplay("U4")>]
 type U4<'T1, 'T2, 'T3, 'T4> =
@@ -33,8 +29,6 @@ type U4<'T1, 'T2, 'T3, 'T4> =
   | C2 of 'T2
   | C3 of 'T3
   | C4 of 'T4
-
-  override _.ToString() = "U4"
 
 /// A JSON value carried in an LSP `any` slot.
 [<Sealed>]

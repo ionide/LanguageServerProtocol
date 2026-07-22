@@ -12,9 +12,10 @@
     <PackageProjectUrl>https://github.com/ionide/LanguageServerProtocol</PackageProjectUrl>
     <LSPVersion>3.17.0</LSPVersion>
     <IsAotCompatible Condition="'$(TargetFramework)' == 'net10.0'">true</IsAotCompatible>
+    <OtherFlags Condition="'$(TargetFramework)' == 'net10.0'">$(OtherFlags) --reflectionfree</OtherFlags>
   </PropertyGroup>
   <ItemGroup>
-    <!-- FsLibLog.fs comes verbatim from
+    <!-- FsLibLog.fs is based on
     https://github.com/TheAngryByrd/FsLibLog/blob/f81cba440bf0476bb4e2262b57a067a0d6ab78a7/src/FsLibLog/FsLibLog.fs
 
          Namespace changed from FsLibLog to LanguageServerProtocol.Logging per the instructions in that
@@ -58,7 +59,7 @@
     <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);IncludeStaticMetadataPackageAsset</TargetsForTfmSpecificBuildOutput>
   </PropertyGroup>
 
-  <Target Name="GenerateAotMetadata" BeforeTargets="ResolveReferences" Condition="'$(TargetFramework)' == 'net10.0'">
+  <Target Name="GenerateAotMetadata" BeforeTargets="ResolveAssemblyReferences" Condition="'$(TargetFramework)' == 'net10.0'">
     <ItemGroup>
       <_GeneratorProject Include="../tools/MetaModelGenerator/MetaModelGenerator.fsproj" />
       <_AotContractProject Include="$(MSBuildThisFileDirectory)StaticMetadata/AotContract/AotContract.fsproj" />

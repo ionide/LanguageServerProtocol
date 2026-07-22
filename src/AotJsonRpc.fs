@@ -18,8 +18,6 @@ type Error = {
   Data: LSPAny option
 } with
 
-  override _.ToString() = "Language server protocol error"
-
   static member Create(code: int, message: string) = { Code = code; Message = message; Data = None }
 
   static member ParseError(?message) = Error.Create(int Types.ErrorCodes.ParseError, defaultArg message "Parse error")

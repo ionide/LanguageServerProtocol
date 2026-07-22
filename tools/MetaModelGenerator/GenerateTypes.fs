@@ -1007,25 +1007,6 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
             "let code =\n      x.Code\n      |> Option.map (function\n        | U2.C1 value -> value.ToString(System.Globalization.CultureInfo.CurrentCulture)\n        | U2.C2 value -> value)\n      |> Option.defaultValue String.Empty\n\n    String.Concat(\"[\", (defaultArg x.Severity DiagnosticSeverity.Error).ToString(), \"] (\", x.Range.DebuggerDisplay, \") \", x.Message, \" (\", code, \")\")"
           )
 
-      let addRecordToString (recordMatch: System.Text.RegularExpressions.Match) =
-        let name = recordMatch.Groups.["name"].Value
-
-        String.Concat(recordMatch.Groups.["declaration"].Value, " with\n\n  override _.ToString() = \"", name, "\"")
-
-      let modern =
-        System.Text.RegularExpressions.Regex.Replace(
-          modern,
-          "(?ms)^(?<declaration>type (?<name>[A-Za-z0-9_`]+) = \\{\n.*?^\\})(?: with)?$",
-          System.Text.RegularExpressions.MatchEvaluator addRecordToString
-        )
-
-      let modern =
-        System.Text.RegularExpressions.Regex.Replace(
-          modern,
-          "(?m)^(?<declaration>type (?<name>[A-Za-z0-9_`]+) = \\{.*\\})$",
-          System.Text.RegularExpressions.MatchEvaluator addRecordToString
-        )
-
       System.IO.File.Delete temporaryPath
       do! FileWriters.writeIfChanged outputPath modern
     }

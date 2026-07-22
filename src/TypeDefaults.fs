@@ -144,6 +144,9 @@ module Extensions =
       Data = None
     }
 
+#if NET10_0
+  [<System.Diagnostics.DebuggerDisplay("{__DebugDisplay(),nq}")>]
+#endif
   type WorkDoneProgressKind =
     | Begin
     | Report
@@ -154,6 +157,14 @@ module Extensions =
       | Begin -> "begin"
       | Report -> "report"
       | End -> "end"
+
+#if NET10_0
+    member private x.__DebugDisplay() =
+      match x with
+      | Begin -> "Begin"
+      | Report -> "Report"
+      | End -> "End"
+#endif
 
   type WorkDoneProgressEnd with
     static member Create(?message) = { Kind = WorkDoneProgressKind.End.ToString(); Message = message }
