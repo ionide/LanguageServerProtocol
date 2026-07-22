@@ -2,17 +2,21 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
     <Compile Include="Utils.fs" />
     <Compile Include="Benchmarks.fs" />
     <Compile Include="Shotgun.fs" />
     <Compile Include="StartWithSetup.fs" />
     <Compile Include="Tests.fs" />
     <Compile Include="Program.fs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <Compile Include="AotProtocolTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
