@@ -394,7 +394,12 @@ type ILspClient =
   abstract WorkspaceApplyEdit: ApplyWorkspaceEditParams -> AsyncLspResult<ApplyWorkspaceEditResult>
 
 module Mappings =
-  type ServerRequestHandling<'server when 'server :> ILspServer> = { Run: 'server -> System.Delegate }
+  type ServerRequestHandling<'server when 'server :> ILspServer> =
+    { Run: 'server -> System.Delegate }
+#if NET10_0
+
+    override _.ToString() = "ServerRequestHandling"
+#endif
 
   let routeMappings () =
     let serverRequestHandling run = {

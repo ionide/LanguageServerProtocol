@@ -803,7 +803,12 @@ module LogProvider =
     // | Call (_, methInfo, _) -> sprintf "%s.%s" methInfo.DeclaringType.FullName methInfo.Name
     // | Lambda(_, expr) -> getModuleType expr
     // | ValueWithName(_,_,instance) -> instance
-    | x -> failwithf "Expression is not a property. %A" x
+    | x ->
+#if NET10_0
+      failwith $"Expression is not a property. {x}"
+#else
+      failwithf "Expression is not a property. %A" x
+#endif
 
   /// **Description**
   ///

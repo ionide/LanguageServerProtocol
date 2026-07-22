@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Ionide.LanguageServerProtocol</AssemblyName>
+    <RootNamespace>Ionide.LanguageServerProtocol</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../AotTypes.fs" Link="AotTypes.fs" />
+    <Compile Include="$(ContractGeneratedTypesPath)" Link="AotTypes.generated.fs" />
+    <Compile Include="../../AotJsonRpc.fs" Link="AotJsonRpc.fs" />
+    <Compile Include="../../ClientServer.cg.fs" Link="ClientServer.cg.fs" />
+    <PackageReference Update="FSharp.Core" Version="10.1.301" />
+    <PackageReference Include="StreamJsonRpc" Version="2.25.29" />
+  </ItemGroup>
+</Project>

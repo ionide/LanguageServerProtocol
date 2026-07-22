@@ -316,6 +316,12 @@ module GenerateClientServer =
         |> Gen.mkOak
         |> fun oak -> CodeFormatter.FormatOakAsync(oak, formatConfig)
 
+      let formattedText =
+        formattedText.Replace(
+          "  type ServerRequestHandling<'server when 'server :> ILspServer> = { Run: 'server -> System.Delegate }",
+          "  type ServerRequestHandling<'server when 'server :> ILspServer> =\n    { Run: 'server -> System.Delegate }\n#if NET10_0\n\n    override _.ToString() = \"ServerRequestHandling\"\n#endif"
+        )
+
       do! FileWriters.writeIfChanged outputPath formattedText
 
     }
