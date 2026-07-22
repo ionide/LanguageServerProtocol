@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <EnableStreamJsonRpcInterceptors>true</EnableStreamJsonRpcInterceptors>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <ContractAssemblyPath>$(MSBuildThisFileDirectory)AotContract/bin/$(Configuration)/net10.0/Ionide.LanguageServerProtocol.dll</ContractAssemblyPath>
+    <GeneratedMetadataPath>$(MSBuildThisFileDirectory)../obj/$(Configuration)/net10.0/AotMetadata.generated.cs</GeneratedMetadataPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Ionide.LanguageServerProtocol">
+      <HintPath>$(ContractAssemblyPath)</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Compile Include="$(GeneratedMetadataPath)" Link="AotMetadata.generated.cs" />
+    <PackageReference Include="FSharp.Core" Version="10.1.301" />
+    <PackageReference Include="StreamJsonRpc" Version="2.25.29" />
+  </ItemGroup>
+</Project>

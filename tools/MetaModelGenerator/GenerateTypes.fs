@@ -972,3 +972,60 @@ See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17
 
       do! FileWriters.writeIfChanged outputPath formattedText
     }
+
+  /// Generates the net10 protocol contract without Newtonsoft.Json surface area.
+  /// LSP `any` slots use the JsonElement-backed LSPAny wrapper supplied by AotTypes.fs.
+  let generateAotType (parsedMetaModel: MetaModel.MetaModel) outputPath =
+    async {
+      let temporaryPath =
+        outputPath
+        + ".newtonsoft"
+
+      do! generateType parsedMetaModel temporaryPath
+
+      let! generated =
+        System.IO.File.ReadAllTextAsync temporaryPath
+        |> Async.AwaitTask
+
+      let modern =
+        generated
+          .Replace("open Newtonsoft.Json\n", "open System.Text.Json.Serialization\n")
+          .Replace("open Newtonsoft.Json.Linq\n", "")
+          .Replace("JToken", "LSPAny")
+          .Replace("  [<JsonProperty(NullValueHandling = NullValueHandling.Include)>]\n", "")
+          .Replace("[<JsonConverter(typeof<Converters.StringEnumConverter>)>]\n", "")
+          .Replace(
+            "$\"{x.Start.DebuggerDisplay}-{x.End.DebuggerDisplay}\"",
+            "String.Concat(x.Start.DebuggerDisplay, \"-\", x.End.DebuggerDisplay)"
+          )
+          .Replace(
+            "$\"({x.Line},{x.Character})\"",
+            "String.Concat(\"(\", x.Line.ToString(System.Globalization.CultureInfo.CurrentCulture), \",\", x.Character.ToString(System.Globalization.CultureInfo.CurrentCulture), \")\")"
+          )
+          .Replace(
+            "$\"[{defaultArg x.Severity DiagnosticSeverity.Error}] ({x.Range.DebuggerDisplay}) {x.Message} ({Option.map string x.Code |> Option.defaultValue String.Empty})\"",
+            "let code =\n      x.Code\n      |> Option.map (function\n        | U2.C1 value -> value.ToString(System.Globalization.CultureInfo.CurrentCulture)\n        | U2.C2 value -> value)\n      |> Option.defaultValue String.Empty\n\n    String.Concat(\"[\", (defaultArg x.Severity DiagnosticSeverity.Error).ToString(), \"] (\", x.Range.DebuggerDisplay, \") \", x.Message, \" (\", code, \")\")"
+          )
+
+      let addRecordToString (recordMatch: System.Text.RegularExpressions.Match) =
+        let name = recordMatch.Groups.["name"].Value
+
+        String.Concat(recordMatch.Groups.["declaration"].Value, " with\n\n  override _.ToString() = \"", name, "\"")
+
+      let modern =
+        System.Text.RegularExpressions.Regex.Replace(
+          modern,
+          "(?ms)^(?<declaration>type (?<name>[A-Za-z0-9_`]+) = \\{\n.*?^\\})(?: with)?$",
+          System.Text.RegularExpressions.MatchEvaluator addRecordToString
+        )
+
+      let modern =
+        System.Text.RegularExpressions.Regex.Replace(
+          modern,
+          "(?m)^(?<declaration>type (?<name>[A-Za-z0-9_`]+) = \\{.*\\})$",
+          System.Text.RegularExpressions.MatchEvaluator addRecordToString
+        )
+
+      System.IO.File.Delete temporaryPath
+      do! FileWriters.writeIfChanged outputPath modern
+    }

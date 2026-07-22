@@ -6,6 +6,8 @@
   <ItemGroup>
     <PackageReference Include="Argu" Version="*" />
     <PackageReference Include="Fabulous.AST" Version="[1.2.0]" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="StreamJsonRpc" Version="2.25.29" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="PrimitiveExtensions.fs" />
@@ -13,6 +15,7 @@
     <Compile Include="Common.fs" />
     <Compile Include="GenerateTypes.fs" />
     <Compile Include="GenerateClientServer.fs" />
+    <Compile Include="GenerateAotMetadata.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 </Project>

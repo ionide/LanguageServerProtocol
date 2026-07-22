@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <ChangelogFile>$(MSBuildThisFileDirectory)../CHANGELOG.md</ChangelogFile>
     <Description>Library for implementing Language Server Protocol in F#.</Description>
@@ -11,6 +11,7 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageProjectUrl>https://github.com/ionide/LanguageServerProtocol</PackageProjectUrl>
     <LSPVersion>3.17.0</LSPVersion>
+    <IsAotCompatible Condition="'$(TargetFramework)' == 'net10.0'">true</IsAotCompatible>
   </PropertyGroup>
   <ItemGroup>
     <!-- FsLibLog.fs comes verbatim from
@@ -20,27 +21,64 @@
     repo.
     -->
     <Compile Include="FsLibLog.fs" />
-    <Compile Include="Types.fs" />
-    <Compile Include="Types.cg.fs" Watch="false" />
-    <Compile Include="JsonRpc.fs" />
+    <Compile Include="Types.fs" Condition="'$(TargetFramework)' == 'netstandard2.0'" />
+    <Compile Include="Types.cg.fs" Watch="false" Condition="'$(TargetFramework)' == 'netstandard2.0'" />
+    <Compile Include="JsonRpc.fs" Condition="'$(TargetFramework)' == 'netstandard2.0'" />
+    <Compile Include="AotTypes.fs" Condition="'$(TargetFramework)' == 'net10.0'" />
+    <Compile Include="$(IntermediateOutputPath)AotTypes.generated.fs" Condition="'$(TargetFramework)' == 'net10.0'" />
+    <Compile Include="AotJsonRpc.fs" Condition="'$(TargetFramework)' == 'net10.0'" />
     <Compile Include="TypeDefaults.fs" />
     <Compile Include="ClientServer.cg.fs" Watch="false" />
     <Compile Include="Client.fs" />
     <Compile Include="Server.fs" />
-    <Compile Include="OptionConverter.fs" />
-    <Compile Include="JsonUtils.fs" />
-    <Compile Include="LanguageServerProtocol.fs" />
+    <Compile Include="OptionConverter.fs" Condition="'$(TargetFramework)' == 'netstandard2.0'" />
+    <Compile Include="JsonUtils.fs" Condition="'$(TargetFramework)' == 'netstandard2.0'" />
+    <Compile Include="AotRuntime.fs" Condition="'$(TargetFramework)' == 'net10.0'" />
+    <Compile Include="$(IntermediateOutputPath)StaticProtocolTarget.generated.fs" Condition="'$(TargetFramework)' == 'net10.0'" />
+    <Compile Include="LanguageServerProtocol.fs" Condition="'$(TargetFramework)' == 'netstandard2.0'" />
+    <Compile Include="AotLanguageServerProtocol.fs" Condition="'$(TargetFramework)' == 'net10.0'" />
     <None Include="../README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="DotNet.ReproducibleBuilds" Version="1.1.1" PrivateAssets="All" />
     <PackageReference Include="Ionide.KeepAChangelog.Tasks" Version="0.1.8" PrivateAssets="All" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-    <PackageReference Include="System.Text.Json" Version="10.0.8" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" Condition="'$(TargetFramework)' == 'netstandard2.0'" />
+    <PackageReference Include="System.Text.Json" Version="10.0.10" Condition="'$(TargetFramework)' == 'netstandard2.0'" />
     <!-- Explicitly pinning our FSharp.Core to 6.0.0 so that consumers can use _any_ 6.x version. -->
-    <PackageReference Update="FSharp.Core" Version="6.0.0" />
-    <PackageReference Include="StreamJsonRpc" Version="2.16.36" />
+    <PackageReference Update="FSharp.Core" Version="6.0.0" Condition="'$(TargetFramework)' == 'netstandard2.0'" />
+    <PackageReference Update="FSharp.Core" Version="10.1.301" Condition="'$(TargetFramework)' == 'net10.0'" />
+    <PackageReference Include="StreamJsonRpc" Version="2.25.29" />
+    <Reference Include="Ionide.LanguageServerProtocol.StaticMetadata" Condition="'$(TargetFramework)' == 'net10.0'">
+      <HintPath>$(MSBuildThisFileDirectory)StaticMetadata/bin/$(Configuration)/net10.0/Ionide.LanguageServerProtocol.StaticMetadata.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
   </ItemGroup>
+
+  <PropertyGroup>
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);IncludeStaticMetadataPackageAsset</TargetsForTfmSpecificBuildOutput>
+  </PropertyGroup>
+
+  <Target Name="GenerateAotMetadata" BeforeTargets="ResolveReferences" Condition="'$(TargetFramework)' == 'net10.0'">
+    <ItemGroup>
+      <_GeneratorProject Include="../tools/MetaModelGenerator/MetaModelGenerator.fsproj" />
+      <_AotContractProject Include="$(MSBuildThisFileDirectory)StaticMetadata/AotContract/AotContract.fsproj" />
+    </ItemGroup>
+    <MSBuild Projects="@(_GeneratorProject)" Targets="Restore;Build" RemoveProperties="TargetFramework">
+      <Output TaskParameter="TargetOutputs" ItemName="_AotGeneratorApp" />
+    </MSBuild>
+    <Exec Command="dotnet &quot;@(_AotGeneratorApp)&quot; aottypes --metamodelpath &quot;%(_MetaModelInputs.FullPath)&quot; --outputfilepath &quot;$(IntermediateOutputPath)AotTypes.generated.fs&quot;" />
+    <MSBuild Projects="@(_AotContractProject)" Targets="Restore;Build" Properties="Configuration=$(Configuration);TargetFramework=net10.0;ContractGeneratedTypesPath=$(MSBuildThisFileDirectory)$(IntermediateOutputPath)AotTypes.generated.fs;BuildProjectReferences=false;RuntimeIdentifier=;RuntimeIdentifiers=" />
+    <Exec Command="dotnet &quot;@(_AotGeneratorApp)&quot; aotmetadata --metamodelpath &quot;%(_MetaModelInputs.FullPath)&quot; --contractassemblypath &quot;$(MSBuildThisFileDirectory)StaticMetadata/AotContract/bin/$(Configuration)/net10.0/Ionide.LanguageServerProtocol.dll&quot; --csharpoutputfilepath &quot;$(IntermediateOutputPath)AotMetadata.generated.cs&quot; --fsharpoutputfilepath &quot;$(IntermediateOutputPath)StaticProtocolTarget.generated.fs&quot;" />
+    <MSBuild Projects="$(MSBuildThisFileDirectory)StaticMetadata/Ionide.LanguageServerProtocol.StaticMetadata.csproj" Targets="Restore;Build" Properties="Configuration=$(Configuration);TargetFramework=net10.0;ContractAssemblyPath=$(MSBuildThisFileDirectory)StaticMetadata/AotContract/bin/$(Configuration)/net10.0/Ionide.LanguageServerProtocol.dll;BuildProjectReferences=false;RuntimeIdentifier=;RuntimeIdentifiers=" />
+  </Target>
+
+  <Target Name="IncludeStaticMetadataPackageAsset" Condition="'$(TargetFramework)' == 'net10.0'">
+    <ItemGroup>
+      <BuildOutputInPackage Include="$(MSBuildThisFileDirectory)StaticMetadata/bin/$(Configuration)/net10.0/Ionide.LanguageServerProtocol.StaticMetadata.dll">
+        <TargetPath>Ionide.LanguageServerProtocol.StaticMetadata.dll</TargetPath>
+      </BuildOutputInPackage>
+    </ItemGroup>
+  </Target>
 
   <ItemGroup>
     <_MetaModelInputs
@@ -60,7 +98,7 @@
   </Target>
 
   <Target Name="RegenerateTypes" Inputs="@(_MetaModelInputs);@(_GenerationInputs)"
-    Condition="'$(DesignTimeBuild)' != 'True'"
+    Condition="'$(TargetFramework)' == 'netstandard2.0' AND '$(DesignTimeBuild)' != 'True'"
     DependsOnTargets="EnsureRegeneration"
     Outputs="@(_MetaModelOutputs); @(_MetaModelClientServerOutputs)"
     BeforeTargets="PrepareForBuild">
